@@ -1159,4 +1159,8 @@ body {
 .film-random-btn {
     padding: 12px 10px;
     font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }

@@ -1272,17 +1272,29 @@ function renderFilmWatched() {
     const c = document.getElementById('filmWatched');
     if (!c) return;
 
-    const allMovies = [];
-    filmGenres.forEach(g => (g.movies || []).forEach(m => { if (m.status === 'watched') allMovies.push(m); }));
-    filmOrphans.forEach(m => { if (m.status === 'watched') allMovies.push(m); });
+    const byGenre = [];
+    filmGenres.forEach(g => {
+        const watched = (g.movies || []).filter(m => m.status === 'watched');
+        if (watched.length) byGenre.push({ name: g.name, movies: watched });
+    });
+    const orphansWatched = filmOrphans.filter(m => m.status === 'watched');
+    if (orphansWatched.length) byGenre.push({ name: 'Без жанра', movies: orphansWatched });
 
-    if (!allMovies.length) {
+    if (!byGenre.length) {
         c.innerHTML = `<div class="empty-state">Пока ничего не посмотрел</div>`;
         return;
     }
 
-    allMovies.sort((a,b) => (b.rating || 0) - (a.rating || 0));
-    c.innerHTML = allMovies.map(m => filmItemHTML(m)).join('');
+    c.innerHTML = byGenre.map(g => {
+        const sorted = [...g.movies].sort((a,b) => (b.rating || 0) - (a.rating || 0));
+        return `<div class="film-genre-card">
+            <div class="film-genre-header">
+                <div class="film-genre-name">${escapeHtml(g.name)}</div>
+                <div class="film-genre-count">${sorted.length}</div>
+            </div>
+            ${sorted.map(m => filmItemHTML(m)).join('')}
+        </div>`;
+    }).join('');
 }
 
 // Редактирование жанра
