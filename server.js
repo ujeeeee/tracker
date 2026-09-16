@@ -813,21 +813,12 @@ app.get('/api/tea', authMiddleware, async (req, res) => {
     const { data: items } = await supabase.from('tea_items').select('*')
         .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
 
-    const itemIds = (items || []).map(i => i.id);
-    const { data: links } = itemIds.length ? await supabase.from('tea_links').select('*')
-        .in('tea_id', itemIds) : { data: [] };
-
-    const linksMap = {};
-    (links || []).forEach(l => { (linksMap[l.tea_id] ||= []).push(l); });
-
-    const itemsWithLinks = (items || []).map(i => ({ ...i, links: linksMap[i.id] || [] }));
-
     const result = (groups || []).map(g => ({
         ...g,
-        items: itemsWithLinks.filter(i => i.group_id === g.id),
+        items: (items || []).filter(i => i.group_id === g.id),
     }));
 
-    const orphans = itemsWithLinks.filter(i => !i.group_id);
+    const orphans = (items || []).filter(i => !i.group_id);
     res.json({ groups: result, orphans });
 });
 
@@ -857,32 +848,28 @@ app.delete('/api/tea/groups/:id', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/tea/items', authMiddleware, async (req, res) => {
-    const { name, group_id, temp_c, brew_time_sec, effect, review, rating, repeat_buy } = req.body;
+    const { name, group_id, temp_c, review, rating } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
     const { data, error } = await supabase.from('tea_items').insert({
         tg_id: req.tg_id,
         name: name.trim(),
         group_id: group_id || null,
         temp_c: temp_c ? parseInt(temp_c) : null,
-        brew_time_sec: brew_time_sec ? parseInt(brew_time_sec) : null,
-        effect: effect || null,
         review: review || null,
         rating: rating ? parseInt(rating) : null,
-        repeat_buy: !!repeat_buy,
     }).select().single();
     if (error) return res.status(500).json({ error: error.message });
-    res.json({ item: { ...data, links: [] } });
+    res.json({ item: data });
 });
 
 app.patch('/api/tea/items/:id', authMiddleware, async (req, res) => {
     const updates = {};
-    ['name','group_id','effect','review'].forEach(k => {
+    ['name','group_id','review'].forEach(k => {
         if (req.body[k] !== undefined) updates[k] = req.body[k];
     });
-    ['temp_c','brew_time_sec','rating'].forEach(k => {
+    ['temp_c','rating'].forEach(k => {
         if (req.body[k] !== undefined) updates[k] = req.body[k] ? parseInt(req.body[k]) : null;
     });
-    if (req.body.repeat_buy !== undefined) updates.repeat_buy = !!req.body.repeat_buy;
 
     const { data, error } = await supabase.from('tea_items').update(updates)
         .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
@@ -896,20 +883,29 @@ app.delete('/api/tea/items/:id', authMiddleware, async (req, res) => {
     res.json({ ok: true });
 });
 
-app.post('/api/tea/items/:id/links', authMiddleware, async (req, res) => {
-    const { shop_name, url } = req.body;
+// ==========================================
+// ===== TEA: МАГАЗИНЫ =====
+// ==========================================
+app.get('/api/tea/shops', authMiddleware, async (req, res) => {
+    const { data } = await supabase.from('tea_shops').select('*')
+        .eq('tg_id', req.tg_id).order('created_at');
+    res.json({ shops: data || [] });
+});
+
+app.post('/api/tea/shops', authMiddleware, async (req, res) => {
+    const { name, url } = req.body;
     if (!url?.trim()) return res.status(400).json({ error: 'URL required' });
-    const { data, error } = await supabase.from('tea_links').insert({
-        tea_id: req.params.id,
-        shop_name: (shop_name || '').trim() || null,
+    const { data, error } = await supabase.from('tea_shops').insert({
+        tg_id: req.tg_id,
+        name: (name || '').trim() || null,
         url: url.trim(),
     }).select().single();
     if (error) return res.status(500).json({ error: error.message });
-    res.json({ link: data });
+    res.json({ shop: data });
 });
 
-app.delete('/api/tea/links/:id', authMiddleware, async (req, res) => {
-    await supabase.from('tea_links').delete().eq('id', req.params.id);
+app.delete('/api/tea/shops/:id', authMiddleware, async (req, res) => {
+    await supabase.from('tea_shops').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
     res.json({ ok: true });
 });
 

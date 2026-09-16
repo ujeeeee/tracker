@@ -1479,17 +1479,21 @@ function closeRandomFilm() { document.getElementById('randomFilmModal').classLis
 // ==========================================
 let teaGroups = [];
 let teaOrphans = [];
-let teaCtx = { groupId: null, currentId: null, rating: null, repeat: false };
+let teaShops = [];
+let teaCtx = { groupId: null, currentId: null, rating: null };
 let teaGroupEditCtx = { id: null };
-let teaTimerInterval = null;
 
 async function loadTea() {
     try {
-        const { groups, orphans } = await api('/api/tea');
-        teaGroups = groups;
-        teaOrphans = orphans;
+        const [teaR, shopsR] = await Promise.all([
+            api('/api/tea'),
+            api('/api/tea/shops'),
+        ]);
+        teaGroups = teaR.groups;
+        teaOrphans = teaR.orphans;
+        teaShops = shopsR.shops;
         renderTea();
-        renderTeaRepeat();
+        renderTeaShops();
     } catch (e) { console.error(e); }
 }
 
@@ -1501,7 +1505,7 @@ function renderTea() {
     if (teaOrphans.length) all.push({ id: null, name: 'Без группы', items: teaOrphans });
 
     if (!all.length) {
-        c.innerHTML = `<div class="empty-state">Нет чая. Нажми «+ Группа»</div>`;
+        c.innerHTML = `<div class="empty-state">Нет чая. Нажми +</div>`;
         return;
     }
 
@@ -1522,40 +1526,34 @@ function renderTea() {
 function teaItemHTML(i) {
     const parts = [];
     if (i.temp_c) parts.push(`${i.temp_c}°C`);
-    if (i.brew_time_sec) parts.push(formatTime(i.brew_time_sec));
-    if (i.effect) parts.push(escapeHtml(i.effect));
+    if (i.review) parts.push(escapeHtml(i.review.slice(0, 40)));
 
     return `<div class="tea-item" onclick="openTeaCard(${i.id})">
         <div class="tea-item-info">
             <div class="tea-item-name">${escapeHtml(i.name)}</div>
             <div class="tea-item-meta">${parts.join(' · ') || '—'}</div>
         </div>
-        ${i.repeat_buy ? `<div class="tea-repeat-badge">Повтор</div>` : ''}
         ${i.rating ? `<div class="tea-item-rating">★ ${i.rating}</div>` : ''}
     </div>`;
 }
 
-function formatTime(sec) {
-    if (sec < 60) return `${sec}с`;
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return s ? `${m}м ${s}с` : `${m}м`;
-}
-
-function renderTeaRepeat() {
-    const c = document.getElementById('teaRepeat');
+function renderTeaShops() {
+    const c = document.getElementById('teaShops');
     if (!c) return;
-
-    const all = [];
-    teaGroups.forEach(g => g.items.forEach(i => { if (i.repeat_buy) all.push(i); }));
-    teaOrphans.forEach(i => { if (i.repeat_buy) all.push(i); });
-
-    if (!all.length) {
-        c.innerHTML = `<div class="empty-state">Нет чая в списке повтора</div>`;
+    if (!teaShops.length) {
+        c.innerHTML = `<div class="widget-empty">Нет магазинов</div>`;
         return;
     }
-
-    c.innerHTML = all.map(i => teaItemHTML(i)).join('');
+    c.innerHTML = teaShops.map(s => `
+        <div class="tea-shop-item">
+            <div class="tea-shop-info">
+                ${s.name ? `<div class="tea-shop-name">${escapeHtml(s.name)}</div>` : ''}
+                <div class="tea-shop-url">${escapeHtml(s.url)}</div>
+            </div>
+            <button class="tea-shop-go" onclick="window.open('${escapeHtml(s.url)}', '_blank')">↗</button>
+            <button class="tea-shop-del" onclick="deleteTeaShop(${s.id})">✕</button>
+        </div>
+    `).join('');
 }
 
 // Группа чая
@@ -1600,7 +1598,6 @@ function openTeaModal(groupId = null) {
     teaCtx.groupId = groupId;
     document.getElementById('teaName').value = '';
     document.getElementById('teaTemp').value = '';
-    document.getElementById('teaBrewTime').value = '';
 
     const sel = document.getElementById('teaGroupSelect');
     sel.innerHTML = `<option value="">Без группы</option>` +
@@ -1619,7 +1616,6 @@ async function saveTea() {
             name,
             group_id: gVal ? parseInt(gVal) : null,
             temp_c: document.getElementById('teaTemp').value || null,
-            brew_time_sec: document.getElementById('teaBrewTime').value || null,
         });
         closeTeaModal();
         await loadTea();
@@ -1638,13 +1634,10 @@ function openTeaCard(id) {
 
     teaCtx.currentId = id;
     teaCtx.rating = item.rating || null;
-    teaCtx.repeat = !!item.repeat_buy;
 
     document.getElementById('teaCardTitle').textContent = item.name;
     document.getElementById('teaCardName').value = item.name;
     document.getElementById('teaCardTemp').value = item.temp_c || '';
-    document.getElementById('teaCardTime').value = item.brew_time_sec || '';
-    document.getElementById('teaCardEffect').value = item.effect || '';
     document.getElementById('teaCardReview').value = item.review || '';
 
     const sel = document.getElementById('teaCardGroup');
@@ -1654,21 +1647,9 @@ function openTeaCard(id) {
     document.querySelectorAll('#teaRatingPicker button').forEach(b =>
         b.classList.toggle('active', teaCtx.rating === parseInt(b.dataset.r)));
 
-    document.getElementById('teaRepeatCheck').classList.toggle('done', teaCtx.repeat);
-
-    // Таймер — сброс
-    if (teaTimerInterval) { clearInterval(teaTimerInterval); teaTimerInterval = null; }
-    document.getElementById('teaTimerDisplay').style.display = 'none';
-    document.getElementById('teaTimerDisplay').classList.remove('done');
-
-    renderTeaCardLinks(item);
-
     document.getElementById('teaCardModal').classList.add('open');
 }
-function closeTeaCardModal() {
-    if (teaTimerInterval) { clearInterval(teaTimerInterval); teaTimerInterval = null; }
-    document.getElementById('teaCardModal').classList.remove('open');
-}
+function closeTeaCardModal() { document.getElementById('teaCardModal').classList.remove('open'); }
 function pickTeaRating(r, btn) {
     if (teaCtx.rating === r) {
         teaCtx.rating = null;
@@ -1679,10 +1660,6 @@ function pickTeaRating(r, btn) {
         btn.classList.add('active');
     }
 }
-function toggleTeaRepeat() {
-    teaCtx.repeat = !teaCtx.repeat;
-    document.getElementById('teaRepeatCheck').classList.toggle('done', teaCtx.repeat);
-}
 async function saveTeaCard() {
     const name = document.getElementById('teaCardName').value.trim();
     if (!name) return alert('Введи название');
@@ -1692,11 +1669,8 @@ async function saveTeaCard() {
             name,
             group_id: gVal ? parseInt(gVal) : null,
             temp_c: document.getElementById('teaCardTemp').value || null,
-            brew_time_sec: document.getElementById('teaCardTime').value || null,
-            effect: document.getElementById('teaCardEffect').value || null,
             review: document.getElementById('teaCardReview').value || null,
             rating: teaCtx.rating,
-            repeat_buy: teaCtx.repeat,
         });
         closeTeaCardModal();
         await loadTea();
@@ -1709,76 +1683,30 @@ async function deleteCurrentTea() {
     await loadTea();
 }
 
-// Ссылки
-function renderTeaCardLinks(item) {
-    const c = document.getElementById('teaCardLinks');
-    if (!item.links?.length) {
-        c.innerHTML = `<div class="widget-empty">Нет ссылок</div>`;
-        return;
-    }
-    c.innerHTML = item.links.map(l => `
-        <div class="tea-link-item">
-            ${l.shop_name ? `<span class="tea-link-shop">${escapeHtml(l.shop_name)}</span>` : ''}
-            <a class="tea-link-url" href="${escapeHtml(l.url)}" target="_blank">${escapeHtml(l.url)}</a>
-            <button class="tea-link-del" onclick="deleteTeaLink(${l.id})">✕</button>
-        </div>
-    `).join('');
+// Магазины
+function openTeaShopModal() {
+    document.getElementById('teaShopName').value = '';
+    document.getElementById('teaShopUrl').value = '';
+    document.getElementById('teaShopModal').classList.add('open');
+    setTimeout(() => document.getElementById('teaShopName').focus(), 200);
 }
-function openTeaLinkModal() {
-    document.getElementById('teaLinkShop').value = '';
-    document.getElementById('teaLinkUrl').value = '';
-    document.getElementById('teaLinkModal').classList.add('open');
-    setTimeout(() => document.getElementById('teaLinkShop').focus(), 200);
-}
-function closeTeaLinkModal() { document.getElementById('teaLinkModal').classList.remove('open'); }
-async function saveTeaLink() {
-    const url = document.getElementById('teaLinkUrl').value.trim();
+function closeTeaShopModal() { document.getElementById('teaShopModal').classList.remove('open'); }
+async function saveTeaShop() {
+    const url = document.getElementById('teaShopUrl').value.trim();
     if (!url) return alert('Введи ссылку');
     try {
-        await api(`/api/tea/items/${teaCtx.currentId}/links`, 'POST', {
-            shop_name: document.getElementById('teaLinkShop').value,
+        await api('/api/tea/shops', 'POST', {
+            name: document.getElementById('teaShopName').value,
             url,
         });
-        closeTeaLinkModal();
-        // Обновляем локальную модель — подгружаем заново
+        closeTeaShopModal();
         await loadTea();
-        // Открываем карточку заново с новыми ссылками
-        openTeaCard(teaCtx.currentId);
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
-async function deleteTeaLink(id) {
-    await api(`/api/tea/links/${id}`, 'DELETE');
+async function deleteTeaShop(id) {
+    if (!confirm('Удалить магазин?')) return;
+    await api(`/api/tea/shops/${id}`, 'DELETE');
     await loadTea();
-    openTeaCard(teaCtx.currentId);
-}
-
-// Таймер
-function startTeaTimer() {
-    const sec = parseInt(document.getElementById('teaCardTime').value);
-    if (!sec || sec < 1) return alert('Укажи время заварки');
-
-    if (teaTimerInterval) clearInterval(teaTimerInterval);
-    const display = document.getElementById('teaTimerDisplay');
-    display.style.display = 'block';
-    display.classList.remove('done');
-
-    let left = sec;
-    const update = () => {
-        const m = Math.floor(left / 60);
-        const s = left % 60;
-        display.textContent = m ? `${m}:${String(s).padStart(2, '0')}` : `${s}с`;
-        if (left <= 0) {
-            clearInterval(teaTimerInterval);
-            teaTimerInterval = null;
-            display.textContent = 'Готово! 🍵';
-            display.classList.add('done');
-            haptic('heavy');
-            return;
-        }
-        left--;
-    };
-    update();
-    teaTimerInterval = setInterval(update, 1000);
 }
 
 // ===== СТАРТ =====
