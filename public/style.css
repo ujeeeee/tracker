@@ -370,7 +370,7 @@ body {
 .cash-total b { color: var(--text); font-size: 15px; }
 
 /* Piggy */
-.piggy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.piggy-grid { display: block; }
 .piggy-card {
     background: var(--card); backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border); border-radius: 18px;
