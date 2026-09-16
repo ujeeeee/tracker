@@ -40,37 +40,34 @@
                         <button class="tab" onclick="switchSubTab('discipline', 'habits', this)">Привычки</button>
                     </div>
                     <div class="screen-content">
+
                         <div id="discipline-goals" class="subtab active">
-                            <button class="btn-add" onclick="openAddModal('area')">
-                                <span>+</span> Добавить область
-                            </button>
+                            <div class="goals-header">
+                                <span class="goals-header-title">Мои области</span>
+                                <button class="btn-icon-add" onclick="openAddModal('area')">+</button>
+                            </div>
                             <div id="areasList"></div>
                         </div>
+
                         <div id="discipline-habits" class="subtab">
-                            <div class="view-switcher">
-                                <button class="view-opt active" data-view="list" onclick="switchHabitsView('list', this)">Список</button>
-                                <button class="view-opt" data-view="week" onclick="switchHabitsView('week', this)">Неделя</button>
+                            <div class="week-nav">
+                                <button class="week-nav-btn" onclick="weekPrev()">‹</button>
+                                <div class="week-range" id="weekRange"></div>
+                                <button class="week-nav-btn" onclick="weekNext()">›</button>
                             </div>
+                            <div id="weekGrid"></div>
 
-                            <div id="habitsListView">
-                                <button class="btn-add" onclick="openAddModal('habit')">
-                                    <span>+</span> Добавить привычку
-                                </button>
-                                <div id="habitsList"></div>
-                            </div>
+                            <button class="btn-add" style="margin-top:16px;" onclick="openHabitModal()">
+                                <span>+</span> Добавить привычку
+                            </button>
 
-                            <div id="habitsWeekView" style="display:none;">
-                                <div class="week-nav">
-                                    <button class="week-nav-btn" onclick="weekPrev()">‹</button>
-                                    <div class="week-range" id="weekRange"></div>
-                                    <button class="week-nav-btn" onclick="weekNext()">›</button>
-                                </div>
-                                <div id="weekGrid"></div>
-                                <button class="btn-add" style="margin-top:16px;" onclick="openAddModal('habit')">
-                                    <span>+</span> Добавить привычку
-                                </button>
+                            <div class="chart-block">
+                                <div class="chart-title" id="chartTitle">Активность за месяц</div>
+                                <div class="chart-canvas" id="habitsChart"></div>
+                                <div class="chart-legend" id="chartLegend"></div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -254,7 +251,7 @@
     </nav>
 
     <!-- ========================================== -->
-    <!-- МОДАЛКА ВВОДА -->
+    <!-- МОДАЛКА ВВОДА (универсальная) -->
     <!-- ========================================== -->
     <div class="modal-overlay" id="inputModal">
         <div class="modal-sheet">
@@ -269,23 +266,47 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- МОДАЛКА НАСТРОЙКИ ПРИВЫЧКИ -->
+    <!-- МОДАЛКА КАЛЕНДАРЯ ПРИВЫЧКИ -->
     <!-- ========================================== -->
-    <div class="modal-overlay" id="habitSettingsModal">
+    <div class="modal-overlay" id="calendarModal">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
-            <h3 class="modal-title">Настройки привычки</h3>
+            <h3 class="modal-title" id="calTitle">Привычка</h3>
+            <div class="cal-header">
+                <button class="cal-nav" onclick="calPrev()">‹</button>
+                <div class="cal-month" id="calMonth"></div>
+                <button class="cal-nav" onclick="calNext()">›</button>
+            </div>
+            <div class="cal-weekdays">
+                <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div class="cal-footer">
+                <div class="cal-stat" id="calStats"></div>
+                <button class="modal-btn primary" onclick="closeCalendar()">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- МОДАЛКА ПРИВЫЧКИ (создание / редактирование) -->
+    <!-- ========================================== -->
+    <div class="modal-overlay" id="habitModal">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title" id="habitModalTitle">Новая привычка</h3>
 
             <div class="field-label">Название</div>
-            <input type="text" class="modal-input" id="habitSetName" />
+            <input type="text" class="modal-input" id="habitName" placeholder="Например: Зал" />
 
             <div class="field-label">Периодичность</div>
-            <div class="theme-switcher" style="margin-bottom:12px;">
-                <button class="theme-option" data-freq="daily" onclick="pickFrequency('daily', this)">Каждый день</button>
-                <button class="theme-option" data-freq="custom" onclick="pickFrequency('custom', this)">Дни недели</button>
+            <div class="freq-tabs">
+                <button class="freq-tab active" data-freq="daily" onclick="pickFreq('daily', this)">Каждый день</button>
+                <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
+                <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
             </div>
 
-            <div id="daysPicker" style="display:none;">
+            <div id="freqDays" style="display:none;margin-top:12px;">
                 <div class="days-picker">
                     <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
                     <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
@@ -297,9 +318,17 @@
                 </div>
             </div>
 
+            <div id="freqInterval" style="display:none;margin-top:12px;">
+                <div class="interval-row">
+                    <span>Каждые</span>
+                    <input type="number" class="interval-input" id="intervalInput" value="2" min="2" max="60" />
+                    <span>дней</span>
+                </div>
+            </div>
+
             <div class="modal-actions" style="margin-top:20px;">
-                <button class="modal-btn secondary" onclick="closeHabitSettings()">Отмена</button>
-                <button class="modal-btn primary" onclick="saveHabitSettings()">Сохранить</button>
+                <button class="modal-btn secondary" onclick="closeHabitModal()">Отмена</button>
+                <button class="modal-btn primary" onclick="saveHabit()">Сохранить</button>
             </div>
         </div>
     </div>

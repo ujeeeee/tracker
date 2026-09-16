@@ -176,13 +176,38 @@ app.get('/api/disc/habits', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/disc/habits', authMiddleware, async (req, res) => {
-    const { name } = req.body;
+    const { name, frequency, days_of_week, interval_days } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+
     const { data, error } = await supabase
-        .from('disc_habits').insert({ tg_id: req.tg_id, name: name.trim() })
+        .from('disc_habits')
+        .insert({
+            tg_id: req.tg_id,
+            name: name.trim(),
+            frequency: frequency || 'daily',
+            days_of_week: days_of_week || [1,2,3,4,5,6,7],
+            interval_days: interval_days || 2,
+        })
         .select().single();
+
     if (error) return res.status(500).json({ error: error.message });
     res.json({ habit: { ...data, logs: [] } });
+});
+
+app.patch('/api/disc/habits/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    if (req.body.name !== undefined) updates.name = req.body.name;
+    if (req.body.frequency !== undefined) updates.frequency = req.body.frequency;
+    if (req.body.days_of_week !== undefined) updates.days_of_week = req.body.days_of_week;
+    if (req.body.interval_days !== undefined) updates.interval_days = req.body.interval_days;
+
+    const { data, error } = await supabase
+        .from('disc_habits').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id)
+        .select().single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ habit: data });
 });
 
 app.delete('/api/disc/habits/:id', authMiddleware, async (req, res) => {
@@ -195,6 +220,9 @@ app.delete('/api/disc/habits/:id', authMiddleware, async (req, res) => {
 app.post('/api/disc/habits/:id/toggle', authMiddleware, async (req, res) => {
     const habitId = req.params.id;
     const d = req.body.date || new Date().toISOString().slice(0, 10);
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (d > today) return res.status(400).json({ error: 'Cannot mark future dates' });
 
     const { data: existing } = await supabase
         .from('disc_habit_logs').select('id, done')
@@ -230,127 +258,44 @@ app.get('/api/disc/habits/:id/month', authMiddleware, async (req, res) => {
         .select('date, done')
         .eq('habit_id', req.params.id)
         .eq('tg_id', req.tg_id)
-        .gte('date', start)
-        .lte('date', end);
+        .gte('date', start).lte('date', end);
 
     if (error) return res.status(500).json({ error: error.message });
     res.json({ logs: logs || [] });
 });
-
-// ==========================================
-// ===== DISCIPLINE: КАЛЕНДАРЬ ПРИВЫЧКИ =====
-// ==========================================
-app.get('/api/disc/habits/:id/month', authMiddleware, async (req, res) => {
-    const { year, month } = req.query;
-    if (!year || !month) return res.status(400).json({ error: 'year & month required' });
-
-    const y = parseInt(year);
-    const m = parseInt(month); // 1-12
-    const start = `${y}-${String(m).padStart(2, '0')}-01`;
-    const lastDay = new Date(y, m, 0).getDate();
-    const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-    const { data: logs, error } = await supabase
-        .from('disc_habit_logs')
-        .select('date, done')
-        .eq('habit_id', req.params.id)
-        .eq('tg_id', req.tg_id)
-        .gte('date', start)
-        .lte('date', end);
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ logs: logs || [] });
-});
-
-// ==========================================
-// ===== HOME: ДАШБОРД =====
-// ==========================================
-app.get('/api/home', authMiddleware, async (req, res) => {
-    try {
-        const today = new Date().toISOString().slice(0, 10);
-
-        const { data: habits } = await supabase
-            .from('disc_habits')
-            .select('*')
-            .eq('tg_id', req.tg_id)
-            .eq('archived', false)
-            .order('created_at', { ascending: true });
-
-        const since = new Date();
-        since.setDate(since.getDate() - 60);
-
-        const { data: logs } = await supabase
-            .from('disc_habit_logs')
-            .select('habit_id, date, done')
-            .eq('tg_id', req.tg_id)
-            .gte('date', since.toISOString().slice(0, 10));
-
-        const logsMap = {};
-        (logs || []).forEach(l => {
-            if (!logsMap[l.habit_id]) logsMap[l.habit_id] = [];
-            logsMap[l.habit_id].push(l);
-        });
-
-        const habitsWithLogs = (habits || []).map(h => ({
-            id: h.id,
-            name: h.name,
-            doneToday: (logsMap[h.id] || []).some(l => l.date === today && l.done),
-            streak: calcStreak(logsMap[h.id] || []),
-        }));
-
-        // Цели по областям
-        const { data: areas } = await supabase
-            .from('disc_areas')
-            .select('*')
-            .eq('tg_id', req.tg_id)
-            .order('sort_order', { ascending: true });
-
-        const { data: goals } = await supabase
-            .from('disc_goals')
-            .select('id, area_id, status')
-            .eq('tg_id', req.tg_id);
-
-        const areasStats = (areas || []).map(a => {
-            const gs = (goals || []).filter(g => g.area_id === a.id);
-            return {
-                id: a.id,
-                name: a.name,
-                total: gs.length,
-                done: gs.filter(g => g.status === 'done').length,
-            };
-        });
-
-        res.json({
-            today,
-            habits: habitsWithLogs,
-            areas: areasStats,
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-function calcStreak(logs) {
-    const done = new Set(logs.filter(l => l.done).map(l => l.date));
-    let streak = 0;
-    const d = new Date();
-    while (true) {
-        const key = d.toISOString().slice(0, 10);
-        if (done.has(key)) { streak++; d.setDate(d.getDate() - 1); }
-        else break;
-    }
-    return streak;
-}
 
 // ==========================================
 // ===== DISCIPLINE: НЕДЕЛЯ =====
 // ==========================================
+function isScheduled(habit, dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const dow = d.getDay() === 0 ? 7 : d.getDay();
+
+    if (habit.frequency === 'daily') return true;
+
+    if (habit.frequency === 'days') {
+        return (habit.days_of_week || []).includes(dow);
+    }
+
+    if (habit.frequency === 'interval') {
+        const created = new Date(habit.created_at);
+        created.setHours(0, 0, 0, 0);
+        const target = new Date(dateStr + 'T00:00:00');
+        target.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((target - created) / (1000 * 60 * 60 * 24));
+        const n = habit.interval_days || 2;
+        return diffDays >= 0 && diffDays % n === 0;
+    }
+
+    return true;
+}
+
 app.get('/api/disc/habits/week', authMiddleware, async (req, res) => {
-    const { start } = req.query; // YYYY-MM-DD (понедельник)
+    const { start } = req.query;
     if (!start) return res.status(400).json({ error: 'start required' });
 
-    const startDate = new Date(start);
-    const endDate = new Date(start);
+    const startDate = new Date(start + 'T00:00:00');
+    const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 6);
     const end = endDate.toISOString().slice(0, 10);
 
@@ -370,7 +315,6 @@ app.get('/api/disc/habits/week', authMiddleware, async (req, res) => {
         if (l.done) logsMap[l.habit_id].add(l.date);
     });
 
-    // Проверяем, какие дни «запланированы» для привычки
     const result = (habits || []).map(h => {
         const doneDates = logsMap[h.id] || new Set();
         const week = [];
@@ -378,32 +322,52 @@ app.get('/api/disc/habits/week', authMiddleware, async (req, res) => {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
             const dateStr = d.toISOString().slice(0, 10);
-            const dow = i + 1; // 1=Пн ... 7=Вс
-            const scheduled = h.frequency === 'daily'
-                || (h.days_of_week && h.days_of_week.includes(dow));
-            week.push({ date: dateStr, done: doneDates.has(dateStr), scheduled });
+            week.push({
+                date: dateStr,
+                done: doneDates.has(dateStr),
+                scheduled: isScheduled(h, dateStr),
+            });
         }
-        return { id: h.id, name: h.name, frequency: h.frequency, week };
+        return {
+            id: h.id,
+            name: h.name,
+            frequency: h.frequency,
+            days_of_week: h.days_of_week,
+            interval_days: h.interval_days,
+            week,
+        };
     });
 
     res.json({ start, habits: result });
 });
 
-app.patch('/api/disc/habits/:id', authMiddleware, async (req, res) => {
-    const updates = {};
-    if (req.body.name !== undefined) updates.name = req.body.name;
-    if (req.body.frequency !== undefined) updates.frequency = req.body.frequency;
-    if (req.body.days_of_week !== undefined) updates.days_of_week = req.body.days_of_week;
+// ==========================================
+// ===== СТАТИСТИКА ЗА МЕСЯЦ =====
+// ==========================================
+app.get('/api/disc/habits/month-stats', authMiddleware, async (req, res) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const first = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const last = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-    const { data, error } = await supabase
-        .from('disc_habits').update(updates)
-        .eq('id', req.params.id).eq('tg_id', req.tg_id)
-        .select().single();
+    const { data: logs } = await supabase
+        .from('disc_habit_logs')
+        .select('date')
+        .eq('tg_id', req.tg_id)
+        .gte('date', first).lte('date', last);
 
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ habit: data });
+    const counts = {};
+    for (let i = 1; i <= lastDay; i++) {
+        const d = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        counts[d] = 0;
+    }
+    (logs || []).forEach(l => { if (counts[l.date] !== undefined) counts[l.date]++; });
+
+    const days = Object.entries(counts).map(([date, count]) => ({ date, count }));
+    res.json({ year, month, days });
 });
-
 
 // ==========================================
 // ===== DISCIPLINE: ЦЕЛИ =====
@@ -483,6 +447,75 @@ app.delete('/api/disc/goals/:id', authMiddleware, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     res.json({ ok: true });
 });
+
+// ==========================================
+// ===== HOME: ДАШБОРД =====
+// ==========================================
+app.get('/api/home', authMiddleware, async (req, res) => {
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+
+        const { data: habits } = await supabase
+            .from('disc_habits').select('*')
+            .eq('tg_id', req.tg_id).eq('archived', false)
+            .order('created_at', { ascending: true });
+
+        const since = new Date();
+        since.setDate(since.getDate() - 60);
+
+        const { data: logs } = await supabase
+            .from('disc_habit_logs').select('habit_id, date, done')
+            .eq('tg_id', req.tg_id).gte('date', since.toISOString().slice(0, 10));
+
+        const logsMap = {};
+        (logs || []).forEach(l => {
+            if (!logsMap[l.habit_id]) logsMap[l.habit_id] = [];
+            logsMap[l.habit_id].push(l);
+        });
+
+        const habitsWithLogs = (habits || []).map(h => ({
+            id: h.id,
+            name: h.name,
+            doneToday: (logsMap[h.id] || []).some(l => l.date === today && l.done),
+            streak: calcStreak(logsMap[h.id] || []),
+        }));
+
+        const { data: areas } = await supabase
+            .from('disc_areas').select('*')
+            .eq('tg_id', req.tg_id)
+            .order('sort_order', { ascending: true });
+
+        const { data: goals } = await supabase
+            .from('disc_goals').select('id, area_id, status')
+            .eq('tg_id', req.tg_id);
+
+        const areasStats = (areas || []).map(a => {
+            const gs = (goals || []).filter(g => g.area_id === a.id);
+            return {
+                id: a.id,
+                name: a.name,
+                total: gs.length,
+                done: gs.filter(g => g.status === 'done').length,
+            };
+        });
+
+        res.json({ today, habits: habitsWithLogs, areas: areasStats });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+function calcStreak(logs) {
+    const done = new Set(logs.filter(l => l.done).map(l => l.date));
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+        const key = d.toISOString().slice(0, 10);
+        if (done.has(key)) { streak++; d.setDate(d.getDate() - 1); }
+        else break;
+    }
+    return streak;
+}
 
 // ==========================================
 // ===== ЗАПУСК =====
