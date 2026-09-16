@@ -101,6 +101,7 @@ function goToScreen(index, animate = true) {
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
     if (index === 3) { loadPrograms(); loadMetrics(); }
     if (index === 5) { loadFilm(); }
+    if (index === 6) { loadTea(); }
 }
 
 // ===== SUBTABS =====
@@ -1345,7 +1346,6 @@ function openFilmModal(genreId = null) {
     document.getElementById('filmModalTitle').textContent = 'Новый фильм';
     document.getElementById('filmTitle').value = '';
     document.getElementById('filmYear').value = '';
-    document.getElementById('filmUrl').value = '';
     document.querySelectorAll('#filmPriority button').forEach(b => b.classList.remove('active'));
 
     const sel = document.getElementById('filmGenreSelect');
@@ -1371,7 +1371,6 @@ async function saveFilm() {
             year: document.getElementById('filmYear').value || null,
             genre_id: genreVal ? parseInt(genreVal) : null,
             priority: filmCtx.priority,
-            url: document.getElementById('filmUrl').value || null,
         });
         closeFilmModal();
         await loadFilm();
@@ -1475,6 +1474,312 @@ async function randomMovie(type = 'want') {
 function randomAgain() { randomMovie(filmRandomType); }
 function closeRandomFilm() { document.getElementById('randomFilmModal').classList.remove('open'); }
 
+// ==========================================
+// ===== TEA =====
+// ==========================================
+let teaGroups = [];
+let teaOrphans = [];
+let teaCtx = { groupId: null, currentId: null, rating: null, repeat: false };
+let teaGroupEditCtx = { id: null };
+let teaTimerInterval = null;
+
+async function loadTea() {
+    try {
+        const { groups, orphans } = await api('/api/tea');
+        teaGroups = groups;
+        teaOrphans = orphans;
+        renderTea();
+        renderTeaRepeat();
+    } catch (e) { console.error(e); }
+}
+
+function renderTea() {
+    const c = document.getElementById('teaGroups');
+    if (!c) return;
+
+    const all = [...teaGroups];
+    if (teaOrphans.length) all.push({ id: null, name: 'Без группы', items: teaOrphans });
+
+    if (!all.length) {
+        c.innerHTML = `<div class="empty-state">Нет чая. Нажми «+ Группа»</div>`;
+        return;
+    }
+
+    c.innerHTML = all.map(g => `
+        <div class="tea-group-card">
+            <div class="tea-group-header">
+                <div class="tea-group-name" ${g.id ? `onclick="openTeaGroupEdit(${g.id})"` : ''}>${escapeHtml(g.name)}</div>
+                <div class="tea-group-count">${g.items.length}</div>
+                ${g.id ? `<button class="btn-icon-add" onclick="openTeaModal(${g.id})">+</button>` : ''}
+                ${g.id ? `<button class="area-delete" onclick="deleteTeaGroup(${g.id})">🗑</button>` : ''}
+            </div>
+            ${g.items.length === 0 ? `<div class="widget-empty">Пусто</div>`
+                : g.items.map(i => teaItemHTML(i)).join('')}
+        </div>
+    `).join('');
+}
+
+function teaItemHTML(i) {
+    const parts = [];
+    if (i.temp_c) parts.push(`${i.temp_c}°C`);
+    if (i.brew_time_sec) parts.push(formatTime(i.brew_time_sec));
+    if (i.effect) parts.push(escapeHtml(i.effect));
+
+    return `<div class="tea-item" onclick="openTeaCard(${i.id})">
+        <div class="tea-item-info">
+            <div class="tea-item-name">${escapeHtml(i.name)}</div>
+            <div class="tea-item-meta">${parts.join(' · ') || '—'}</div>
+        </div>
+        ${i.repeat_buy ? `<div class="tea-repeat-badge">Повтор</div>` : ''}
+        ${i.rating ? `<div class="tea-item-rating">★ ${i.rating}</div>` : ''}
+    </div>`;
+}
+
+function formatTime(sec) {
+    if (sec < 60) return `${sec}с`;
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return s ? `${m}м ${s}с` : `${m}м`;
+}
+
+function renderTeaRepeat() {
+    const c = document.getElementById('teaRepeat');
+    if (!c) return;
+
+    const all = [];
+    teaGroups.forEach(g => g.items.forEach(i => { if (i.repeat_buy) all.push(i); }));
+    teaOrphans.forEach(i => { if (i.repeat_buy) all.push(i); });
+
+    if (!all.length) {
+        c.innerHTML = `<div class="empty-state">Нет чая в списке повтора</div>`;
+        return;
+    }
+
+    c.innerHTML = all.map(i => teaItemHTML(i)).join('');
+}
+
+// Группа чая
+function openTeaGroupModal() {
+    teaGroupEditCtx.id = null;
+    document.getElementById('teaGroupModalTitle').textContent = 'Новая группа';
+    document.getElementById('teaGroupName').value = '';
+    document.getElementById('teaGroupModal').classList.add('open');
+    setTimeout(() => document.getElementById('teaGroupName').focus(), 200);
+}
+function openTeaGroupEdit(id) {
+    const g = teaGroups.find(x => x.id === id);
+    if (!g) return;
+    teaGroupEditCtx.id = id;
+    document.getElementById('teaGroupModalTitle').textContent = 'Изменить группу';
+    document.getElementById('teaGroupName').value = g.name;
+    document.getElementById('teaGroupModal').classList.add('open');
+    setTimeout(() => document.getElementById('teaGroupName').focus(), 200);
+}
+function closeTeaGroupModal() { document.getElementById('teaGroupModal').classList.remove('open'); }
+async function saveTeaGroup() {
+    const name = document.getElementById('teaGroupName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        if (teaGroupEditCtx.id) {
+            await api(`/api/tea/groups/${teaGroupEditCtx.id}`, 'PATCH', { name });
+        } else {
+            await api('/api/tea/groups', 'POST', { name });
+        }
+        closeTeaGroupModal();
+        await loadTea();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteTeaGroup(id) {
+    if (!confirm('Удалить группу? Чай останется без группы.')) return;
+    await api(`/api/tea/groups/${id}`, 'DELETE');
+    await loadTea();
+}
+
+// Создание чая
+function openTeaModal(groupId = null) {
+    teaCtx.groupId = groupId;
+    document.getElementById('teaName').value = '';
+    document.getElementById('teaTemp').value = '';
+    document.getElementById('teaBrewTime').value = '';
+
+    const sel = document.getElementById('teaGroupSelect');
+    sel.innerHTML = `<option value="">Без группы</option>` +
+        teaGroups.map(g => `<option value="${g.id}" ${g.id === groupId ? 'selected' : ''}>${escapeHtml(g.name)}</option>`).join('');
+
+    document.getElementById('teaModal').classList.add('open');
+    setTimeout(() => document.getElementById('teaName').focus(), 200);
+}
+function closeTeaModal() { document.getElementById('teaModal').classList.remove('open'); }
+async function saveTea() {
+    const name = document.getElementById('teaName').value.trim();
+    if (!name) return alert('Введи название');
+    const gVal = document.getElementById('teaGroupSelect').value;
+    try {
+        await api('/api/tea/items', 'POST', {
+            name,
+            group_id: gVal ? parseInt(gVal) : null,
+            temp_c: document.getElementById('teaTemp').value || null,
+            brew_time_sec: document.getElementById('teaBrewTime').value || null,
+        });
+        closeTeaModal();
+        await loadTea();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// Карточка чая
+function openTeaCard(id) {
+    let item = null;
+    for (const g of teaGroups) {
+        const found = g.items.find(i => i.id === id);
+        if (found) { item = found; break; }
+    }
+    if (!item) item = teaOrphans.find(i => i.id === id);
+    if (!item) return;
+
+    teaCtx.currentId = id;
+    teaCtx.rating = item.rating || null;
+    teaCtx.repeat = !!item.repeat_buy;
+
+    document.getElementById('teaCardTitle').textContent = item.name;
+    document.getElementById('teaCardName').value = item.name;
+    document.getElementById('teaCardTemp').value = item.temp_c || '';
+    document.getElementById('teaCardTime').value = item.brew_time_sec || '';
+    document.getElementById('teaCardEffect').value = item.effect || '';
+    document.getElementById('teaCardReview').value = item.review || '';
+
+    const sel = document.getElementById('teaCardGroup');
+    sel.innerHTML = `<option value="">Без группы</option>` +
+        teaGroups.map(g => `<option value="${g.id}" ${g.id === item.group_id ? 'selected' : ''}>${escapeHtml(g.name)}</option>`).join('');
+
+    document.querySelectorAll('#teaRatingPicker button').forEach(b =>
+        b.classList.toggle('active', teaCtx.rating === parseInt(b.dataset.r)));
+
+    document.getElementById('teaRepeatCheck').classList.toggle('done', teaCtx.repeat);
+
+    // Таймер — сброс
+    if (teaTimerInterval) { clearInterval(teaTimerInterval); teaTimerInterval = null; }
+    document.getElementById('teaTimerDisplay').style.display = 'none';
+    document.getElementById('teaTimerDisplay').classList.remove('done');
+
+    renderTeaCardLinks(item);
+
+    document.getElementById('teaCardModal').classList.add('open');
+}
+function closeTeaCardModal() {
+    if (teaTimerInterval) { clearInterval(teaTimerInterval); teaTimerInterval = null; }
+    document.getElementById('teaCardModal').classList.remove('open');
+}
+function pickTeaRating(r, btn) {
+    if (teaCtx.rating === r) {
+        teaCtx.rating = null;
+        btn.classList.remove('active');
+    } else {
+        teaCtx.rating = r;
+        document.querySelectorAll('#teaRatingPicker button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
+function toggleTeaRepeat() {
+    teaCtx.repeat = !teaCtx.repeat;
+    document.getElementById('teaRepeatCheck').classList.toggle('done', teaCtx.repeat);
+}
+async function saveTeaCard() {
+    const name = document.getElementById('teaCardName').value.trim();
+    if (!name) return alert('Введи название');
+    const gVal = document.getElementById('teaCardGroup').value;
+    try {
+        await api(`/api/tea/items/${teaCtx.currentId}`, 'PATCH', {
+            name,
+            group_id: gVal ? parseInt(gVal) : null,
+            temp_c: document.getElementById('teaCardTemp').value || null,
+            brew_time_sec: document.getElementById('teaCardTime').value || null,
+            effect: document.getElementById('teaCardEffect').value || null,
+            review: document.getElementById('teaCardReview').value || null,
+            rating: teaCtx.rating,
+            repeat_buy: teaCtx.repeat,
+        });
+        closeTeaCardModal();
+        await loadTea();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteCurrentTea() {
+    if (!confirm('Удалить чай?')) return;
+    await api(`/api/tea/items/${teaCtx.currentId}`, 'DELETE');
+    closeTeaCardModal();
+    await loadTea();
+}
+
+// Ссылки
+function renderTeaCardLinks(item) {
+    const c = document.getElementById('teaCardLinks');
+    if (!item.links?.length) {
+        c.innerHTML = `<div class="widget-empty">Нет ссылок</div>`;
+        return;
+    }
+    c.innerHTML = item.links.map(l => `
+        <div class="tea-link-item">
+            ${l.shop_name ? `<span class="tea-link-shop">${escapeHtml(l.shop_name)}</span>` : ''}
+            <a class="tea-link-url" href="${escapeHtml(l.url)}" target="_blank">${escapeHtml(l.url)}</a>
+            <button class="tea-link-del" onclick="deleteTeaLink(${l.id})">✕</button>
+        </div>
+    `).join('');
+}
+function openTeaLinkModal() {
+    document.getElementById('teaLinkShop').value = '';
+    document.getElementById('teaLinkUrl').value = '';
+    document.getElementById('teaLinkModal').classList.add('open');
+    setTimeout(() => document.getElementById('teaLinkShop').focus(), 200);
+}
+function closeTeaLinkModal() { document.getElementById('teaLinkModal').classList.remove('open'); }
+async function saveTeaLink() {
+    const url = document.getElementById('teaLinkUrl').value.trim();
+    if (!url) return alert('Введи ссылку');
+    try {
+        await api(`/api/tea/items/${teaCtx.currentId}/links`, 'POST', {
+            shop_name: document.getElementById('teaLinkShop').value,
+            url,
+        });
+        closeTeaLinkModal();
+        // Обновляем локальную модель — подгружаем заново
+        await loadTea();
+        // Открываем карточку заново с новыми ссылками
+        openTeaCard(teaCtx.currentId);
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteTeaLink(id) {
+    await api(`/api/tea/links/${id}`, 'DELETE');
+    await loadTea();
+    openTeaCard(teaCtx.currentId);
+}
+
+// Таймер
+function startTeaTimer() {
+    const sec = parseInt(document.getElementById('teaCardTime').value);
+    if (!sec || sec < 1) return alert('Укажи время заварки');
+
+    if (teaTimerInterval) clearInterval(teaTimerInterval);
+    const display = document.getElementById('teaTimerDisplay');
+    display.style.display = 'block';
+    display.classList.remove('done');
+
+    let left = sec;
+    const update = () => {
+        const m = Math.floor(left / 60);
+        const s = left % 60;
+        display.textContent = m ? `${m}:${String(s).padStart(2, '0')}` : `${s}с`;
+        if (left <= 0) {
+            clearInterval(teaTimerInterval);
+            teaTimerInterval = null;
+            display.textContent = 'Готово! 🍵';
+            display.classList.add('done');
+            haptic('heavy');
+            return;
+        }
+        left--;
+    };
+    update();
+    teaTimerInterval = setInterval(update, 1000);
+}
 
 // ===== СТАРТ =====
 (async function start() {

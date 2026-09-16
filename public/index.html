@@ -212,8 +212,29 @@
         <!-- TEA -->
         <div class="screen" data-screen-name="Tea">
             <div class="screen-inner">
-                <div class="screen-header"><h2>🍵 Tea</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
-                <div class="screen-content"><p class="hint">Скоро.</p></div>
+                <div class="screen-header">
+                    <h2>🍵 Tea</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('tea', 'all', this)">Все</button>
+                    <button class="tab" onclick="switchSubTab('tea', 'repeat', this)">Повторить</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="tea-all" class="subtab active">
+                        <div class="film-actions">
+                            <div></div>
+                            <button class="btn-icon-add" onclick="openTeaGroupModal()">+ Группа</button>
+                        </div>
+                        <div id="teaGroups"></div>
+                    </div>
+
+                    <div id="tea-repeat" class="subtab">
+                        <div id="teaRepeat"></div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -622,9 +643,6 @@
             <button data-p="5" onclick="pickPriority(5,this)">5</button>
         </div>
 
-        <div class="field-label" style="margin-top:12px;">Ссылка (Кинопоиск, IMDb)</div>
-        <input type="text" class="modal-input" id="filmUrl" placeholder="https://..." />
-
         <div class="modal-actions" style="margin-top:16px;">
             <button class="modal-btn secondary" onclick="closeFilmModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveFilm()">Сохранить</button>
@@ -694,6 +712,121 @@
         <div class="modal-actions">
             <button class="modal-btn secondary" onclick="closeFilmGenreEdit()">Отмена</button>
             <button class="modal-btn primary" onclick="saveFilmGenreEdit()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: НОВАЯ ГРУППА ЧАЯ -->
+<div class="modal-overlay" id="teaGroupModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="teaGroupModalTitle">Новая группа</h3>
+        <input type="text" class="modal-input" id="teaGroupName" placeholder="Например: Бодрящий" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeTeaGroupModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveTeaGroup()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: НОВЫЙ ЧАЙ -->
+<div class="modal-overlay" id="teaModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Новый чай</h3>
+
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="teaName" placeholder="Например: Да Хун Пао" />
+
+        <div class="field-label">Группа</div>
+        <select class="modal-input modal-select" id="teaGroupSelect"></select>
+
+        <div class="field-label">Температура (°C)</div>
+        <input type="number" class="modal-input" id="teaTemp" placeholder="90" />
+
+        <div class="field-label">Время заварки (сек)</div>
+        <input type="number" class="modal-input" id="teaBrewTime" placeholder="180" />
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" onclick="closeTeaModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveTea()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: КАРТОЧКА ЧАЯ -->
+<div class="modal-overlay" id="teaCardModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="teaCardTitle">Чай</h3>
+
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="teaCardName" />
+
+        <div class="field-label">Группа</div>
+        <select class="modal-input modal-select" id="teaCardGroup"></select>
+
+        <div class="tea-params-row">
+            <div>
+                <div class="field-label">Темп. (°C)</div>
+                <input type="number" class="modal-input" id="teaCardTemp" placeholder="—" />
+            </div>
+            <div>
+                <div class="field-label">Время (сек)</div>
+                <input type="number" class="modal-input" id="teaCardTime" placeholder="—" />
+            </div>
+        </div>
+
+        <div class="tea-timer-block">
+            <button class="tea-timer-start" onclick="startTeaTimer()">🍵 Заварить</button>
+            <div class="tea-timer-display" id="teaTimerDisplay" style="display:none;"></div>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Эффект</div>
+        <input type="text" class="modal-input" id="teaCardEffect" placeholder="Например: бодрит" />
+
+        <div class="field-label">Отзыв</div>
+        <input type="text" class="modal-input" id="teaCardReview" placeholder="Впечатления..." />
+
+        <div class="field-label">Оценка (1-5)</div>
+        <div class="priority-picker" id="teaRatingPicker">
+            <button data-r="1" onclick="pickTeaRating(1,this)">1</button>
+            <button data-r="2" onclick="pickTeaRating(2,this)">2</button>
+            <button data-r="3" onclick="pickTeaRating(3,this)">3</button>
+            <button data-r="4" onclick="pickTeaRating(4,this)">4</button>
+            <button data-r="5" onclick="pickTeaRating(5,this)">5</button>
+        </div>
+
+        <div class="tea-repeat-toggle" id="teaRepeatToggle" onclick="toggleTeaRepeat()">
+            <div class="tea-repeat-check" id="teaRepeatCheck">✓</div>
+            <div>Повторить покупку</div>
+        </div>
+
+        <div class="goals-header" style="margin-top:20px;">
+            <span class="goals-header-title">Ссылки на магазины</span>
+            <button class="btn-icon-add" onclick="openTeaLinkModal()">+</button>
+        </div>
+        <div id="teaCardLinks"></div>
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" style="color:var(--danger);" onclick="deleteCurrentTea()">Удалить</button>
+            <button class="modal-btn primary" onclick="saveTeaCard()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: ССЫЛКА -->
+<div class="modal-overlay" id="teaLinkModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Новая ссылка</h3>
+        <div class="field-label">Магазин</div>
+        <input type="text" class="modal-input" id="teaLinkShop" placeholder="Например: Мойчай.ру" />
+        <div class="field-label">Ссылка</div>
+        <input type="text" class="modal-input" id="teaLinkUrl" placeholder="https://..." />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeTeaLinkModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveTeaLink()">Сохранить</button>
         </div>
     </div>
 </div>
