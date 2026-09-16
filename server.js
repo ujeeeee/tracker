@@ -523,7 +523,6 @@ app.post('/api/cash/piggy/fact', authMiddleware, async (req, res) => {
 app.get('/api/gym/metrics', authMiddleware, async (req, res) => {
     const { data: metrics } = await supabase.from('gym_metrics').select('*')
         .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
-
     if (!metrics) return res.json({ metrics: [] });
 
     const { data: logs } = await supabase.from('gym_metric_logs')
@@ -536,11 +535,231 @@ app.get('/api/gym/metrics', authMiddleware, async (req, res) => {
     });
 
     res.json({
-        metrics: metrics.map(m => ({
-            ...m,
-            logs: map[m.id] || [],
-        })),
+        metrics: metrics.map(m => ({ ...m, logs: map[m.id] || [] })),
     });
+});
+
+app.post('/api/gym/metrics', authMiddleware, async (req, res) => {
+    const { name, category } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    if (!['bio','strength'].includes(category)) return res.status(400).json({ error: 'category: bio|strength' });
+    const { data, error } = await supabase.from('gym_metrics').insert({
+        tg_id: req.tg_id, name: name.trim(), category, unit: 'кг',
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ metric: { ...data, logs: [] } });
+});
+
+app.delete('/api/gym/metrics/:id', authMiddleware, async (req, res) => {
+    await supabase.from('gym_metrics').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+// Замер по метрике + дате
+app.post('/api/gym/metrics/:id/logs', authMiddleware, async (req, res) => {
+    const { value, date } = req.body;
+    if (value === '' || value === null || value === undefined) return res.status(400).json({ error: 'value required' });
+    const d = date || new Date().toISOString().slice(0,10);
+
+    // Если запись на эту дату уже есть — обновляем
+    const { data: existing } = await supabase.from('gym_metric_logs')
+        .select('id').eq('metric_id', req.params.id).eq('tg_id', req.tg_id).eq('date', d).maybeSingle();
+
+    let r;
+    if (existing) {
+        r = await supabase.from('gym_metric_logs').update({ value: Number(value) }).eq('id', existing.id).select().single();
+    } else {
+        r = await supabase.from('gym_metric_logs').insert({
+            tg_id: req.tg_id, metric_id: req.params.id, value: Number(value), date: d,
+        }).select().single();
+    }
+    if (r.error) return res.status(500).json({ error: r.error.message });
+    res.json({ log: r.data });
+});
+
+app.delete('/api/gym/metrics/logs/:logId', authMiddleware, async (req, res) => {
+    await supabase.from('gym_metric_logs').delete().eq('id', req.params.logId).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+// ==========================================
+// ===== GYM: ПРОГРАММЫ =====
+// ==========================================
+app.get('/api/gym/programs', authMiddleware, async (req, res) => {
+    const { data: programs } = await supabase.from('gym_programs').select('*')
+        .eq('tg_id', req.tg_id).order('created_at');
+    if (!programs) return res.json({ programs: [] });
+
+    const programIds = programs.map(p => p.id);
+    const { data: days } = await supabase.from('gym_program_days').select('*')
+        .in('program_id', programIds).order('sort_order').order('day_number');
+    const dayIds = (days || []).map(d => d.id);
+
+    const { data: exercises } = dayIds.length ? await supabase.from('gym_exercises').select('*')
+        .in('day_id', dayIds).order('sort_order') : { data: [] };
+    const exerciseIds = (exercises || []).map(e => e.id);
+
+    const { data: sets } = exerciseIds.length ? await supabase.from('gym_exercise_sets').select('*')
+        .in('exercise_id', exerciseIds).order('set_number') : { data: [] };
+
+    const setsMap = {};
+    (sets || []).forEach(s => { (setsMap[s.exercise_id] ||= []).push(s); });
+
+    const exMap = {};
+    (exercises || []).forEach(e => { (exMap[e.day_id] ||= []).push({ ...e, sets: setsMap[e.id] || [] }); });
+
+    const daysMap = {};
+    (days || []).forEach(d => { (daysMap[d.program_id] ||= []).push({ ...d, exercises: exMap[d.id] || [] }); });
+
+    res.json({ programs: programs.map(p => ({ ...p, days: daysMap[p.id] || [] })) });
+});
+
+app.post('/api/gym/programs', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase.from('gym_programs').insert({
+        tg_id: req.tg_id, name: name.trim(),
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ program: { ...data, days: [] } });
+});
+
+app.delete('/api/gym/programs/:id', authMiddleware, async (req, res) => {
+    const pid = req.params.id;
+    const { data: days } = await supabase.from('gym_program_days').select('id').eq('program_id', pid);
+    const dayIds = (days || []).map(d => d.id);
+    if (dayIds.length) {
+        const { data: exercises } = await supabase.from('gym_exercises').select('id').in('day_id', dayIds);
+        const exIds = (exercises || []).map(e => e.id);
+        if (exIds.length) await supabase.from('gym_exercise_sets').delete().in('exercise_id', exIds);
+        await supabase.from('gym_exercises').delete().in('day_id', dayIds);
+        await supabase.from('gym_program_days').delete().in('id', dayIds);
+    }
+    await supabase.from('gym_programs').delete().eq('id', pid).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+app.post('/api/gym/programs/:id/days', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data: existing } = await supabase.from('gym_program_days').select('id').eq('program_id', req.params.id);
+    const dayNumber = (existing?.length || 0) + 1;
+    const { data, error } = await supabase.from('gym_program_days').insert({
+        program_id: req.params.id, name: name.trim(), day_number: dayNumber,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ day: { ...data, exercises: [] } });
+});
+
+app.delete('/api/gym/days/:id', authMiddleware, async (req, res) => {
+    const did = req.params.id;
+    const { data: exercises } = await supabase.from('gym_exercises').select('id').eq('day_id', did);
+    const exIds = (exercises || []).map(e => e.id);
+    if (exIds.length) await supabase.from('gym_exercise_sets').delete().in('exercise_id', exIds);
+    await supabase.from('gym_exercises').delete().eq('day_id', did);
+    await supabase.from('gym_program_days').delete().eq('id', did);
+    res.json({ ok: true });
+});
+
+app.post('/api/gym/days/:id/exercises', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data: existing } = await supabase.from('gym_exercises').select('id').eq('day_id', req.params.id);
+    const { data, error } = await supabase.from('gym_exercises').insert({
+        day_id: req.params.id, name: name.trim(), sort_order: (existing?.length || 0) + 1,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ exercise: { ...data, sets: [] } });
+});
+
+app.delete('/api/gym/exercises/:id', authMiddleware, async (req, res) => {
+    await supabase.from('gym_exercise_sets').delete().eq('exercise_id', req.params.id);
+    await supabase.from('gym_exercises').delete().eq('id', req.params.id);
+    res.json({ ok: true });
+});
+
+app.post('/api/gym/exercises/:id/sets', authMiddleware, async (req, res) => {
+    const { reps, weight } = req.body;
+    const { data: existing } = await supabase.from('gym_exercise_sets').select('id').eq('exercise_id', req.params.id);
+    const setNumber = (existing?.length || 0) + 1;
+    const { data, error } = await supabase.from('gym_exercise_sets').insert({
+        exercise_id: req.params.id,
+        set_number: setNumber,
+        reps: reps ? parseInt(reps) : null,
+        weight: weight ? Number(weight) : null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ set: data });
+});
+
+app.delete('/api/gym/sets/:id', authMiddleware, async (req, res) => {
+    await supabase.from('gym_exercise_sets').delete().eq('id', req.params.id);
+    res.json({ ok: true });
+});
+
+// ==========================================
+// ===== GYM: МАТЕРИАЛЫ =====
+// ==========================================
+app.get('/api/gym/materials', authMiddleware, async (req, res) => {
+    const { data } = await supabase.from('gym_materials').select('*')
+        .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
+    res.json({ materials: data || [] });
+});
+
+app.post('/api/gym/materials', authMiddleware, async (req, res) => {
+    const { title, url, kind, tags } = req.body;
+    if (!url?.trim()) return res.status(400).json({ error: 'URL required' });
+    const { data, error } = await supabase.from('gym_materials').insert({
+        tg_id: req.tg_id,
+        title: (title || '').trim() || 'Без названия',
+        url: url.trim(),
+        kind: kind || 'link',
+        tags: tags || null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ material: data });
+});
+
+app.post('/api/gym/materials/photo', authMiddleware, async (req, res) => {
+    const { base64, title } = req.body;
+    if (!base64) return res.status(400).json({ error: 'base64 required' });
+
+    try {
+        const match = base64.match(/^data:(image\/[a-z]+);base64,(.+)$/);
+        if (!match) return res.status(400).json({ error: 'Invalid image' });
+        const mime = match[1];
+        const ext = mime.split('/')[1];
+        const buf = Buffer.from(match[2], 'base64');
+        const path = `${req.tg_id}/${Date.now()}.${ext}`;
+
+        const { error: upErr } = await supabase.storage.from('gym_materials')
+            .upload(path, buf, { contentType: mime, upsert: false });
+        if (upErr) return res.status(500).json({ error: upErr.message });
+
+        const { data: urlData } = supabase.storage.from('gym_materials').getPublicUrl(path);
+
+        const { data, error } = await supabase.from('gym_materials').insert({
+            tg_id: req.tg_id,
+            title: (title || '').trim() || 'Фото',
+            url: urlData.publicUrl,
+            kind: 'photo',
+            storage_path: path,
+        }).select().single();
+        if (error) return res.status(500).json({ error: error.message });
+        res.json({ material: data });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.delete('/api/gym/materials/:id', authMiddleware, async (req, res) => {
+    const { data: mat } = await supabase.from('gym_materials').select('storage_path, kind')
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).maybeSingle();
+    if (mat?.storage_path) {
+        await supabase.storage.from('gym_materials').remove([mat.storage_path]);
+    }
+    await supabase.from('gym_materials').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
 });
 
 app.post('/api/gym/metrics', authMiddleware, async (req, res) => {

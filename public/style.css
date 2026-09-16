@@ -664,3 +664,206 @@ body {
     opacity: 0.5; font-family: inherit;
 }
 .metric-history-del:active { color: var(--danger); opacity: 1; }
+
+/* ===== GYM: таблица метрик ===== */
+.metrics-table-wrap {
+    background: var(--card); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    margin-bottom: 8px;
+    overflow-x: auto;
+}
+.metrics-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: max-content;
+}
+.metrics-table th,
+.metrics-table td {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 13px;
+    border-bottom: 1px solid var(--glass-border);
+    white-space: nowrap;
+}
+.metrics-table th {
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg-secondary);
+    position: sticky; top: 0;
+}
+.metrics-table th:first-child,
+.metrics-table td:first-child {
+    position: sticky; left: 0;
+    background: var(--bg-secondary);
+    z-index: 1;
+    min-width: 120px;
+}
+.metrics-table td:first-child {
+    background: var(--card);
+    color: var(--text);
+    font-weight: 500;
+}
+.metrics-table tr:last-child td { border-bottom: none; }
+.metrics-table td.empty-cell {
+    color: var(--text-tertiary);
+    text-align: center;
+    font-size: 12px;
+    cursor: pointer;
+}
+.metrics-table td.value-cell {
+    color: var(--text);
+    font-weight: 600;
+    cursor: pointer;
+}
+.metrics-table td.value-cell:active,
+.metrics-table td.empty-cell:active { background: var(--bg-secondary); }
+.metrics-table .metric-del {
+    background: none; border: none;
+    color: var(--text-tertiary); font-size: 12px;
+    padding: 2px 6px; cursor: pointer;
+    margin-left: 8px; opacity: 0.5;
+    font-family: inherit;
+}
+.metrics-table .metric-del:active { color: var(--danger); opacity: 1; }
+
+/* ===== GYM: программы ===== */
+.program-card {
+    background: var(--card); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px; padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+.program-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 4px;
+}
+.program-name {
+    font-size: 16px; font-weight: 700; color: var(--text);
+    flex: 1; min-width: 0; cursor: pointer;
+}
+.program-arrow {
+    color: var(--text-tertiary); font-size: 14px;
+    transition: transform 0.2s;
+}
+.program-card.open .program-arrow { transform: rotate(90deg); }
+.program-body { display: none; margin-top: 12px; }
+.program-card.open .program-body { display: block; }
+
+.day-block {
+    background: var(--bg-secondary);
+    border-radius: 12px; padding: 12px;
+    margin-bottom: 10px;
+}
+.day-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+}
+.day-name {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    flex: 1; min-width: 0;
+}
+.day-num {
+    color: var(--text-tertiary); font-size: 11px;
+    font-weight: 600; text-transform: uppercase;
+}
+
+.exercise-block {
+    background: var(--card);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px; padding: 10px 12px;
+    margin-bottom: 6px;
+}
+.exercise-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+}
+.exercise-name {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    flex: 1; min-width: 0;
+}
+.set-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-secondary);
+    padding: 3px 0;
+}
+.set-num { color: var(--text-tertiary); min-width: 18px; }
+.set-value { color: var(--text); font-weight: 600; }
+.set-del {
+    background: none; border: none;
+    color: var(--text-tertiary); font-size: 11px;
+    padding: 2px 6px; cursor: pointer;
+    opacity: 0.5; margin-left: auto;
+    font-family: inherit;
+}
+.set-del:active { color: var(--danger); opacity: 1; }
+
+.exercise-add-set {
+    background: none; border: none;
+    color: var(--accent); font-size: 12px;
+    padding: 6px 4px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+}
+.day-add-exercise {
+    background: none; border: none;
+    color: var(--accent); font-size: 12px;
+    padding: 6px 4px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+    margin-top: 4px;
+}
+.program-add-day {
+    background: none; border: none;
+    color: var(--accent); font-size: 13px;
+    padding: 8px 4px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+    margin-top: 8px;
+    width: 100%; text-align: left;
+}
+
+/* ===== GYM: материалы ===== */
+.material-card {
+    background: var(--card); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 14px;
+    margin-bottom: 8px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    display: flex; gap: 12px; align-items: center;
+}
+.material-photo {
+    width: 60px; height: 60px;
+    border-radius: 10px; object-fit: cover;
+    flex-shrink: 0;
+}
+.material-icon {
+    width: 60px; height: 60px;
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; flex-shrink: 0;
+}
+.material-info { flex: 1; min-width: 0; }
+.material-title {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    margin-bottom: 2px; word-break: break-word;
+}
+.material-url {
+    font-size: 11px; color: var(--text-tertiary);
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+}
+.material-del {
+    background: none; border: none;
+    color: var(--text-tertiary); font-size: 14px;
+    padding: 4px 8px; cursor: pointer;
+    opacity: 0.5; font-family: inherit;
+    flex-shrink: 0;
+}
+.material-del:active { color: var(--danger); opacity: 1; }
