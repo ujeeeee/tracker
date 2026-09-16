@@ -6,7 +6,7 @@ let initData = '';
 let currentUser = null;
 let tg = null;
 
-const TOTAL_MAIN_SCREENS = 8; // Home + 7
+const TOTAL_MAIN_SCREENS = 8;
 let currentScreenIndex = 0;
 
 // ==========================================
@@ -148,8 +148,10 @@ function goToScreen(index, animate = true) {
 
     if (index === 0 && typeof loadHome === 'function') loadHome();
     if (index === 1) {
-        if (typeof loadHabits === 'function') loadHabits();
         if (typeof loadAreas === 'function') loadAreas();
+        if (typeof loadHabits === 'function') loadHabits();
+        if (typeof loadWeek === 'function') loadWeek();
+        if (typeof loadMonthChart === 'function') loadMonthChart();
     }
 }
 
@@ -255,7 +257,6 @@ function renderHome(data) {
 
     let html = '';
 
-    // Статистика
     if (habitsTotal > 0) {
         html += `
             <div class="stats-row">
@@ -271,7 +272,6 @@ function renderHome(data) {
         `;
     }
 
-    // Привычки сегодня
     html += `<div class="widget">
         <div class="widget-title">
             <span>Привычки сегодня</span>
@@ -295,7 +295,6 @@ function renderHome(data) {
     }
     html += `</div>`;
 
-    // Прогресс областей
     const areasWithGoals = data.areas.filter(a => a.total > 0);
     html += `<div class="widget">
         <div class="widget-title"><span>Прогресс целей</span></div>`;
@@ -348,7 +347,7 @@ async function quickToggleHabit(id) {
 }
 
 // ==========================================
-// ===== DISCIPLINE: ПРИВЫЧКИ =====
+// ===== DISCIPLINE: ПРИВЫЧКИ (данные) =====
 // ==========================================
 let habits = [];
 
@@ -356,188 +355,258 @@ async function loadHabits() {
     try {
         const { habits: data } = await api('/api/disc/habits');
         habits = data;
-        renderHabits();
     } catch (e) {
         console.error('loadHabits:', e);
     }
 }
 
-function renderHabits() {
-    const container = document.getElementById('habitsList');
-    if (!container) return;
-    if (habits.length === 0) {
-        container.innerHTML = `<div class="empty-state">Пока нет привычек.<br>Добавь первую 👆</div>`;
+// ==========================================
+// ===== ПРИВЫЧКИ: НЕДЕЛЯ =====
+// ==========================================
+let weekStart = getMonday(new Date());
+
+function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+async function loadWeek() {
+    const start = weekStart.toISOString().slice(0, 10);
+    try {
+        const { habits: data } = await api(`/api/disc/habits/week?start=${start}`);
+        renderWeek(data);
+    } catch (e) {
+        console.error('loadWeek:', e);
+    }
+}
+
+function renderWeek(data) {
+    const rangeEl = document.getElementById('weekRange');
+    const grid = document.getElementById('weekGrid');
+
+    const end = new Date(weekStart);
+    end.setDate(end.getDate() + 6);
+    const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+    rangeEl.textContent = `${weekStart.getDate()} ${months[weekStart.getMonth()]} — ${end.getDate()} ${months[end.getMonth()]}`;
+
+    if (!data || data.length === 0) {
+        grid.innerHTML = `<div class="empty-state">Нет привычек. Добавь первую 👇</div>`;
         return;
     }
+
     const today = new Date().toISOString().slice(0, 10);
-    container.innerHTML = habits.map(h => {
-        const doneToday = h.logs.some(l => l.date === today && l.done);
-        const streak = calcStreak(h.logs);
-        const days = last7Days(h.logs);
-        const heat = days.map(d => {
-            const cls = d.done ? 'done' : '';
-            const isToday = d.date === today ? 'today' : '';
-            return `<div class="heat-cell ${cls} ${isToday}"></div>`;
-        }).join('');
-        return `
-            <div class="habit-card">
-                <div class="habit-top" onclick="openCalendar(${h.id})" style="cursor:pointer">
-                    <div class="habit-name" onclick="openHabitSettings(${h.id})">${escapeHtml(h.name)}</div>
-                    ${streak > 0 ? `<div class="habit-streak">🔥 ${streak}</div>` : ''}
-                    <button class="habit-delete" onclick="event.stopPropagation(); deleteHabit(${h.id})">✕</button>
-                </div>
-                <div class="habit-bottom">
-                    <div class="habit-heatmap" onclick="openCalendar(${h.id})" style="cursor:pointer">${heat}</div>
-                    <button class="habit-toggle ${doneToday ? 'done' : ''}" onclick="toggleHabit(${h.id})">
-                        ${doneToday ? '✓' : '○'}
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
+    const dayNames = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 
-function calcStreak(logs) {
-    const done = new Set(logs.filter(l => l.done).map(l => l.date));
-    let streak = 0;
-    const d = new Date();
-    while (true) {
-        const key = d.toISOString().slice(0, 10);
-        if (done.has(key)) { streak++; d.setDate(d.getDate() - 1); }
-        else break;
-    }
-    return streak;
-}
+    let html = `<div class="week-grid-table">`;
 
-function last7Days(logs) {
-    const done = new Set(logs.filter(l => l.done).map(l => l.date));
-    const arr = [];
-    const d = new Date();
-    d.setDate(d.getDate() - 6);
+    html += `<div class="week-header"><div class="week-header-cell">Привычка</div>`;
     for (let i = 0; i < 7; i++) {
-        const key = d.toISOString().slice(0, 10);
-        arr.push({ date: key, done: done.has(key) });
-        d.setDate(d.getDate() + 1);
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const isToday = dateStr === today ? 'today' : '';
+        html += `<div class="week-header-cell ${isToday}">
+            ${dayNames[i]}<span class="week-header-date">${d.getDate()}</span>
+        </div>`;
     }
-    return arr;
-}
+    html += `</div>`;
 
-async function toggleHabit(id) {
-    try {
-        const today = new Date().toISOString().slice(0, 10);
-        await api(`/api/disc/habits/${id}/toggle`, 'POST', { date: today });
-        await loadHabits();
-    } catch (e) {
-        alert('Ошибка: ' + e.message);
-    }
-}
+    data.forEach(h => {
+        html += `<div class="week-row">`;
+        html += `<div class="week-habit-name" onclick="openHabitModal(${h.id})">${escapeHtml(h.name)}</div>`;
+        h.week.forEach(day => {
+            const isToday = day.date === today ? 'today' : '';
+            const isFuture = day.date > today;
 
-async function deleteHabit(id) {
-    if (!confirm('Удалить привычку?')) return;
-    try {
-        await api(`/api/disc/habits/${id}`, 'DELETE');
-        await loadHabits();
-    } catch (e) {
-        alert('Ошибка: ' + e.message);
-    }
-}
+            if (!day.scheduled) {
+                html += `<div class="week-cell not-scheduled"></div>`;
+                return;
+            }
 
-// ==========================================
-// ===== КАЛЕНДАРЬ ПРИВЫЧКИ =====
-// ==========================================
-let calState = { habitId: null, habitName: '', year: 0, month: 0, logs: new Set() };
+            const canClick = !isFuture;
+            const cls = [
+                'week-cell',
+                'scheduled',
+                day.done ? 'done' : '',
+                isToday,
+            ].filter(Boolean).join(' ');
 
-async function openCalendar(habitId) {
-    const habit = habits.find(h => h.id === habitId);
-    if (!habit) return;
+            const clickHandler = canClick
+                ? `onclick="toggleWeekCell(${h.id}, '${day.date}')"`
+                : '';
 
-    const now = new Date();
-    calState.habitId = habitId;
-    calState.habitName = habit.name;
-    calState.year = now.getFullYear();
-    calState.month = now.getMonth() + 1;
+            html += `<div class="${cls}" ${clickHandler}>${day.done ? '✓' : ''}</div>`;
+        });
+        html += `</div>`;
+    });
 
-    document.getElementById('calTitle').textContent = habit.name;
-    document.getElementById('calendarModal').classList.add('open');
-
-    await loadCalMonth();
-}
-
-async function loadCalMonth() {
-    try {
-        const { logs } = await api(`/api/disc/habits/${calState.habitId}/month?year=${calState.year}&month=${calState.month}`);
-        calState.logs = new Set(logs.filter(l => l.done).map(l => l.date));
-        renderCalendar();
-    } catch (e) {
-        alert('Ошибка: ' + e.message);
-    }
-}
-
-function renderCalendar() {
-    const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-    document.getElementById('calMonth').textContent = `${monthNames[calState.month - 1]} ${calState.year}`;
-
-    const firstDay = new Date(calState.year, calState.month - 1, 1);
-    const lastDay = new Date(calState.year, calState.month, 0).getDate();
-    const startWeekday = (firstDay.getDay() + 6) % 7; // Пн = 0
-
-    const today = new Date().toISOString().slice(0, 10);
-    const grid = document.getElementById('calGrid');
-    let html = '';
-
-    for (let i = 0; i < startWeekday; i++) {
-        html += `<div class="cal-day empty"></div>`;
-    }
-
-    let doneCount = 0;
-    for (let d = 1; d <= lastDay; d++) {
-        const dateStr = `${calState.year}-${String(calState.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const isDone = calState.logs.has(dateStr);
-        const isToday = dateStr === today;
-        const isFuture = dateStr > today;
-        if (isDone) doneCount++;
-
-        let cls = 'cal-day';
-        if (isDone) cls += ' done';
-        if (isToday) cls += ' today';
-        if (isFuture) cls += ' future';
-
-        const onclick = isFuture ? '' : `onclick="calToggle('${dateStr}')"`;
-        html += `<div class="${cls}" ${onclick}>${d}</div>`;
-    }
-
+    html += `</div>`;
     grid.innerHTML = html;
-    document.getElementById('calStats').textContent = `Выполнено: ${doneCount} / ${lastDay} дней`;
 }
 
-async function calToggle(dateStr) {
+async function toggleWeekCell(habitId, date) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (date > today) return;
+
     try {
-        await api(`/api/disc/habits/${calState.habitId}/toggle`, 'POST', { date: dateStr });
-        // Обновляем локально без перезагрузки месяца
-        if (calState.logs.has(dateStr)) calState.logs.delete(dateStr);
-        else calState.logs.add(dateStr);
-        renderCalendar();
-        // Обновим и список привычек под календарём (когда закроют)
+        await api(`/api/disc/habits/${habitId}/toggle`, 'POST', { date });
+        await loadWeek();
+        await loadMonthChart();
     } catch (e) {
         alert('Ошибка: ' + e.message);
     }
 }
 
-function calPrev() {
-    calState.month--;
-    if (calState.month < 1) { calState.month = 12; calState.year--; }
-    loadCalMonth();
+function weekPrev() {
+    weekStart.setDate(weekStart.getDate() - 7);
+    loadWeek();
 }
 
-function calNext() {
-    calState.month++;
-    if (calState.month > 12) { calState.month = 1; calState.year++; }
-    loadCalMonth();
+function weekNext() {
+    weekStart.setDate(weekStart.getDate() + 7);
+    loadWeek();
 }
 
-async function closeCalendar() {
-    document.getElementById('calendarModal').classList.remove('open');
-    await loadHabits();
+// ==========================================
+// ===== ГРАФИК ЗА МЕСЯЦ =====
+// ==========================================
+async function loadMonthChart() {
+    try {
+        const { year, month, days } = await api('/api/disc/habits/month-stats');
+        renderMonthChart(year, month, days);
+    } catch (e) {
+        console.error('loadMonthChart:', e);
+    }
+}
+
+function renderMonthChart(year, month, days) {
+    const titleEl = document.getElementById('chartTitle');
+    const canvas = document.getElementById('habitsChart');
+    const legend = document.getElementById('chartLegend');
+    if (!titleEl || !canvas || !legend) return;
+
+    const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    titleEl.textContent = `Активность — ${months[month - 1]}`;
+
+    const maxCount = Math.max(1, ...days.map(d => d.count));
+    const today = new Date().toISOString().slice(0, 10);
+
+    canvas.innerHTML = days.map(d => {
+        const h = Math.max(4, (d.count / maxCount) * 100);
+        const cls = ['chart-bar'];
+        if (d.count === 0) cls.push('zero');
+        if (d.date === today) cls.push('today');
+        return `<div class="${cls.join(' ')}" style="height:${h}%" title="${d.date}: ${d.count}"></div>`;
+    }).join('');
+
+    legend.innerHTML = `<span>1</span><span>${Math.ceil(days.length / 2)}</span><span>${days.length}</span>`;
+}
+
+// ==========================================
+// ===== МОДАЛКА ПРИВЫЧКИ =====
+// ==========================================
+let habitCtx = { id: null, freq: 'daily', days: [1,2,3,4,5,6,7], interval: 2 };
+
+function openHabitModal(habitId = null) {
+    habitCtx.id = habitId;
+    habitCtx.freq = 'daily';
+    habitCtx.days = [1,2,3,4,5,6,7];
+    habitCtx.interval = 2;
+
+    const titleEl = document.getElementById('habitModalTitle');
+    const nameEl = document.getElementById('habitName');
+    const intervalEl = document.getElementById('intervalInput');
+
+    if (habitId) {
+        const h = habits.find(x => x.id === habitId);
+        if (h) {
+            titleEl.textContent = 'Настройки привычки';
+            nameEl.value = h.name;
+            habitCtx.freq = h.frequency || 'daily';
+            habitCtx.days = (h.days_of_week && h.days_of_week.length) ? h.days_of_week : [1,2,3,4,5,6,7];
+            habitCtx.interval = h.interval_days || 2;
+        }
+    } else {
+        titleEl.textContent = 'Новая привычка';
+        nameEl.value = '';
+    }
+
+    intervalEl.value = habitCtx.interval;
+
+    document.querySelectorAll('#habitModal [data-freq]').forEach(b => {
+        b.classList.toggle('active', b.dataset.freq === habitCtx.freq);
+    });
+    document.querySelectorAll('#habitModal .day-opt').forEach(b => {
+        b.classList.toggle('active', habitCtx.days.includes(parseInt(b.dataset.dow)));
+    });
+
+    document.getElementById('freqDays').style.display = habitCtx.freq === 'days' ? 'block' : 'none';
+    document.getElementById('freqInterval').style.display = habitCtx.freq === 'interval' ? 'block' : 'none';
+
+    document.getElementById('habitModal').classList.add('open');
+    setTimeout(() => nameEl.focus(), 200);
+}
+
+function closeHabitModal() {
+    document.getElementById('habitModal').classList.remove('open');
+}
+
+function pickFreq(freq, btn) {
+    habitCtx.freq = freq;
+    document.querySelectorAll('#habitModal [data-freq]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('freqDays').style.display = freq === 'days' ? 'block' : 'none';
+    document.getElementById('freqInterval').style.display = freq === 'interval' ? 'block' : 'none';
+}
+
+function toggleDow(dow) {
+    const idx = habitCtx.days.indexOf(dow);
+    if (idx >= 0) habitCtx.days.splice(idx, 1);
+    else habitCtx.days.push(dow);
+
+    document.querySelectorAll('#habitModal .day-opt').forEach(b => {
+        b.classList.toggle('active', habitCtx.days.includes(parseInt(b.dataset.dow)));
+    });
+}
+
+async function saveHabit() {
+    const name = document.getElementById('habitName').value.trim();
+    if (!name) return alert('Введи название');
+
+    if (habitCtx.freq === 'days' && habitCtx.days.length === 0) {
+        return alert('Выбери хотя бы один день недели');
+    }
+
+    const intervalEl = document.getElementById('intervalInput');
+    const intervalVal = parseInt(intervalEl.value);
+    if (habitCtx.freq === 'interval' && (!intervalVal || intervalVal < 2)) {
+        return alert('Интервал — минимум 2 дня');
+    }
+
+    const payload = {
+        name,
+        frequency: habitCtx.freq,
+        days_of_week: habitCtx.days,
+        interval_days: intervalVal || 2,
+    };
+
+    try {
+        if (habitCtx.id) {
+            await api(`/api/disc/habits/${habitCtx.id}`, 'PATCH', payload);
+        } else {
+            await api('/api/disc/habits', 'POST', payload);
+        }
+        closeHabitModal();
+        await loadHabits();
+        await loadWeek();
+        await loadMonthChart();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
 }
 
 // ==========================================
@@ -562,6 +631,7 @@ function renderAreas(orphanGoals = []) {
         container.innerHTML = `<div class="empty-state">Пока нет областей.<br>Добавь первую 👆</div>`;
         return;
     }
+
     let html = areas.map(a => {
         const goals = a.goals || [];
         const done = goals.filter(g => g.status === 'done').length;
@@ -638,7 +708,7 @@ async function deleteArea(id) {
 }
 
 // ==========================================
-// ===== МОДАЛКА ВВОДА =====
+// ===== МОДАЛКА ВВОДА (область/цель) =====
 // ==========================================
 let modalContext = { type: null, areaId: null };
 
@@ -648,12 +718,10 @@ function openAddModal(type, areaId = null) {
     const title = document.getElementById('inputModalTitle');
     const field = document.getElementById('inputModalField');
 
-    const titles = { habit: 'Новая привычка', area: 'Новая область', goal: 'Новая цель' };
+    const titles = { area: 'Новая область', goal: 'Новая цель' };
     title.textContent = titles[type] || 'Добавить';
     field.value = '';
-    field.placeholder = type === 'habit' ? 'Например: Зал'
-        : type === 'area' ? 'Например: Спорт'
-        : 'Например: кмс';
+    field.placeholder = type === 'area' ? 'Например: Спорт' : 'Например: кмс';
     modal.classList.add('open');
     setTimeout(() => field.focus(), 200);
 }
@@ -667,10 +735,7 @@ async function submitInputModal() {
     const value = field.value.trim();
     if (!value) return;
     try {
-        if (modalContext.type === 'habit') {
-            await api('/api/disc/habits', 'POST', { name: value });
-            await loadHabits();
-        } else if (modalContext.type === 'area') {
+        if (modalContext.type === 'area') {
             await api('/api/disc/areas', 'POST', { name: value });
             await loadAreas();
         } else if (modalContext.type === 'goal') {
@@ -708,190 +773,16 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// ===== ВИД "НЕДЕЛЯ" =====
-// ==========================================
-let habitsView = 'list';
-let weekStart = getMonday(new Date());
-
-function getMonday(d) {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = (day === 0 ? -6 : 1 - day);
-    date.setDate(date.getDate() + diff);
-    date.setHours(0, 0, 0, 0);
-    return date;
-}
-
-function switchHabitsView(view, btn) {
-    habitsView = view;
-    document.querySelectorAll('.view-opt').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.getElementById('habitsListView').style.display = view === 'list' ? 'block' : 'none';
-    document.getElementById('habitsWeekView').style.display = view === 'week' ? 'block' : 'none';
-
-    if (view === 'week') loadWeek();
-}
-
-async function loadWeek() {
-    const start = weekStart.toISOString().slice(0, 10);
-    try {
-        const { habits: data, start: s } = await api(`/api/disc/habits/week?start=${start}`);
-        renderWeek(data);
-    } catch (e) {
-        console.error('loadWeek:', e);
-    }
-}
-
-function renderWeek(data) {
-    const rangeEl = document.getElementById('weekRange');
-    const grid = document.getElementById('weekGrid');
-
-    const end = new Date(weekStart);
-    end.setDate(end.getDate() + 6);
-
-    const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-    rangeEl.textContent = `${weekStart.getDate()} ${months[weekStart.getMonth()]} — ${end.getDate()} ${months[end.getMonth()]}`;
-
-    if (data.length === 0) {
-        grid.innerHTML = `<div class="empty-state">Нет привычек. Добавь первую 👇</div>`;
-        return;
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const dayNames = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-
-    let html = `<div class="week-grid-table">`;
-
-    // Заголовок с днями
-    html += `<div class="week-header"><div class="week-header-cell">Привычка</div>`;
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(weekStart);
-        d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().slice(0, 10);
-        const isToday = dateStr === today ? 'today' : '';
-        html += `<div class="week-header-cell ${isToday}">
-            ${dayNames[i]}<span class="week-header-date">${d.getDate()}</span>
-        </div>`;
-    }
-    html += `</div>`;
-
-    // Строки привычек
-    data.forEach(h => {
-        html += `<div class="week-row">`;
-        html += `<div class="week-habit-name" onclick="openHabitSettings(${h.id})">${escapeHtml(h.name)}</div>`;
-        h.week.forEach(day => {
-            const isToday = day.date === today ? 'today' : '';
-            const cls = [
-                'week-cell',
-                day.done ? 'done' : '',
-                !day.scheduled ? 'not-scheduled' : 'scheduled',
-                isToday,
-            ].filter(Boolean).join(' ');
-            const onclick = day.scheduled ? `onclick="toggleWeekCell(${h.id}, '${day.date}')"` : '';
-            html += `<div class="${cls}" ${onclick}>✓</div>`;
-        });
-        html += `</div>`;
-    });
-
-    html += `</div>`;
-    grid.innerHTML = html;
-}
-
-async function toggleWeekCell(habitId, date) {
-    try {
-        await api(`/api/disc/habits/${habitId}/toggle`, 'POST', { date });
-        await loadWeek();
-    } catch (e) {
-        alert('Ошибка: ' + e.message);
-    }
-}
-
-function weekPrev() {
-    weekStart.setDate(weekStart.getDate() - 7);
-    loadWeek();
-}
-
-function weekNext() {
-    weekStart.setDate(weekStart.getDate() + 7);
-    loadWeek();
-}
-
-// ==========================================
-// ===== НАСТРОЙКИ ПРИВЫЧКИ =====
-// ==========================================
-let habitSettingsCtx = { id: null, frequency: 'daily', days: [1,2,3,4,5,6,7] };
-
-function openHabitSettings(habitId) {
-    const habit = habits.find(h => h.id === habitId);
-    if (!habit) return;
-
-    habitSettingsCtx.id = habitId;
-    habitSettingsCtx.frequency = habit.frequency || 'daily';
-    habitSettingsCtx.days = habit.days_of_week || [1,2,3,4,5,6,7];
-
-    document.getElementById('habitSetName').value = habit.name;
-
-    document.querySelectorAll('#habitSettingsModal [data-freq]').forEach(b => {
-        b.classList.toggle('active', b.dataset.freq === habitSettingsCtx.frequency);
-    });
-    document.querySelectorAll('#habitSettingsModal .day-opt').forEach(b => {
-        b.classList.toggle('active', habitSettingsCtx.days.includes(parseInt(b.dataset.dow)));
-    });
-    document.getElementById('daysPicker').style.display =
-        habitSettingsCtx.frequency === 'custom' ? 'block' : 'none';
-
-    document.getElementById('habitSettingsModal').classList.add('open');
-}
-
-function closeHabitSettings() {
-    document.getElementById('habitSettingsModal').classList.remove('open');
-}
-
-function pickFrequency(freq, btn) {
-    habitSettingsCtx.frequency = freq;
-    document.querySelectorAll('#habitSettingsModal [data-freq]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('daysPicker').style.display = freq === 'custom' ? 'block' : 'none';
-}
-
-function toggleDow(dow) {
-    const idx = habitSettingsCtx.days.indexOf(dow);
-    if (idx >= 0) habitSettingsCtx.days.splice(idx, 1);
-    else habitSettingsCtx.days.push(dow);
-
-    document.querySelectorAll('#habitSettingsModal .day-opt').forEach(b => {
-        b.classList.toggle('active', habitSettingsCtx.days.includes(parseInt(b.dataset.dow)));
-    });
-}
-
-async function saveHabitSettings() {
-    const name = document.getElementById('habitSetName').value.trim();
-    if (!name) return alert('Введи название');
-
-    if (habitSettingsCtx.frequency === 'custom' && habitSettingsCtx.days.length === 0) {
-        return alert('Выбери хотя бы один день');
-    }
-
-    try {
-        await api(`/api/disc/habits/${habitSettingsCtx.id}`, 'PATCH', {
-            name,
-            frequency: habitSettingsCtx.frequency,
-            days_of_week: habitSettingsCtx.days,
-        });
-        closeHabitSettings();
-        await loadHabits();
-        if (habitsView === 'week') await loadWeek();
-    } catch (e) {
-        alert('Ошибка: ' + e.message);
-    }
-}
-
-// ==========================================
 // ===== СТАРТ =====
 // ==========================================
 (async function start() {
     initScreens();
     const ok = await auth();
-    if (ok) await loadHome();
+    if (ok) {
+        await loadHome();
+        await loadHabits();
+        await loadWeek();
+        await loadMonthChart();
+        await loadAreas();
+    }
 })();
