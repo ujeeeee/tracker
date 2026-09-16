@@ -18,6 +18,7 @@
     --danger: #ff453a;
     --success: #32d74b;
     --card-solid: #1c1c20;
+    --bg-secondary-solid: #17171a;
 }
 :root[data-theme="light"] {
     --bg: #f2f2f7;
@@ -36,6 +37,7 @@
     --danger: #ff3b30;
     --success: #34c759;
     --card-solid: #ffffff;
+    --bg-secondary-solid: #e8e8ed;
 }
 
 /* ===== RESET ===== */
@@ -964,7 +966,7 @@ body {
     cursor: pointer;
     vertical-align: middle;
 }
-.metrics-table th.col-name { background: var(--bg-secondary); }
+.metrics-table th.col-name { background: var(--bg-secondary-solid); }
 .metrics-table td.col-name:active { background: var(--card-hover); }
 
 /* Цель — sticky */
@@ -987,7 +989,7 @@ body {
     line-height: 1.2;
     overflow: hidden;
 }
-.metrics-table th.col-target { background: var(--bg-secondary); }
+.metrics-table th.col-target { background: var(--bg-secondary-solid); }
 
 .metrics-table td.cell {
     cursor: pointer;
@@ -1020,4 +1022,13 @@ body {
     background-size: 16px;
     padding-right: 40px;
     cursor: pointer;
+}
+
+/* ===== МЕТРИКИ: сжатые отступы ===== */
+.metrics-header {
+    margin-bottom: 6px;
+    padding: 0 2px;
+}
+.metrics-header.section-top {
+    margin-top: 12px;
 }
