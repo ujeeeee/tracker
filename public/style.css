@@ -57,7 +57,7 @@ body {
 .screens-track { display: flex; transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; }
 .screen { flex: 0 0 100vw; width: 100vw; min-height: calc(100vh - 82px); padding: 16px; display: flex; flex-direction: column; }
 .screen-inner { max-width: 480px; margin: 0 auto; width: 100%; flex: 1; display: flex; flex-direction: column; }
-.screen-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 12px; margin-bottom: 12px; }.screen-header h2 { font-size: 28px; color: var(--text); font-weight: 700; letter-spacing: -0.5px; }
+.screen-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 8px; margin-bottom: 12px; }.screen-header h2 { font-size: 28px; color: var(--text); font-weight: 700; letter-spacing: -0.5px; }
 .screen-content { flex: 1; padding-bottom: 12px; }
 .hint { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
 
@@ -343,8 +343,13 @@ body {
 .budget-row-value { color: var(--text); font-weight: 700; font-size: 14px; white-space: nowrap; }
 .budget-row-value.minus { color: var(--danger); }
 .budget-row-value.plus { color: var(--success); }
-.budget-row-del { background: none; border: none; color: var(--text-tertiary); font-size: 12px; cursor: pointer; padding: 2px 4px; opacity: 0.5; font-family: inherit; }
-.budget-row-del:active { color: var(--danger); opacity: 1; }
+.budget-row-del {
+    background: none; border: none;
+    color: var(--text-tertiary); font-size: 12px;
+    cursor: pointer; padding: 2px 6px 2px 0;
+    opacity: 0.5; font-family: inherit;
+    flex-shrink: 0;
+}.budget-row-del:active { color: var(--danger); opacity: 1; }
 .budget-row-add { background: none; border: 1px dashed var(--glass-border); color: var(--text-tertiary); width: 100%; padding: 8px; margin-top: 6px; border-radius: 12px; font-size: 12px; cursor: pointer; font-family: inherit; transition: 0.15s; }
 .budget-row-add:active { background: var(--card-hover); color: var(--accent); }
 
@@ -504,8 +509,11 @@ body {
     background: var(--card); backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-radius: 22px; padding: 22px; margin-bottom: 20px;
+    border-radius: 22px; padding: 22px 18px;
     box-shadow: inset 0 1px 0 var(--glass-highlight);
+    margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
 }
 .piggy-top {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px;

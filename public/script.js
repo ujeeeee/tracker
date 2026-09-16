@@ -452,12 +452,10 @@ function renderBudget(d) {
     d.customStats.forEach(s => {
         const val = s.type === 'percent' ? (t.budget * Number(s.value) / 100) : Number(s.value);
         const label = s.type === 'percent' ? `${s.name} (${s.value}%)` : s.name;
-        html += `<div class="swipe-row" data-stat-id="${s.id}">
-            <button class="swipe-row-delete" onclick="deleteCustomStat(${s.id})">Удалить</button>
-            <div class="swipe-row-content">
-                <div class="budget-row-label">${escapeHtml(label)}</div>
-                <div class="budget-row-value">${fmt(val)}</div>
-            </div>
+        html += `<div class="budget-row">
+            <button class="budget-row-del" onclick="deleteCustomStat(${s.id})">✕</button>
+            <div class="budget-row-label">${escapeHtml(label)}</div>
+            <div class="budget-row-value">${fmt(val)}</div>
         </div>`;
     });
 
@@ -469,7 +467,6 @@ function renderBudget(d) {
     html += `<button class="budget-row-add" onclick="openCustomStatModal()">+ Добавить панель</button>`;
 
     list.innerHTML = html;
-    initSwipeRows();
 
     // Subs с чекбоксом
     const subsEl = document.getElementById('subsList');
