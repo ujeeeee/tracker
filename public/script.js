@@ -452,10 +452,12 @@ function renderBudget(d) {
     d.customStats.forEach(s => {
         const val = s.type === 'percent' ? (t.budget * Number(s.value) / 100) : Number(s.value);
         const label = s.type === 'percent' ? `${s.name} (${s.value}%)` : s.name;
-        html += `<div class="budget-row">
-            <div class="budget-row-label">${escapeHtml(label)}</div>
-            <div class="budget-row-value">${fmt(val)}</div>
-            <button class="budget-row-del" onclick="deleteCustomStat(${s.id})">✕</button>
+        html += `<div class="swipe-row" data-stat-id="${s.id}">
+            <button class="swipe-row-delete" onclick="deleteCustomStat(${s.id})">Удалить</button>
+            <div class="swipe-row-content">
+                <div class="budget-row-label">${escapeHtml(label)}</div>
+                <div class="budget-row-value">${fmt(val)}</div>
+            </div>
         </div>`;
     });
 
@@ -467,8 +469,9 @@ function renderBudget(d) {
     html += `<button class="budget-row-add" onclick="openCustomStatModal()">+ Добавить панель</button>`;
 
     list.innerHTML = html;
+    initSwipeRows();
 
-    // Subs с чекбоксом оплаты
+    // Subs с чекбоксом
     const subsEl = document.getElementById('subsList');
     subsEl.innerHTML = d.subs.length === 0
         ? `<div class="widget-empty">Нет трат</div>`
@@ -490,6 +493,66 @@ function renderBudget(d) {
             <button class="cash-item-del" onclick="deleteWeekly(${w.id})">✕</button>
         </div>`).join('');
     document.getElementById('weeklyTotal').innerHTML = `× ${d.weeksInMonth} нед. = <b>${fmt(t.weekly)}</b>`;
+}
+
+// Свайп-удаление для custom stats
+function initSwipeRows() {
+    document.querySelectorAll('.swipe-row').forEach(row => {
+        const content = row.querySelector('.swipe-row-content');
+        if (!content) return;
+
+        let startX = 0, startY = 0, currentX = 0, isDragging = false, isHorizontal = false;
+        const REVEAL = 80;
+
+        content.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            currentX = 0;
+            isDragging = true;
+            isHorizontal = false;
+            content.classList.add('swiping');
+        }, { passive: true });
+
+        content.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+
+            if (!isHorizontal && Math.abs(dx) > 8) {
+                if (Math.abs(dx) > Math.abs(dy)) isHorizontal = true;
+                else { isDragging = false; content.classList.remove('swiping'); return; }
+            }
+            if (!isHorizontal) return;
+
+            let offset = dx + currentX;
+            if (offset > 0) offset = 0;
+            if (offset < -REVEAL) offset = -REVEAL;
+            content.style.transform = `translateX(${offset}px)`;
+        }, { passive: true });
+
+        content.addEventListener('touchend', (e) => {
+            if (!isDragging) { content.classList.remove('swiping'); return; }
+            isDragging = false;
+            content.classList.remove('swiping');
+
+            const dx = e.changedTouches[0].clientX - startX;
+            if (dx < -40) {
+                content.style.transform = `translateX(-${REVEAL}px)`;
+                currentX = -REVEAL;
+            } else {
+                content.style.transform = 'translateX(0)';
+                currentX = 0;
+            }
+        });
+
+        // Тап вне — закрыть
+        content.addEventListener('click', () => {
+            if (currentX < 0) {
+                content.style.transform = 'translateX(0)';
+                currentX = 0;
+            }
+        });
+    });
 }
 
 async function toggleSubPaid(id, paid) {
@@ -702,6 +765,8 @@ async function loadPiggy() {
     try { piggyData = await api('/api/cash/piggy'); renderPiggy(); }
     catch (e) { console.error(e); }
 }
+let piggyFilter = 'all';
+
 function renderPiggy() {
     const d = piggyData;
     if (!d) return;
@@ -709,35 +774,50 @@ function renderPiggy() {
 
     document.getElementById('piggyGrid').innerHTML = `
         <div class="piggy-hero-new">
-            <div class="piggy-top">
-                <div class="piggy-top-item">
-                    <div class="piggy-card-label">Копилка</div>
-                    <div class="piggy-card-value">${fmt(t.balance)}</div>
+            <div class="piggy-row">
+                <div class="piggy-cell">
+                    <div class="piggy-cell-value">${fmt(t.balance)}</div>
+                    <div class="piggy-cell-label">Копилка</div>
                 </div>
-                <div class="piggy-top-item editable" onclick="openFactModal()">
-                    <div class="piggy-card-label">Есть по факту</div>
-                    <div class="piggy-card-value">${fmt(t.fact)}</div>
+                <div class="piggy-cell editable" onclick="openFactModal()">
+                    <div class="piggy-cell-value">${fmt(t.fact)}</div>
+                    <div class="piggy-cell-label">Есть по факту</div>
                 </div>
             </div>
-            <div class="piggy-bottom">
-                <div class="piggy-bottom-item">
-                    <div class="piggy-card-label">Всего пополнений</div>
-                    <div class="piggy-card-value">${fmt(t.deposited)}</div>
+            <div class="piggy-row">
+                <div class="piggy-cell">
+                    <div class="piggy-cell-value small">${fmt(t.deposited)}</div>
+                    <div class="piggy-cell-label">Всего пополнений</div>
                 </div>
-                <div class="piggy-bottom-item">
-                    <div class="piggy-card-label">Долг</div>
-                    <div class="piggy-card-value debt">${fmt(t.debt)}</div>
+                <div class="piggy-cell">
+                    <div class="piggy-cell-value small debt">${fmt(t.debt)}</div>
+                    <div class="piggy-cell-label">Долг</div>
                 </div>
             </div>
         </div>
     `;
 
+    // Фильтр
+    const filtered = d.items.filter(x => {
+        if (piggyFilter === 'deposit') return x.type === 'deposit';
+        if (piggyFilter === 'withdraw') return x.type === 'withdraw';
+        return true;
+    });
+
+    const filterHtml = `
+        <div class="piggy-filter">
+            <button class="piggy-filter-btn ${piggyFilter === 'all' ? 'active' : ''}" onclick="setPiggyFilter('all')">Все</button>
+            <button class="piggy-filter-btn ${piggyFilter === 'deposit' ? 'active' : ''}" onclick="setPiggyFilter('deposit')">↓ Пополнения</button>
+            <button class="piggy-filter-btn ${piggyFilter === 'withdraw' ? 'active' : ''}" onclick="setPiggyFilter('withdraw')">↑ Списания</button>
+        </div>
+    `;
+
     const list = document.getElementById('piggyList');
-    if (!d.items.length) {
-        list.innerHTML = `<div class="widget-empty">Пока пусто</div>`;
+    if (!filtered.length) {
+        list.innerHTML = filterHtml + `<div class="widget-empty">Пусто</div>`;
         return;
     }
-    list.innerHTML = d.items.map(x => `
+    list.innerHTML = filterHtml + filtered.map(x => `
         <div class="cash-item">
             <div style="flex:1;min-width:0;">
                 <div class="cash-item-name">${escapeHtml(x.description || (x.type === 'deposit' ? 'Пополнение' : 'Трата'))}</div>
@@ -749,6 +829,11 @@ function renderPiggy() {
             <button class="cash-item-del" onclick="deletePiggyItem(${x.id})">✕</button>
         </div>
     `).join('');
+}
+
+function setPiggyFilter(f) {
+    piggyFilter = f;
+    renderPiggy();
 }
 
 let piggyCtx = { type: 'withdraw' };
