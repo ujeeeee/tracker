@@ -133,54 +133,42 @@
 
         <!-- GYM -->
         <div class="screen" data-screen-name="Gym">
-        <div class="screen-inner">
-            <div class="screen-header">
-                <h2>🏋️ Gym</h2>
-                <button class="settings-btn" onclick="openSettings()">⚙️</button>
-            </div>
-            <div class="tabs">
-                <button class="tab active" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
-                <button class="tab" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
-                <button class="tab" onclick="switchSubTab('gym', 'materials', this)">Материалы</button>
-            </div>
+            <div class="screen-inner">
+                <div class="screen-header">
+                    <h2>🏋️ Gym</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
+                    <button class="tab" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
+                </div>
                 <div class="screen-content">
 
-                <div id="gym-programs" class="subtab active">
-                    <div class="goals-header">
-                        <span class="goals-header-title">Программы</span>
-                        <button class="btn-icon-add" onclick="openNewProgramModal()">+</button>
-                    </div>
-                    <div id="programsList"></div>
-                </div>
-
-                <div id="gym-metrics" class="subtab">
-                    <div class="goals-header">
-                        <span class="goals-header-title">Биометрия</span>
-                        <button class="btn-icon-add" onclick="openAddMetric('bio')">+</button>
-                    </div>
-                    <div id="bioTable"></div>
-
-                    <div class="goals-header" style="margin-top:24px;">
-                        <span class="goals-header-title">Сила</span>
-                        <button class="btn-icon-add" onclick="openAddMetric('strength')">+</button>
-                    </div>
-                    <div id="strengthTable"></div>
-                </div>
-
-                <div id="gym-materials" class="subtab">
-                    <div class="goals-header">
-                        <span class="goals-header-title">Материалы</span>
-                        <div style="display:flex;gap:8px;">
-                            <button class="btn-icon-add" onclick="document.getElementById('materialFileInput').click()" title="Фото">📷</button>
-                            <button class="btn-icon-add" onclick="openMaterialModal()" title="Ссылка">+</button>
+                    <div id="gym-programs" class="subtab active">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Программы</span>
+                            <button class="btn-icon-add" onclick="openNewProgramModal()">+</button>
                         </div>
+                        <div id="programsList"></div>
                     </div>
-                    <input type="file" id="materialFileInput" accept="image/*" style="display:none" onchange="uploadMaterialPhoto(event)" />
-                    <div id="materialsList"></div>
+
+                    <div id="gym-metrics" class="subtab">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Биометрия</span>
+                            <button class="btn-icon-add" onclick="openAddMetric('bio')">+</button>
+                        </div>
+                        <div id="bioTable"></div>
+
+                        <div class="goals-header" style="margin-top:24px;">
+                            <span class="goals-header-title">Сила</span>
+                            <button class="btn-icon-add" onclick="openAddMetric('strength')">+</button>
+                        </div>
+                        <div id="strengthTable"></div>
+                    </div>
+
                 </div>
             </div>
         </div>
-    </div>
 
         <!-- FOOD -->
         <div class="screen" data-screen-name="Food">
@@ -434,19 +422,21 @@
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="metricName" placeholder="Например: Вес" />
 
-        <div class="field-label">Категория</div>
-        <div class="freq-tabs">
-            <button class="freq-tab" data-cat="bio" onclick="pickMetricCat('bio', this)">Биометрия</button>
-            <button class="freq-tab" data-cat="strength" onclick="pickMetricCat('strength', this)">Сила</button>
-        </div>
-
-        <div class="field-label" style="margin-top:12px;">Единица измерения</div>
-        <input type="text" class="modal-input" id="metricUnit" placeholder="кг / см / сек" />
+        <div class="field-label">Единица</div>
+        <select class="modal-input modal-select" id="metricUnit">
+            <option value="кг">кг</option>
+            <option value="см">см</option>
+            <option value="сек">сек</option>
+            <option value="мин">мин</option>
+            <option value="м">м</option>
+            <option value="км">км</option>
+            <option value="шт">шт</option>
+        </select>
 
         <div class="field-label">Цель (опционально)</div>
-        <input type="number" class="modal-input" id="metricTarget" placeholder="Необязательно" />
+        <input type="number" class="modal-input" id="metricTarget" placeholder="Необязательно" step="0.1" />
 
-        <div class="modal-actions" style="margin-top:20px;">
+        <div class="modal-actions">
             <button class="modal-btn secondary" onclick="closeMetricModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveMetric()">Сохранить</button>
         </div>
@@ -468,6 +458,7 @@
         <input type="date" class="modal-input" id="logDate" />
 
         <div class="modal-actions">
+            <button class="modal-btn secondary" id="logDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteCurrentLog()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeMetricLogModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveMetricLog()">Сохранить</button>
         </div>
@@ -568,27 +559,6 @@
         <div class="modal-actions">
             <button class="modal-btn secondary" onclick="closeNewSetModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveNewSet()">Добавить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: МАТЕРИАЛ (ссылка) -->
-<div class="modal-overlay" id="materialModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title">Новый материал</h3>
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="materialTitle" placeholder="Например: Техника жима" />
-        <div class="field-label">Ссылка</div>
-        <input type="text" class="modal-input" id="materialUrl" placeholder="https://..." />
-        <div class="field-label">Тип</div>
-        <div class="freq-tabs">
-            <button class="freq-tab active" data-mkind="link" onclick="pickMaterialKind('link', this)">Статья</button>
-            <button class="freq-tab" data-mkind="video" onclick="pickMaterialKind('video', this)">Видео</button>
-        </div>
-        <div class="modal-actions" style="margin-top:20px;">
-            <button class="modal-btn secondary" onclick="closeMaterialModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveMaterial()">Сохранить</button>
         </div>
     </div>
 </div>

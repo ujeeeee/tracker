@@ -867,3 +867,127 @@ body {
     flex-shrink: 0;
 }
 .material-del:active { color: var(--danger); opacity: 1; }
+
+/* ===== ПРОГРАММЫ: сворачивание ===== */
+.day-block .day-header { cursor: pointer; }
+.day-arrow {
+    color: var(--text-tertiary); font-size: 11px;
+    transition: transform 0.2s; flex-shrink: 0;
+}
+.day-block.open .day-arrow { transform: rotate(90deg); }
+.day-block .day-body { display: none; margin-top: 8px; }
+.day-block.open .day-body { display: block; }
+
+.exercise-block .exercise-header { cursor: pointer; }
+.ex-arrow {
+    color: var(--text-tertiary); font-size: 10px;
+    transition: transform 0.2s; flex-shrink: 0;
+}
+.exercise-block.open .ex-arrow { transform: rotate(90deg); }
+.exercise-block .exercise-body { display: none; margin-top: 6px; }
+.exercise-block.open .exercise-body { display: block; }
+
+.exercise-summary {
+    font-size: 11px; color: var(--text-tertiary);
+    margin-left: auto; font-weight: 500;
+}
+
+/* ===== МЕТРИКИ: новая таблица ===== */
+.metrics-table-wrap {
+    background: var(--card); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    margin-bottom: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.metrics-table-wrap::-webkit-scrollbar { display: none; }
+
+.metrics-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: max-content;
+}
+.metrics-table th,
+.metrics-table td {
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 13px;
+    border-bottom: 1px solid var(--glass-border);
+    white-space: nowrap;
+}
+.metrics-table th {
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg-secondary);
+}
+.metrics-table tr:last-child td { border-bottom: none; }
+
+/* Sticky columns */
+.metrics-table th.col-name,
+.metrics-table td.col-name {
+    position: sticky; left: 0;
+    z-index: 3;
+    text-align: left;
+    min-width: 110px;
+    max-width: 110px;
+    background: var(--card);
+    color: var(--text);
+    font-weight: 600;
+}
+.metrics-table th.col-name { background: var(--bg-secondary); }
+
+.metrics-table th.col-target,
+.metrics-table td.col-target {
+    position: sticky; left: 110px;
+    z-index: 3;
+    text-align: center;
+    min-width: 55px;
+    max-width: 55px;
+    background: var(--card);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    border-right: 1px solid var(--glass-border);
+}
+.metrics-table th.col-target { background: var(--bg-secondary); }
+
+.metrics-table td.cell {
+    cursor: pointer;
+    color: var(--text);
+    font-weight: 600;
+    min-width: 70px;
+    transition: background 0.15s;
+}
+.metrics-table td.cell:active { background: var(--bg-secondary); }
+.metrics-table td.cell.empty {
+    color: var(--text-tertiary);
+    font-weight: 400;
+    font-size: 14px;
+}
+.metrics-table td.cell.add-cell {
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 500;
+    min-width: 40px;
+}
+
+/* Селект в модалке */
+.modal-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2398989f' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+}

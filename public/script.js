@@ -99,7 +99,7 @@ function goToScreen(index, animate = true) {
     if (index === 0) loadHome();
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadMonthChart(); }
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
-    if (index === 3) { loadMetrics(); loadPrograms(); loadMaterials(); }
+    if (index === 3) { loadMetrics(); loadPrograms(); }
 }
 
 // Свайп
@@ -890,128 +890,12 @@ function haptic(type = 'light') {
 document.addEventListener('click', e => { if (e.target.closest('button')) haptic('light'); });
 
 // ==========================================
-// ===== GYM: МЕТРИКИ (таблица) =====
-// ==========================================
-let metrics = [];
-let metricCtx = { category: 'bio' };
-let metricLogCtx = { metricId: null, date: null };
-
-async function loadMetrics() {
-    try {
-        const { metrics: data } = await api('/api/gym/metrics');
-        metrics = data;
-        renderMetricsTable();
-    } catch (e) { console.error(e); }
-}
-
-function renderMetricsTable() {
-    const bio = metrics.filter(m => m.category === 'bio');
-    const str = metrics.filter(m => m.category === 'strength');
-    renderTable('bioTable', bio);
-    renderTable('strengthTable', str);
-}
-
-function renderTable(containerId, list) {
-    const c = document.getElementById(containerId);
-    if (!c) return;
-
-    if (!list.length) {
-        c.innerHTML = `<div class="widget-empty">Нет метрик. Нажми +</div>`;
-        return;
-    }
-
-    // Все уникальные даты из всех метрик
-    const datesSet = new Set();
-    list.forEach(m => m.logs.forEach(l => datesSet.add(l.date)));
-    const dates = [...datesSet].sort();
-
-    let html = `<div class="metrics-table-wrap"><table class="metrics-table"><thead><tr>`;
-    html += `<th>Метрика</th>`;
-    dates.forEach(d => { html += `<th>${formatDate(d)}</th>`; });
-    if (dates.length === 0) html += `<th>—</th>`;
-    html += `</tr></thead><tbody>`;
-
-    list.forEach(m => {
-        const map = {};
-        m.logs.forEach(l => { map[l.date] = l; });
-
-        html += `<tr>`;
-        html += `<td>${escapeHtml(m.name)}<button class="metric-del" onclick="deleteMetric(${m.id})">✕</button></td>`;
-        if (dates.length === 0) {
-            html += `<td class="empty-cell" onclick="openMetricLogModal(${m.id}, null)">добавить</td>`;
-        } else {
-            dates.forEach(d => {
-                const log = map[d];
-                if (log) {
-                    html += `<td class="value-cell" onclick="openMetricLogModal(${m.id}, '${d}')">${log.value}</td>`;
-                } else {
-                    html += `<td class="empty-cell" onclick="openMetricLogModal(${m.id}, '${d}')">—</td>`;
-                }
-            });
-        }
-        html += `</tr>`;
-    });
-
-    html += `</tbody></table></div>`;
-    c.innerHTML = html;
-}
-
-// Добавление метрики
-function openAddMetric(category) {
-    metricCtx.category = category;
-    document.getElementById('metricModalTitle').textContent =
-        category === 'bio' ? 'Новая метрика биометрии' : 'Новая метрика силы';
-    document.getElementById('metricName').value = '';
-    document.getElementById('metricModal').classList.add('open');
-    setTimeout(() => document.getElementById('metricName').focus(), 200);
-}
-function closeMetricModal() { document.getElementById('metricModal').classList.remove('open'); }
-async function saveMetric() {
-    const name = document.getElementById('metricName').value.trim();
-    if (!name) return alert('Введи название');
-    try {
-        await api('/api/gym/metrics', 'POST', { name, category: metricCtx.category });
-        closeMetricModal();
-        await loadMetrics();
-    } catch (e) { alert('Ошибка: ' + e.message); }
-}
-
-async function deleteMetric(id) {
-    if (!confirm('Удалить метрику и все её замеры?')) return;
-    await api(`/api/gym/metrics/${id}`, 'DELETE');
-    await loadMetrics();
-}
-
-// Замер
-function openMetricLogModal(metricId, date) {
-    metricLogCtx.metricId = metricId;
-    metricLogCtx.date = date;
-    const m = metrics.find(x => x.id === metricId);
-    document.getElementById('metricLogTitle').textContent = m ? m.name : 'Замер';
-    document.getElementById('logValue').value = '';
-    document.getElementById('logDate').value = date || new Date().toISOString().slice(0,10);
-    document.getElementById('metricLogModal').classList.add('open');
-    setTimeout(() => document.getElementById('logValue').focus(), 200);
-}
-function closeMetricLogModal() { document.getElementById('metricLogModal').classList.remove('open'); }
-async function saveMetricLog() {
-    const value = document.getElementById('logValue').value;
-    if (value === '') return alert('Введи значение');
-    try {
-        await api(`/api/gym/metrics/${metricLogCtx.metricId}/logs`, 'POST', {
-            value,
-            date: document.getElementById('logDate').value,
-        });
-        closeMetricLogModal();
-        await loadMetrics();
-    } catch (e) { alert('Ошибка: ' + e.message); }
-}
-
-// ==========================================
 // ===== GYM: ПРОГРАММЫ =====
 // ==========================================
 let programs = [];
 let openProgramIds = new Set();
+let openDayIds = new Set();
+let openExerciseIds = new Set();
 let namePromptCtx = { type: null, parentId: null };
 let newSetCtx = { exerciseId: null };
 
@@ -1037,7 +921,7 @@ function renderPrograms() {
             <div class="program-header">
                 <div class="program-name" onclick="toggleProgram(${p.id})">${escapeHtml(p.name)}</div>
                 <span class="program-arrow" onclick="toggleProgram(${p.id})">▶</span>
-                <button class="area-delete" onclick="deleteProgram(${p.id})">🗑</button>
+                <button class="area-delete" onclick="event.stopPropagation(); deleteProgram(${p.id})">🗑</button>
             </div>
             <div class="program-body">
                 ${p.days.map((d, di) => renderDay(d, di)).join('')}
@@ -1048,18 +932,25 @@ function renderPrograms() {
 }
 
 function renderDay(d, di) {
-    return `<div class="day-block">
-        <div class="day-header">
+    const isOpen = openDayIds.has(d.id);
+    return `<div class="day-block ${isOpen ? 'open' : ''}">
+        <div class="day-header" onclick="toggleDay(${d.id})">
+            <span class="day-arrow">▶</span>
             <span class="day-num">${di + 1}.</span>
             <span class="day-name">${escapeHtml(d.name)}</span>
-            <button class="area-delete" onclick="deleteDay(${d.id})">✕</button>
+            <button class="area-delete" onclick="event.stopPropagation(); deleteDay(${d.id})">✕</button>
         </div>
-        ${d.exercises.map((e, ei) => renderExercise(e, ei)).join('')}
-        <button class="day-add-exercise" onclick="openNamePrompt('exercise', ${d.id})">+ Упражнение</button>
+        <div class="day-body">
+            ${d.exercises.map((e, ei) => renderExercise(e, ei)).join('')}
+            <button class="day-add-exercise" onclick="openNamePrompt('exercise', ${d.id})">+ Упражнение</button>
+        </div>
     </div>`;
 }
 
 function renderExercise(e, ei) {
+    const isOpen = openExerciseIds.has(e.id);
+    const summary = e.sets.length ? `${e.sets.length} подх.` : 'нет подходов';
+
     const setsHtml = e.sets.map((s, si) => `
         <div class="set-row">
             <span class="set-num">${si + 1})</span>
@@ -1068,14 +959,18 @@ function renderExercise(e, ei) {
         </div>
     `).join('');
 
-    return `<div class="exercise-block">
-        <div class="exercise-header">
+    return `<div class="exercise-block ${isOpen ? 'open' : ''}">
+        <div class="exercise-header" onclick="toggleExercise(${e.id})">
+            <span class="ex-arrow">▶</span>
             <span class="set-num">${ei + 1}.</span>
             <span class="exercise-name">${escapeHtml(e.name)}</span>
-            <button class="area-delete" onclick="deleteExercise(${e.id})">✕</button>
+            <span class="exercise-summary">${summary}</span>
+            <button class="area-delete" onclick="event.stopPropagation(); deleteExercise(${e.id})">✕</button>
         </div>
-        ${setsHtml}
-        <button class="exercise-add-set" onclick="openNewSetModal(${e.id}, '${escapeHtml(e.name).replace(/'/g, "\\'")}')">+ подход</button>
+        <div class="exercise-body">
+            ${setsHtml}
+            <button class="exercise-add-set" onclick="openNewSetModal(${e.id}, '${escapeHtml(e.name).replace(/'/g, "\\'")}')">+ подход</button>
+        </div>
     </div>`;
 }
 
@@ -1084,8 +979,17 @@ function toggleProgram(id) {
     else openProgramIds.add(id);
     renderPrograms();
 }
+function toggleDay(id) {
+    if (openDayIds.has(id)) openDayIds.delete(id);
+    else openDayIds.add(id);
+    renderPrograms();
+}
+function toggleExercise(id) {
+    if (openExerciseIds.has(id)) openExerciseIds.delete(id);
+    else openExerciseIds.add(id);
+    renderPrograms();
+}
 
-// Новая программа
 function openNewProgramModal() {
     document.getElementById('programName').value = '';
     document.getElementById('newProgramModal').classList.add('open');
@@ -1109,7 +1013,6 @@ async function deleteProgram(id) {
     await loadPrograms();
 }
 
-// Name prompt (день / упражнение)
 function openNamePrompt(type, parentId) {
     namePromptCtx = { type, parentId };
     document.getElementById('namePromptTitle').textContent =
@@ -1127,8 +1030,10 @@ async function submitNamePrompt() {
     try {
         if (namePromptCtx.type === 'day') {
             await api(`/api/gym/programs/${namePromptCtx.parentId}/days`, 'POST', { name: v });
+            openProgramIds.add(namePromptCtx.parentId);
         } else {
             await api(`/api/gym/days/${namePromptCtx.parentId}/exercises`, 'POST', { name: v });
+            openDayIds.add(namePromptCtx.parentId);
         }
         closeNamePrompt();
         await loadPrograms();
@@ -1138,15 +1043,16 @@ async function submitNamePrompt() {
 async function deleteDay(id) {
     if (!confirm('Удалить тренировку?')) return;
     await api(`/api/gym/days/${id}`, 'DELETE');
+    openDayIds.delete(id);
     await loadPrograms();
 }
 async function deleteExercise(id) {
     if (!confirm('Удалить упражнение?')) return;
     await api(`/api/gym/exercises/${id}`, 'DELETE');
+    openExerciseIds.delete(id);
     await loadPrograms();
 }
 
-// Новый подход
 function openNewSetModal(exerciseId, exerciseName) {
     newSetCtx.exerciseId = exerciseId;
     document.getElementById('newSetTitle').textContent = exerciseName;
@@ -1162,6 +1068,7 @@ async function saveNewSet() {
     if (reps === '' && weight === '') return alert('Заполни повторения или вес');
     try {
         await api(`/api/gym/exercises/${newSetCtx.exerciseId}/sets`, 'POST', { reps, weight });
+        openExerciseIds.add(newSetCtx.exerciseId);
         closeNewSetModal();
         await loadPrograms();
     } catch (e) { alert('Ошибка: ' + e.message); }
@@ -1172,100 +1079,143 @@ async function deleteSet(id) {
 }
 
 // ==========================================
-// ===== GYM: МАТЕРИАЛЫ =====
+// ===== GYM: МЕТРИКИ (таблица) =====
 // ==========================================
-let materials = [];
-let materialKind = 'link';
+let metrics = [];
+let metricCtx = { category: 'bio' };
+let metricLogCtx = { metricId: null, date: null, logId: null };
 
-async function loadMaterials() {
+async function loadMetrics() {
     try {
-        const { materials: data } = await api('/api/gym/materials');
-        materials = data;
-        renderMaterials();
+        const { metrics: data } = await api('/api/gym/metrics');
+        metrics = data;
+        renderMetricsTable();
     } catch (e) { console.error(e); }
 }
 
-function renderMaterials() {
-    const c = document.getElementById('materialsList');
+function renderMetricsTable() {
+    const bio = metrics.filter(m => m.category === 'bio');
+    const str = metrics.filter(m => m.category === 'strength');
+    renderTable('bioTable', bio);
+    renderTable('strengthTable', str);
+}
+
+function renderTable(containerId, list) {
+    const c = document.getElementById(containerId);
     if (!c) return;
-    if (!materials.length) {
-        c.innerHTML = `<div class="empty-state">Нет материалов. Добавь ссылку или фото</div>`;
+
+    if (!list.length) {
+        c.innerHTML = `<div class="widget-empty">Нет метрик. Нажми +</div>`;
         return;
     }
 
-    c.innerHTML = materials.map(m => {
-        const isPhoto = m.kind === 'photo';
-        const icon = m.kind === 'video' ? '🎬' : isPhoto ? '📷' : '📄';
-        const preview = isPhoto
-            ? `<img class="material-photo" src="${m.url}" alt="" />`
-            : `<div class="material-icon">${icon}</div>`;
+    const datesSet = new Set();
+    list.forEach(m => m.logs.forEach(l => datesSet.add(l.date)));
+    const dates = [...datesSet].sort();
 
-        const clickAction = isPhoto
-            ? `onclick="window.open('${m.url}', '_blank')"`
-            : `onclick="window.open('${m.url}', '_blank')"`;
+    let html = `<div class="metrics-table-wrap"><table class="metrics-table"><thead><tr>`;
+    html += `<th class="col-name">Метрика</th>`;
+    html += `<th class="col-target">Цель</th>`;
+    dates.forEach(d => { html += `<th>${formatDate(d)}</th>`; });
+    html += `<th>+</th>`;
+    html += `</tr></thead><tbody>`;
 
-        return `<div class="material-card">
-            <div ${clickAction} style="cursor:pointer;display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-                ${preview}
-                <div class="material-info">
-                    <div class="material-title">${escapeHtml(m.title)}</div>
-                    <div class="material-url">${escapeHtml(m.url)}</div>
-                </div>
-            </div>
-            <button class="material-del" onclick="deleteMaterial(${m.id})">✕</button>
-        </div>`;
-    }).join('');
+    list.forEach(m => {
+        const map = {};
+        m.logs.forEach(l => { map[l.date] = l; });
+        const unit = m.unit || '';
+        const target = m.target ? `${m.target}${unit}` : '—';
+
+        html += `<tr>`;
+        html += `<td class="col-name">${escapeHtml(m.name)}</td>`;
+        html += `<td class="col-target">${target}</td>`;
+
+        dates.forEach(d => {
+            const log = map[d];
+            if (log) {
+                html += `<td class="cell" onclick="openMetricLogModal(${m.id}, '${d}', ${log.id}, ${log.value})">${log.value}</td>`;
+            } else {
+                html += `<td class="cell empty" onclick="openMetricLogModal(${m.id}, '${d}', null, null)">—</td>`;
+            }
+        });
+
+        html += `<td class="cell add-cell" onclick="openMetricLogModal(${m.id}, null, null, null)">+</td>`;
+        html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    c.innerHTML = html;
 }
 
-function openMaterialModal() {
-    document.getElementById('materialTitle').value = '';
-    document.getElementById('materialUrl').value = '';
-    materialKind = 'link';
-    document.querySelectorAll('#materialModal [data-mkind]').forEach(b =>
-        b.classList.toggle('active', b.dataset.mkind === 'link'));
-    document.getElementById('materialModal').classList.add('open');
-    setTimeout(() => document.getElementById('materialTitle').focus(), 200);
+function openAddMetric(category) {
+    metricCtx.category = category;
+    document.getElementById('metricModalTitle').textContent =
+        category === 'bio' ? 'Новая метрика биометрии' : 'Новая метрика силы';
+    document.getElementById('metricName').value = '';
+    document.getElementById('metricUnit').value = 'кг';
+    document.getElementById('metricTarget').value = '';
+    document.getElementById('metricModal').classList.add('open');
+    setTimeout(() => document.getElementById('metricName').focus(), 200);
 }
-function closeMaterialModal() { document.getElementById('materialModal').classList.remove('open'); }
-function pickMaterialKind(k, btn) {
-    materialKind = k;
-    document.querySelectorAll('#materialModal [data-mkind]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-}
-async function saveMaterial() {
-    const url = document.getElementById('materialUrl').value.trim();
-    if (!url) return alert('Введи ссылку');
-    const title = document.getElementById('materialTitle').value.trim();
+function closeMetricModal() { document.getElementById('metricModal').classList.remove('open'); }
+
+async function saveMetric() {
+    const name = document.getElementById('metricName').value.trim();
+    if (!name) return alert('Введи название');
     try {
-        await api('/api/gym/materials', 'POST', { title, url, kind: materialKind });
-        closeMaterialModal();
-        await loadMaterials();
+        await api('/api/gym/metrics', 'POST', {
+            name,
+            category: metricCtx.category,
+            unit: document.getElementById('metricUnit').value,
+            target: document.getElementById('metricTarget').value || null,
+        });
+        closeMetricModal();
+        await loadMetrics();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-async function uploadMaterialPhoto(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return alert('Фото должно быть меньше 5 МБ');
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-        try {
-            await api('/api/gym/materials/photo', 'POST', {
-                base64: reader.result,
-                title: file.name.replace(/\.[^.]+$/, ''),
-            });
-            await loadMaterials();
-        } catch (e) { alert('Ошибка загрузки: ' + e.message); }
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
+async function deleteMetric(id) {
+    if (!confirm('Удалить метрику и все её замеры?')) return;
+    await api(`/api/gym/metrics/${id}`, 'DELETE');
+    await loadMetrics();
 }
 
-async function deleteMaterial(id) {
-    if (!confirm('Удалить материал?')) return;
-    await api(`/api/gym/materials/${id}`, 'DELETE');
-    await loadMaterials();
+function openMetricLogModal(metricId, date, logId, value) {
+    metricLogCtx = { metricId, date, logId };
+    const m = metrics.find(x => x.id === metricId);
+    const title = m ? m.name + (m.unit ? ` (${m.unit})` : '') : 'Замер';
+    document.getElementById('metricLogTitle').textContent = title;
+
+    document.getElementById('logValue').value = value !== null && value !== undefined ? value : '';
+    document.getElementById('logDate').value = date || new Date().toISOString().slice(0,10);
+
+    const delBtn = document.getElementById('logDeleteBtn');
+    delBtn.style.display = logId ? 'block' : 'none';
+
+    document.getElementById('metricLogModal').classList.add('open');
+    setTimeout(() => document.getElementById('logValue').focus(), 200);
+}
+function closeMetricLogModal() { document.getElementById('metricLogModal').classList.remove('open'); }
+
+async function saveMetricLog() {
+    const value = document.getElementById('logValue').value;
+    if (value === '') return alert('Введи значение');
+    try {
+        await api(`/api/gym/metrics/${metricLogCtx.metricId}/logs`, 'POST', {
+            value,
+            date: document.getElementById('logDate').value,
+        });
+        closeMetricLogModal();
+        await loadMetrics();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function deleteCurrentLog() {
+    if (!metricLogCtx.logId) return;
+    if (!confirm('Удалить замер?')) return;
+    await api(`/api/gym/metrics/logs/${metricLogCtx.logId}`, 'DELETE');
+    closeMetricLogModal();
+    await loadMetrics();
 }
 
 // ===== СТАРТ =====
@@ -1275,6 +1225,6 @@ async function deleteMaterial(id) {
     if (ok) {
         await Promise.all([loadHome(), loadHabits(), loadWeek(), loadMonthChart(), loadAreas(),
                            loadBudget(), loadWishlist(), loadPiggy(),
-                           loadMetrics(), loadPrograms(), loadMaterials()]);
+                           loadMetrics(), loadPrograms()]);
     }
 })();
