@@ -382,7 +382,7 @@ function renderHabits() {
         return `
             <div class="habit-card">
                 <div class="habit-top" onclick="openCalendar(${h.id})" style="cursor:pointer">
-                    <div class="habit-name">${escapeHtml(h.name)}</div>
+                    <div class="habit-name" onclick="openHabitSettings(${h.id})">${escapeHtml(h.name)}</div>
                     ${streak > 0 ? `<div class="habit-streak">🔥 ${streak}</div>` : ''}
                     <button class="habit-delete" onclick="event.stopPropagation(); deleteHabit(${h.id})">✕</button>
                 </div>
@@ -706,6 +706,186 @@ function haptic(type = 'light') {
 document.addEventListener('click', (e) => {
     if (e.target.closest('button')) haptic('light');
 });
+
+// ==========================================
+// ===== ВИД "НЕДЕЛЯ" =====
+// ==========================================
+let habitsView = 'list';
+let weekStart = getMonday(new Date());
+
+function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    date.setDate(date.getDate() + diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function switchHabitsView(view, btn) {
+    habitsView = view;
+    document.querySelectorAll('.view-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('habitsListView').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('habitsWeekView').style.display = view === 'week' ? 'block' : 'none';
+
+    if (view === 'week') loadWeek();
+}
+
+async function loadWeek() {
+    const start = weekStart.toISOString().slice(0, 10);
+    try {
+        const { habits: data, start: s } = await api(`/api/disc/habits/week?start=${start}`);
+        renderWeek(data);
+    } catch (e) {
+        console.error('loadWeek:', e);
+    }
+}
+
+function renderWeek(data) {
+    const rangeEl = document.getElementById('weekRange');
+    const grid = document.getElementById('weekGrid');
+
+    const end = new Date(weekStart);
+    end.setDate(end.getDate() + 6);
+
+    const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+    rangeEl.textContent = `${weekStart.getDate()} ${months[weekStart.getMonth()]} — ${end.getDate()} ${months[end.getMonth()]}`;
+
+    if (data.length === 0) {
+        grid.innerHTML = `<div class="empty-state">Нет привычек. Добавь первую 👇</div>`;
+        return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const dayNames = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+    let html = `<div class="week-grid-table">`;
+
+    // Заголовок с днями
+    html += `<div class="week-header"><div class="week-header-cell">Привычка</div>`;
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const isToday = dateStr === today ? 'today' : '';
+        html += `<div class="week-header-cell ${isToday}">
+            ${dayNames[i]}<span class="week-header-date">${d.getDate()}</span>
+        </div>`;
+    }
+    html += `</div>`;
+
+    // Строки привычек
+    data.forEach(h => {
+        html += `<div class="week-row">`;
+        html += `<div class="week-habit-name" onclick="openHabitSettings(${h.id})">${escapeHtml(h.name)}</div>`;
+        h.week.forEach(day => {
+            const isToday = day.date === today ? 'today' : '';
+            const cls = [
+                'week-cell',
+                day.done ? 'done' : '',
+                !day.scheduled ? 'not-scheduled' : 'scheduled',
+                isToday,
+            ].filter(Boolean).join(' ');
+            const onclick = day.scheduled ? `onclick="toggleWeekCell(${h.id}, '${day.date}')"` : '';
+            html += `<div class="${cls}" ${onclick}>✓</div>`;
+        });
+        html += `</div>`;
+    });
+
+    html += `</div>`;
+    grid.innerHTML = html;
+}
+
+async function toggleWeekCell(habitId, date) {
+    try {
+        await api(`/api/disc/habits/${habitId}/toggle`, 'POST', { date });
+        await loadWeek();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+function weekPrev() {
+    weekStart.setDate(weekStart.getDate() - 7);
+    loadWeek();
+}
+
+function weekNext() {
+    weekStart.setDate(weekStart.getDate() + 7);
+    loadWeek();
+}
+
+// ==========================================
+// ===== НАСТРОЙКИ ПРИВЫЧКИ =====
+// ==========================================
+let habitSettingsCtx = { id: null, frequency: 'daily', days: [1,2,3,4,5,6,7] };
+
+function openHabitSettings(habitId) {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    habitSettingsCtx.id = habitId;
+    habitSettingsCtx.frequency = habit.frequency || 'daily';
+    habitSettingsCtx.days = habit.days_of_week || [1,2,3,4,5,6,7];
+
+    document.getElementById('habitSetName').value = habit.name;
+
+    document.querySelectorAll('#habitSettingsModal [data-freq]').forEach(b => {
+        b.classList.toggle('active', b.dataset.freq === habitSettingsCtx.frequency);
+    });
+    document.querySelectorAll('#habitSettingsModal .day-opt').forEach(b => {
+        b.classList.toggle('active', habitSettingsCtx.days.includes(parseInt(b.dataset.dow)));
+    });
+    document.getElementById('daysPicker').style.display =
+        habitSettingsCtx.frequency === 'custom' ? 'block' : 'none';
+
+    document.getElementById('habitSettingsModal').classList.add('open');
+}
+
+function closeHabitSettings() {
+    document.getElementById('habitSettingsModal').classList.remove('open');
+}
+
+function pickFrequency(freq, btn) {
+    habitSettingsCtx.frequency = freq;
+    document.querySelectorAll('#habitSettingsModal [data-freq]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('daysPicker').style.display = freq === 'custom' ? 'block' : 'none';
+}
+
+function toggleDow(dow) {
+    const idx = habitSettingsCtx.days.indexOf(dow);
+    if (idx >= 0) habitSettingsCtx.days.splice(idx, 1);
+    else habitSettingsCtx.days.push(dow);
+
+    document.querySelectorAll('#habitSettingsModal .day-opt').forEach(b => {
+        b.classList.toggle('active', habitSettingsCtx.days.includes(parseInt(b.dataset.dow)));
+    });
+}
+
+async function saveHabitSettings() {
+    const name = document.getElementById('habitSetName').value.trim();
+    if (!name) return alert('Введи название');
+
+    if (habitSettingsCtx.frequency === 'custom' && habitSettingsCtx.days.length === 0) {
+        return alert('Выбери хотя бы один день');
+    }
+
+    try {
+        await api(`/api/disc/habits/${habitSettingsCtx.id}`, 'PATCH', {
+            name,
+            frequency: habitSettingsCtx.frequency,
+            days_of_week: habitSettingsCtx.days,
+        });
+        closeHabitSettings();
+        await loadHabits();
+        if (habitsView === 'week') await loadWeek();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
 
 // ==========================================
 // ===== СТАРТ =====

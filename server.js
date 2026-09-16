@@ -342,6 +342,68 @@ function calcStreak(logs) {
     return streak;
 }
 
+// ==========================================
+// ===== DISCIPLINE: НЕДЕЛЯ =====
+// ==========================================
+app.get('/api/disc/habits/week', authMiddleware, async (req, res) => {
+    const { start } = req.query; // YYYY-MM-DD (понедельник)
+    if (!start) return res.status(400).json({ error: 'start required' });
+
+    const startDate = new Date(start);
+    const endDate = new Date(start);
+    endDate.setDate(endDate.getDate() + 6);
+    const end = endDate.toISOString().slice(0, 10);
+
+    const { data: habits } = await supabase
+        .from('disc_habits').select('*')
+        .eq('tg_id', req.tg_id).eq('archived', false)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+
+    const { data: logs } = await supabase
+        .from('disc_habit_logs').select('habit_id, date, done')
+        .eq('tg_id', req.tg_id).gte('date', start).lte('date', end);
+
+    const logsMap = {};
+    (logs || []).forEach(l => {
+        if (!logsMap[l.habit_id]) logsMap[l.habit_id] = new Set();
+        if (l.done) logsMap[l.habit_id].add(l.date);
+    });
+
+    // Проверяем, какие дни «запланированы» для привычки
+    const result = (habits || []).map(h => {
+        const doneDates = logsMap[h.id] || new Set();
+        const week = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + i);
+            const dateStr = d.toISOString().slice(0, 10);
+            const dow = i + 1; // 1=Пн ... 7=Вс
+            const scheduled = h.frequency === 'daily'
+                || (h.days_of_week && h.days_of_week.includes(dow));
+            week.push({ date: dateStr, done: doneDates.has(dateStr), scheduled });
+        }
+        return { id: h.id, name: h.name, frequency: h.frequency, week };
+    });
+
+    res.json({ start, habits: result });
+});
+
+app.patch('/api/disc/habits/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    if (req.body.name !== undefined) updates.name = req.body.name;
+    if (req.body.frequency !== undefined) updates.frequency = req.body.frequency;
+    if (req.body.days_of_week !== undefined) updates.days_of_week = req.body.days_of_week;
+
+    const { data, error } = await supabase
+        .from('disc_habits').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id)
+        .select().single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ habit: data });
+});
+
 
 // ==========================================
 // ===== DISCIPLINE: ЦЕЛИ =====

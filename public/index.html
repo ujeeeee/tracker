@@ -47,10 +47,29 @@
                             <div id="areasList"></div>
                         </div>
                         <div id="discipline-habits" class="subtab">
-                            <button class="btn-add" onclick="openAddModal('habit')">
-                                <span>+</span> Добавить привычку
-                            </button>
-                            <div id="habitsList"></div>
+                            <div class="view-switcher">
+                                <button class="view-opt active" data-view="list" onclick="switchHabitsView('list', this)">Список</button>
+                                <button class="view-opt" data-view="week" onclick="switchHabitsView('week', this)">Неделя</button>
+                            </div>
+
+                            <div id="habitsListView">
+                                <button class="btn-add" onclick="openAddModal('habit')">
+                                    <span>+</span> Добавить привычку
+                                </button>
+                                <div id="habitsList"></div>
+                            </div>
+
+                            <div id="habitsWeekView" style="display:none;">
+                                <div class="week-nav">
+                                    <button class="week-nav-btn" onclick="weekPrev()">‹</button>
+                                    <div class="week-range" id="weekRange"></div>
+                                    <button class="week-nav-btn" onclick="weekNext()">›</button>
+                                </div>
+                                <div id="weekGrid"></div>
+                                <button class="btn-add" style="margin-top:16px;" onclick="openAddModal('habit')">
+                                    <span>+</span> Добавить привычку
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -250,24 +269,37 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- МОДАЛКА КАЛЕНДАРЯ ПРИВЫЧКИ -->
+    <!-- МОДАЛКА НАСТРОЙКИ ПРИВЫЧКИ -->
     <!-- ========================================== -->
-    <div class="modal-overlay" id="calendarModal">
+    <div class="modal-overlay" id="habitSettingsModal">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
-            <h3 class="modal-title" id="calTitle">Привычка</h3>
-            <div class="cal-header">
-                <button class="cal-nav" onclick="calPrev()">‹</button>
-                <div class="cal-month" id="calMonth"></div>
-                <button class="cal-nav" onclick="calNext()">›</button>
+            <h3 class="modal-title">Настройки привычки</h3>
+
+            <div class="field-label">Название</div>
+            <input type="text" class="modal-input" id="habitSetName" />
+
+            <div class="field-label">Периодичность</div>
+            <div class="theme-switcher" style="margin-bottom:12px;">
+                <button class="theme-option" data-freq="daily" onclick="pickFrequency('daily', this)">Каждый день</button>
+                <button class="theme-option" data-freq="custom" onclick="pickFrequency('custom', this)">Дни недели</button>
             </div>
-            <div class="cal-weekdays">
-                <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+
+            <div id="daysPicker" style="display:none;">
+                <div class="days-picker">
+                    <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
+                    <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
+                    <button class="day-opt" data-dow="3" onclick="toggleDow(3)">Ср</button>
+                    <button class="day-opt" data-dow="4" onclick="toggleDow(4)">Чт</button>
+                    <button class="day-opt" data-dow="5" onclick="toggleDow(5)">Пт</button>
+                    <button class="day-opt" data-dow="6" onclick="toggleDow(6)">Сб</button>
+                    <button class="day-opt" data-dow="7" onclick="toggleDow(7)">Вс</button>
+                </div>
             </div>
-            <div class="cal-grid" id="calGrid"></div>
-            <div class="cal-footer">
-                <div class="cal-stat" id="calStats"></div>
-                <button class="modal-btn primary" onclick="closeCalendar()">Готово</button>
+
+            <div class="modal-actions" style="margin-top:20px;">
+                <button class="modal-btn secondary" onclick="closeHabitSettings()">Отмена</button>
+                <button class="modal-btn primary" onclick="saveHabitSettings()">Сохранить</button>
             </div>
         </div>
     </div>
