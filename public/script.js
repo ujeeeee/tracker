@@ -1153,7 +1153,6 @@ function renderTable(containerId, list) {
         });
     });
 }
-}
 
 function openAddMetric(category) {
     metricCtx.category = category;
