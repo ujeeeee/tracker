@@ -27,31 +27,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ==========================================
 function verifyInitData(initData) {
     if (!initData || typeof initData !== 'string') return null;
-
     try {
         const params = new URLSearchParams(initData);
         const hash = params.get('hash');
         if (!hash) return null;
-
         params.delete('hash');
-
         const dataCheckString = [...params.entries()]
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([k, v]) => `${k}=${v}`)
             .join('\n');
-
-        const secretKey = crypto
-            .createHmac('sha256', 'WebAppData')
-            .update(BOT_TOKEN)
-            .digest();
-
-        const calculatedHash = crypto
-            .createHmac('sha256', secretKey)
-            .update(dataCheckString)
-            .digest('hex');
-
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
         if (calculatedHash !== hash) return null;
-
         const userRaw = params.get('user');
         if (!userRaw) return null;
         return JSON.parse(userRaw);
@@ -66,23 +53,13 @@ function verifyInitData(initData) {
 // ==========================================
 async function authMiddleware(req, res, next) {
     const initData = req.headers['x-init-data'] || req.body?.initData;
-
     if (!initData && process.env.NODE_ENV !== 'production') {
         req.user = { id: 999999999, first_name: 'Dev', username: 'dev_user' };
         req.tg_id = 999999999;
         return next();
     }
-
-    console.log('📨 initData получен, длина:', initData?.length || 0);
-
     const user = verifyInitData(initData);
-    if (!user) {
-        console.log('❌ initData не прошёл проверку');
-        return res.status(401).json({ error: 'Invalid initData' });
-    }
-
-    console.log('✅ initData валиден, user.id =', user.id);
-
+    if (!user) return res.status(401).json({ error: 'Invalid initData' });
     req.user = user;
     req.tg_id = user.id;
     next();
@@ -96,83 +73,33 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==========================================
-// ===== DEBUG =====
-// ==========================================
-app.get('/api/debug', async (req, res) => {
-    const { data, error } = await supabase.from('users').select('*').limit(5);
-    res.json({
-        hasUrl: !!process.env.SUPABASE_URL,
-        hasKey: !!process.env.SUPABASE_SECRET_KEY,
-        hasBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
-        nodeEnv: process.env.NODE_ENV,
-        usersCount: data?.length ?? null,
-        users: data ?? null,
-        error: error?.message ?? null,
-    });
-});
-
-// ==========================================
 // ===== AUTH =====
 // ==========================================
 app.post('/api/auth', authMiddleware, async (req, res) => {
     const u = req.user;
-    console.log('🔐 AUTH для user:', u.id, u.first_name);
-
-    const { data: existing, error: findErr } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', u.id)
-        .maybeSingle();
-
-    if (findErr) {
-        console.error('❌ Ошибка поиска:', findErr.message);
-        return res.status(500).json({ error: 'DB find error: ' + findErr.message });
-    }
-
+    const { data: existing } = await supabase.from('users').select('id').eq('id', u.id).maybeSingle();
     if (existing) {
-        const { error: updErr } = await supabase
-            .from('users')
-            .update({
-                username: u.username || null,
-                first_name: u.first_name || null,
-                last_name: u.last_name || null,
-                photo_url: u.photo_url || null,
-                language_code: u.language_code || null,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', u.id);
-
-        if (updErr) {
-            console.error('❌ Ошибка обновления:', updErr.message);
-            return res.status(500).json({ error: 'DB update error: ' + updErr.message });
-        }
-        console.log('✅ Юзер обновлён:', u.id);
+        await supabase.from('users').update({
+            username: u.username || null,
+            first_name: u.first_name || null,
+            last_name: u.last_name || null,
+            photo_url: u.photo_url || null,
+            language_code: u.language_code || null,
+            updated_at: new Date().toISOString(),
+        }).eq('id', u.id);
     } else {
-        const { error: insErr } = await supabase
-            .from('users')
-            .insert({
-                id: u.id,
-                username: u.username || null,
-                first_name: u.first_name || null,
-                last_name: u.last_name || null,
-                photo_url: u.photo_url || null,
-                language_code: u.language_code || null,
-            });
-
-        if (insErr) {
-            console.error('❌ Ошибка вставки:', insErr.message);
-            return res.status(500).json({ error: 'DB insert error: ' + insErr.message });
-        }
-        console.log('✅ Юзер создан:', u.id);
+        await supabase.from('users').insert({
+            id: u.id,
+            username: u.username || null,
+            first_name: u.first_name || null,
+            last_name: u.last_name || null,
+            photo_url: u.photo_url || null,
+            language_code: u.language_code || null,
+        });
     }
-
     res.json({
         ok: true,
-        user: {
-            id: u.id,
-            name: u.first_name || u.username || 'Друг',
-            username: u.username || null,
-        },
+        user: { id: u.id, name: u.first_name || u.username || 'Друг', username: u.username || null },
     });
 });
 
@@ -180,15 +107,9 @@ app.post('/api/auth', authMiddleware, async (req, res) => {
 // ===== ME =====
 // ==========================================
 app.get('/api/me', authMiddleware, async (req, res) => {
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', req.tg_id)
-        .maybeSingle();
-
+    const { data, error } = await supabase.from('users').select('*').eq('id', req.tg_id).maybeSingle();
     if (error) return res.status(500).json({ error: error.message });
     if (!data) return res.status(404).json({ error: 'User not found' });
-
     res.json({ ok: true, user: data });
 });
 
@@ -208,28 +129,166 @@ app.get('/api/backup', authMiddleware, async (req, res) => {
             'tea_groups', 'tea_items', 'tea_links',
             'places_items', 'places_photos',
         ];
-
-        const backup = {
-            exported_at: new Date().toISOString(),
-            tg_id: req.tg_id,
-            data: {},
-        };
-
+        const backup = { exported_at: new Date().toISOString(), tg_id: req.tg_id, data: {} };
         for (const table of tables) {
             const column = table === 'users' ? 'id' : 'tg_id';
-            const { data, error } = await supabase
-                .from(table)
-                .select('*')
-                .eq(column, req.tg_id);
-
+            const { data, error } = await supabase.from(table).select('*').eq(column, req.tg_id);
             if (!error) backup.data[table] = data || [];
         }
-
         res.json(backup);
     } catch (e) {
-        console.error('Backup error:', e);
         res.status(500).json({ error: e.message });
     }
+});
+
+// ==========================================
+// ===== DISCIPLINE: ПРИВЫЧКИ =====
+// ==========================================
+app.get('/api/disc/habits', authMiddleware, async (req, res) => {
+    try {
+        const { data: habits } = await supabase
+            .from('disc_habits').select('*')
+            .eq('tg_id', req.tg_id).eq('archived', false)
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true });
+
+        if (!habits) return res.json({ habits: [] });
+
+        const since = new Date();
+        since.setDate(since.getDate() - 60);
+        const sinceStr = since.toISOString().slice(0, 10);
+
+        const { data: logs } = await supabase
+            .from('disc_habit_logs').select('habit_id, date, done')
+            .eq('tg_id', req.tg_id).gte('date', sinceStr);
+
+        const logsMap = {};
+        (logs || []).forEach(l => {
+            if (!logsMap[l.habit_id]) logsMap[l.habit_id] = [];
+            logsMap[l.habit_id].push({ date: l.date, done: l.done });
+        });
+
+        const result = habits.map(h => ({ ...h, logs: logsMap[h.id] || [] }));
+        res.json({ habits: result });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/disc/habits', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase
+        .from('disc_habits').insert({ tg_id: req.tg_id, name: name.trim() })
+        .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ habit: { ...data, logs: [] } });
+});
+
+app.delete('/api/disc/habits/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('disc_habits').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+app.post('/api/disc/habits/:id/toggle', authMiddleware, async (req, res) => {
+    const habitId = req.params.id;
+    const d = req.body.date || new Date().toISOString().slice(0, 10);
+
+    const { data: existing } = await supabase
+        .from('disc_habit_logs').select('id, done')
+        .eq('habit_id', habitId).eq('tg_id', req.tg_id).eq('date', d)
+        .maybeSingle();
+
+    if (existing) {
+        await supabase.from('disc_habit_logs').delete().eq('id', existing.id);
+        return res.json({ ok: true, done: false });
+    }
+
+    const { error } = await supabase
+        .from('disc_habit_logs').insert({ habit_id: habitId, tg_id: req.tg_id, date: d, done: true });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, done: true });
+});
+
+// ==========================================
+// ===== DISCIPLINE: ЦЕЛИ =====
+// ==========================================
+app.get('/api/disc/areas', authMiddleware, async (req, res) => {
+    try {
+        const { data: areas } = await supabase
+            .from('disc_areas').select('*')
+            .eq('tg_id', req.tg_id)
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true });
+
+        const { data: goals } = await supabase
+            .from('disc_goals').select('*')
+            .eq('tg_id', req.tg_id)
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true });
+
+        const result = (areas || []).map(a => ({
+            ...a,
+            goals: (goals || []).filter(g => g.area_id === a.id),
+        }));
+        const orphanGoals = (goals || []).filter(g => !g.area_id);
+        res.json({ areas: result, orphanGoals });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/disc/areas', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase
+        .from('disc_areas').insert({ tg_id: req.tg_id, name: name.trim() })
+        .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ area: { ...data, goals: [] } });
+});
+
+app.delete('/api/disc/areas/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('disc_areas').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+app.post('/api/disc/goals', authMiddleware, async (req, res) => {
+    const { name, area_id } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase
+        .from('disc_goals').insert({
+            tg_id: req.tg_id,
+            name: name.trim(),
+            area_id: area_id || null,
+            status: 'plan',
+        }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ goal: data });
+});
+
+app.patch('/api/disc/goals/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    ['name', 'status', 'deadline', 'note'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    updates.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase.from('disc_goals').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ goal: data });
+});
+
+app.delete('/api/disc/goals/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('disc_goals').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
 });
 
 // ==========================================

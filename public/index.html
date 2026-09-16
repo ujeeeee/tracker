@@ -25,10 +25,16 @@
                     </div>
                     <div class="screen-content">
                         <div id="discipline-goals" class="subtab active">
-                            <p class="hint">Тут будут цели. Пока пусто.</p>
+                            <button class="btn-add" onclick="openAddModal('area')">
+                                <span>+</span> Добавить область
+                            </button>
+                            <div id="areasList"></div>
                         </div>
                         <div id="discipline-habits" class="subtab">
-                            <p class="hint">Тут будут привычки. Пока пусто.</p>
+                            <button class="btn-add" onclick="openAddModal('habit')">
+                                <span>+</span> Добавить привычку
+                            </button>
+                            <div id="habitsList"></div>
                         </div>
                     </div>
                 </div>
@@ -101,9 +107,7 @@
                         <h2>🎬 Film</h2>
                         <button class="settings-btn" onclick="openSettings()">⚙️</button>
                     </div>
-                    <div class="screen-content">
-                        <p class="hint">Фильмы. Пока пусто.</p>
-                    </div>
+                    <div class="screen-content"><p class="hint">Фильмы. Пока пусто.</p></div>
                 </div>
             </div>
 
@@ -114,9 +118,7 @@
                         <h2>🍵 Tea</h2>
                         <button class="settings-btn" onclick="openSettings()">⚙️</button>
                     </div>
-                    <div class="screen-content">
-                        <p class="hint">Чай. Пока пусто.</p>
-                    </div>
+                    <div class="screen-content"><p class="hint">Чай. Пока пусто.</p></div>
                 </div>
             </div>
 
@@ -127,9 +129,7 @@
                         <h2>📍 Places</h2>
                         <button class="settings-btn" onclick="openSettings()">⚙️</button>
                     </div>
-                    <div class="screen-content">
-                        <p class="hint">Места. Пока пусто.</p>
-                    </div>
+                    <div class="screen-content"><p class="hint">Места. Пока пусто.</p></div>
                 </div>
             </div>
 
@@ -148,7 +148,6 @@
                                 <div class="user-info-id" id="settingsUserId">ID: —</div>
                             </div>
                         </div>
-
                         <div class="settings-section">
                             <div class="settings-section-title">Оформление</div>
                             <div class="theme-switcher">
@@ -157,7 +156,6 @@
                                 <button class="theme-option" data-theme-value="dark" onclick="setThemeMode('dark', this)">🌙 Тёмная</button>
                             </div>
                         </div>
-
                         <div class="settings-section">
                             <div class="settings-section-title">Данные</div>
                             <button class="settings-item" onclick="exportBackup()">
@@ -175,7 +173,6 @@
                                 <span class="settings-item-arrow">→</span>
                             </button>
                         </div>
-
                         <div class="settings-section">
                             <div class="settings-section-title">Опасная зона</div>
                             <button class="settings-item danger" onclick="confirmLogout()">
@@ -194,38 +191,53 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- НИЖНЕЕ МЕНЮ -->
+    <!-- НИЖНЕЕ МЕНЮ (скроллящееся) -->
     <!-- ========================================== -->
-<nav class="bottom-nav" id="bottomNav">
-    <button class="nav-btn" data-index="0" onclick="goToScreen(0)">
-        <span class="nav-icon">🎯</span>
-        <span class="nav-label">Discipline</span>
-    </button>
-    <button class="nav-btn" data-index="1" onclick="goToScreen(1)">
-        <span class="nav-icon">💸</span>
-        <span class="nav-label">Cash</span>
-    </button>
-    <button class="nav-btn" data-index="2" onclick="goToScreen(2)">
-        <span class="nav-icon">🏋️</span>
-        <span class="nav-label">Gym</span>
-    </button>
-    <button class="nav-btn" data-index="3" onclick="goToScreen(3)">
-        <span class="nav-icon">🍽️</span>
-        <span class="nav-label">Food</span>
-    </button>
-    <button class="nav-btn" data-index="4" onclick="goToScreen(4)">
-        <span class="nav-icon">🎬</span>
-        <span class="nav-label">Film</span>
-    </button>
-    <button class="nav-btn" data-index="5" onclick="goToScreen(5)">
-        <span class="nav-icon">🍵</span>
-        <span class="nav-label">Tea</span>
-    </button>
-    <button class="nav-btn" data-index="6" onclick="goToScreen(6)">
-        <span class="nav-icon">📍</span>
-        <span class="nav-label">Places</span>
-    </button>
-</nav>
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-btn" data-index="0" onclick="goToScreen(0)">
+            <span class="nav-icon">🎯</span>
+            <span class="nav-label">Discipline</span>
+        </button>
+        <button class="nav-btn" data-index="1" onclick="goToScreen(1)">
+            <span class="nav-icon">💸</span>
+            <span class="nav-label">Cash</span>
+        </button>
+        <button class="nav-btn" data-index="2" onclick="goToScreen(2)">
+            <span class="nav-icon">🏋️</span>
+            <span class="nav-label">Gym</span>
+        </button>
+        <button class="nav-btn" data-index="3" onclick="goToScreen(3)">
+            <span class="nav-icon">🍽️</span>
+            <span class="nav-label">Food</span>
+        </button>
+        <button class="nav-btn" data-index="4" onclick="goToScreen(4)">
+            <span class="nav-icon">🎬</span>
+            <span class="nav-label">Film</span>
+        </button>
+        <button class="nav-btn" data-index="5" onclick="goToScreen(5)">
+            <span class="nav-icon">🍵</span>
+            <span class="nav-label">Tea</span>
+        </button>
+        <button class="nav-btn" data-index="6" onclick="goToScreen(6)">
+            <span class="nav-icon">📍</span>
+            <span class="nav-label">Places</span>
+        </button>
+    </nav>
+
+    <!-- ========================================== -->
+    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА ВВОДА -->
+    <!-- ========================================== -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title" id="inputModalTitle">Добавить</h3>
+            <input type="text" class="modal-input" id="inputModalField" placeholder="Название..." />
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeInputModal()">Отмена</button>
+                <button class="modal-btn primary" onclick="submitInputModal()">Сохранить</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

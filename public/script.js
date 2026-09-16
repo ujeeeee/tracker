@@ -6,7 +6,7 @@ let initData = '';
 let currentUser = null;
 let tg = null;
 
-const TOTAL_MAIN_SCREENS = 7; // без settings
+const TOTAL_MAIN_SCREENS = 7;
 let currentScreenIndex = 0;
 
 // ==========================================
@@ -30,8 +30,6 @@ try {
             if (getThemeMode() === 'auto') applyTheme(tg.colorScheme);
         });
     }
-
-    // Свайп через BackButton, если пользователь вернулся из настроек
     if (tg.BackButton) {
         tg.BackButton.onClick(() => closeSettings());
     }
@@ -84,7 +82,7 @@ function updateThemeButtons(mode) {
 }
 
 // ==========================================
-// ===== API ХЕЛПЕР =====
+// ===== API =====
 // ==========================================
 async function api(path, method = 'GET', body = null) {
     const opts = {
@@ -110,7 +108,6 @@ async function auth() {
         currentUser = user;
         tgUser.id = user.id;
         tgUser.name = user.name;
-        console.log('✅ Авторизован:', user);
         updateSettingsUI();
         return true;
     } catch (e) {
@@ -120,17 +117,11 @@ async function auth() {
 }
 
 // ==========================================
-// ===== СВАЙП МЕЖДУ ЭКРАНАМИ =====
+// ===== СВАЙП ЭКРАНОВ =====
 // ==========================================
 const track = document.getElementById('screensTrack');
-const pages = track.querySelectorAll('.screen');
 
 function initScreens() {
-    // Показываем только 8 главных страниц + settings в конце
-    pages.forEach((p, i) => {
-        if (i < TOTAL_MAIN_SCREENS || p.dataset.screenName === 'Settings') return;
-    });
-
     goToScreen(0, false);
 }
 
@@ -142,13 +133,11 @@ function goToScreen(index, animate = true) {
     track.style.transform = `translateX(-${index * 100}vw)`;
     if (!animate) setTimeout(() => track.style.transition = '', 20);
 
-    // Нижнее меню
     document.querySelectorAll('.nav-btn').forEach(b => {
         const idx = b.dataset.index;
         b.classList.toggle('active', idx !== undefined && parseInt(idx) === index);
     });
 
-    // Подкрутка нижнего меню к активной кнопке
     const nav = document.getElementById('bottomNav');
     const btn = nav.querySelector(`.nav-btn[data-index="${index}"]`);
     if (nav && btn) {
@@ -157,6 +146,12 @@ function goToScreen(index, animate = true) {
     }
 
     window.scrollTo(0, 0);
+
+    // Ленивая подгрузка данных
+    if (index === 0) {
+        if (typeof loadHabits === 'function') loadHabits();
+        if (typeof loadAreas === 'function') loadAreas();
+    }
 }
 
 // Свайпы
@@ -173,16 +168,13 @@ document.addEventListener('touchstart', (e) => {
 document.addEventListener('touchmove', (e) => {
     const dx = e.touches[0].clientX - touchStartX;
     const dy = e.touches[0].clientY - touchStartY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-        touchMoved = true;
-    }
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) touchMoved = true;
 }, { passive: true });
 
 document.addEventListener('touchend', (e) => {
     if (!touchMoved) return;
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;
-
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
         if (dx < 0) goToScreen(currentScreenIndex + 1);
         else goToScreen(currentScreenIndex - 1);
@@ -195,7 +187,6 @@ document.addEventListener('touchend', (e) => {
 function switchSubTab(parent, tab, btn) {
     btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
-
     const parentScreen = btn.closest('.screen');
     parentScreen.querySelectorAll('.subtab').forEach(st => st.classList.remove('active'));
     const target = document.getElementById(`${parent}-${tab}`);
@@ -207,7 +198,6 @@ function switchSubTab(parent, tab, btn) {
 // ==========================================
 function openSettings() {
     updateSettingsUI();
-    // Скроллим на экран настроек (последний)
     track.style.transform = `translateX(-${TOTAL_MAIN_SCREENS * 100}vw)`;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     window.scrollTo(0, 0);
@@ -221,19 +211,13 @@ function updateSettingsUI() {
     const name = currentUser?.name || tgUser.name || 'Друг';
     const el = document.getElementById('settingsUserName');
     if (el) el.textContent = name;
-
     const idEl = document.getElementById('settingsUserId');
     if (idEl) idEl.textContent = 'ID: ' + (currentUser?.id || tgUser.id || '—');
-
     const avEl = document.getElementById('settingsAvatar');
     if (avEl) avEl.textContent = (name[0] || '?').toUpperCase();
-
     updateThemeButtons(getThemeMode());
 }
 
-// ==========================================
-// ===== БЕКАП =====
-// ==========================================
 async function exportBackup() {
     try {
         const data = await api('/api/backup');
@@ -259,6 +243,260 @@ function confirmLogout() {
     }
 }
 
+// ==========================================
+// ===== DISCIPLINE: ПРИВЫЧКИ =====
+// ==========================================
+let habits = [];
+
+async function loadHabits() {
+    try {
+        const { habits: data } = await api('/api/disc/habits');
+        habits = data;
+        renderHabits();
+    } catch (e) {
+        console.error('loadHabits:', e);
+    }
+}
+
+function renderHabits() {
+    const container = document.getElementById('habitsList');
+    if (!container) return;
+    if (habits.length === 0) {
+        container.innerHTML = `<div class="empty-state">Пока нет привычек.<br>Добавь первую 👆</div>`;
+        return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    container.innerHTML = habits.map(h => {
+        const doneToday = h.logs.some(l => l.date === today && l.done);
+        const streak = calcStreak(h.logs);
+        const days = last7Days(h.logs);
+        const heat = days.map(d => {
+            const cls = d.done ? 'done' : '';
+            const isToday = d.date === today ? 'today' : '';
+            return `<div class="heat-cell ${cls} ${isToday}"></div>`;
+        }).join('');
+        return `
+            <div class="habit-card">
+                <div class="habit-top">
+                    <div class="habit-name">${escapeHtml(h.name)}</div>
+                    ${streak > 0 ? `<div class="habit-streak">🔥 ${streak}</div>` : ''}
+                    <button class="habit-delete" onclick="deleteHabit(${h.id})">✕</button>
+                </div>
+                <div class="habit-bottom">
+                    <div class="habit-heatmap">${heat}</div>
+                    <button class="habit-toggle ${doneToday ? 'done' : ''}" onclick="toggleHabit(${h.id})">
+                        ${doneToday ? '✓' : '○'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function calcStreak(logs) {
+    const done = new Set(logs.filter(l => l.done).map(l => l.date));
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+        const key = d.toISOString().slice(0, 10);
+        if (done.has(key)) { streak++; d.setDate(d.getDate() - 1); }
+        else break;
+    }
+    return streak;
+}
+
+function last7Days(logs) {
+    const done = new Set(logs.filter(l => l.done).map(l => l.date));
+    const arr = [];
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    for (let i = 0; i < 7; i++) {
+        const key = d.toISOString().slice(0, 10);
+        arr.push({ date: key, done: done.has(key) });
+        d.setDate(d.getDate() + 1);
+    }
+    return arr;
+}
+
+async function toggleHabit(id) {
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+        await api(`/api/disc/habits/${id}/toggle`, 'POST', { date: today });
+        await loadHabits();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+async function deleteHabit(id) {
+    if (!confirm('Удалить привычку?')) return;
+    try {
+        await api(`/api/disc/habits/${id}`, 'DELETE');
+        await loadHabits();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+// ==========================================
+// ===== DISCIPLINE: ЦЕЛИ =====
+// ==========================================
+let areas = [];
+
+async function loadAreas() {
+    try {
+        const { areas: data, orphanGoals } = await api('/api/disc/areas');
+        areas = data;
+        renderAreas(orphanGoals);
+    } catch (e) {
+        console.error('loadAreas:', e);
+    }
+}
+
+function renderAreas(orphanGoals = []) {
+    const container = document.getElementById('areasList');
+    if (!container) return;
+    if (areas.length === 0 && orphanGoals.length === 0) {
+        container.innerHTML = `<div class="empty-state">Пока нет областей.<br>Добавь первую 👆</div>`;
+        return;
+    }
+    let html = areas.map(a => {
+        const goals = a.goals || [];
+        const done = goals.filter(g => g.status === 'done').length;
+        const progress = goals.length > 0 ? `${done}/${goals.length}` : '';
+        const goalsHtml = goals.map(g => `
+            <div class="goal-item">
+                <div class="goal-check ${g.status === 'done' ? 'done' : ''}"
+                     onclick="toggleGoal(${g.id}, '${g.status}')">✓</div>
+                <div class="goal-name ${g.status === 'done' ? 'done' : ''}">${escapeHtml(g.name)}</div>
+                <button class="goal-delete" onclick="deleteGoal(${g.id})">✕</button>
+            </div>
+        `).join('');
+        return `
+            <div class="area-card">
+                <div class="area-header">
+                    <div class="area-name">${escapeHtml(a.name)}</div>
+                    ${progress ? `<div class="area-progress">${progress}</div>` : ''}
+                    <button class="area-delete" onclick="deleteArea(${a.id})">🗑</button>
+                </div>
+                ${goalsHtml}
+                <button class="goal-add-inline" onclick="openAddModal('goal', ${a.id})">+ Добавить цель</button>
+            </div>
+        `;
+    }).join('');
+
+    if (orphanGoals.length > 0) {
+        const goalsHtml = orphanGoals.map(g => `
+            <div class="goal-item">
+                <div class="goal-check ${g.status === 'done' ? 'done' : ''}"
+                     onclick="toggleGoal(${g.id}, '${g.status}')">✓</div>
+                <div class="goal-name ${g.status === 'done' ? 'done' : ''}">${escapeHtml(g.name)}</div>
+                <button class="goal-delete" onclick="deleteGoal(${g.id})">✕</button>
+            </div>
+        `).join('');
+        html += `
+            <div class="area-card">
+                <div class="area-header">
+                    <div class="area-name">Без области</div>
+                </div>
+                ${goalsHtml}
+                <button class="goal-add-inline" onclick="openAddModal('goal', null)">+ Добавить цель</button>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+async function toggleGoal(id, currentStatus) {
+    const newStatus = currentStatus === 'done' ? 'plan' : 'done';
+    try {
+        await api(`/api/disc/goals/${id}`, 'PATCH', { status: newStatus });
+        await loadAreas();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+async function deleteGoal(id) {
+    if (!confirm('Удалить цель?')) return;
+    try {
+        await api(`/api/disc/goals/${id}`, 'DELETE');
+        await loadAreas();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+async function deleteArea(id) {
+    if (!confirm('Удалить область и все её цели?')) return;
+    try {
+        await api(`/api/disc/areas/${id}`, 'DELETE');
+        await loadAreas();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+// ==========================================
+// ===== МОДАЛКА ВВОДА =====
+// ==========================================
+let modalContext = { type: null, areaId: null };
+
+function openAddModal(type, areaId = null) {
+    modalContext = { type, areaId };
+    const modal = document.getElementById('inputModal');
+    const title = document.getElementById('inputModalTitle');
+    const field = document.getElementById('inputModalField');
+
+    const titles = { habit: 'Новая привычка', area: 'Новая область', goal: 'Новая цель' };
+    title.textContent = titles[type] || 'Добавить';
+    field.value = '';
+    field.placeholder = type === 'habit' ? 'Например: Зал'
+        : type === 'area' ? 'Например: Спорт'
+        : 'Например: кмс';
+    modal.classList.add('open');
+    setTimeout(() => field.focus(), 200);
+}
+
+function closeInputModal() {
+    document.getElementById('inputModal').classList.remove('open');
+}
+
+async function submitInputModal() {
+    const field = document.getElementById('inputModalField');
+    const value = field.value.trim();
+    if (!value) return;
+    try {
+        if (modalContext.type === 'habit') {
+            await api('/api/disc/habits', 'POST', { name: value });
+            await loadHabits();
+        } else if (modalContext.type === 'area') {
+            await api('/api/disc/areas', 'POST', { name: value });
+            await loadAreas();
+        } else if (modalContext.type === 'goal') {
+            await api('/api/disc/goals', 'POST', { name: value, area_id: modalContext.areaId });
+            await loadAreas();
+        }
+        closeInputModal();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+document.getElementById('inputModalField')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitInputModal();
+});
+
+// ==========================================
+// ===== УТИЛИТЫ =====
+// ==========================================
+function escapeHtml(s) {
+    return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
 
 // ==========================================
 // ===== HAPTIC =====
@@ -268,7 +506,6 @@ function haptic(type = 'light') {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type);
     } catch (e) {}
 }
-
 document.addEventListener('click', (e) => {
     if (e.target.closest('button')) haptic('light');
 });
@@ -277,7 +514,9 @@ document.addEventListener('click', (e) => {
 // ===== СТАРТ =====
 // ==========================================
 (async function start() {
-    console.log('🚀 Tracker loaded. Telegram user:', tgUser);
     initScreens();
-    await auth();
+    const ok = await auth();
+    if (ok) {
+        await Promise.all([loadHabits(), loadAreas()]);
+    }
 })();
