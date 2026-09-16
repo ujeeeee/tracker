@@ -311,16 +311,22 @@ app.get('/api/cash/budget', authMiddleware, async (req, res) => {
 
     const subsTotal = (subsR.data||[]).reduce((s,x) => s + Number(x.amount||0), 0);
     const weeklyTotal = (weeklyR.data||[]).reduce((s,x) => s + Number(x.amount||0), 0) * weeksInMonth;
-    const budget = budgetR.data || { year, month, budget_amount: 0, invest_amount: 0, piggy_amount: 0 };
+    const budget = budgetR.data || { year, month, budget_amount: 0 };
+    const budgetAmount = Number(budget.budget_amount || 0);
     const planned = subsTotal + weeklyTotal;
-    const remaining = Number(budget.budget_amount||0) - planned;
+
+    const customTotal = (customR.data||[]).reduce((s,x) => {
+        return s + (x.type === 'percent' ? budgetAmount * Number(x.value||0) / 100 : Number(x.value||0));
+    }, 0);
+
+    const remaining = budgetAmount - planned - customTotal;
 
     res.json({
         year, month, weeksInMonth, budget,
         subs: subsR.data || [],
         weekly: weeklyR.data || [],
         customStats: customR.data || [],
-        totals: { budget: Number(budget.budget_amount||0), subs: subsTotal, weekly: weeklyTotal, planned, remaining },
+        totals: { budget: budgetAmount, subs: subsTotal, weekly: weeklyTotal, planned, customTotal, remaining },
     });
 });
 
@@ -374,6 +380,17 @@ app.delete('/api/cash/subs/:id', authMiddleware, async (req, res) => {
     res.json({ ok: true });
 });
 
+app.patch('/api/cash/subs/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    ['name','amount','paid','active'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    const { data, error } = await supabase.from('cash_subs').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ sub: data });
+});
+
 // Weekly
 app.post('/api/cash/weekly', authMiddleware, async (req, res) => {
     const { name, amount } = req.body;
@@ -420,6 +437,29 @@ app.patch('/api/cash/wishlist/:id', authMiddleware, async (req, res) => {
 
 app.delete('/api/cash/wishlist/:id', authMiddleware, async (req, res) => {
     await supabase.from('cash_wishlist').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+app.get('/api/cash/wishlist/areas', authMiddleware, async (req, res) => {
+    const { data } = await supabase.from('cash_wishlist_areas').select('*')
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
+    res.json({ areas: data || [] });
+});
+
+app.post('/api/cash/wishlist/areas', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase.from('cash_wishlist_areas').insert({
+        tg_id: req.tg_id, name: name.trim(),
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ area: data });
+});
+
+app.delete('/api/cash/wishlist/areas/by-name/:name', authMiddleware, async (req, res) => {
+    const name = decodeURIComponent(req.params.name);
+    await supabase.from('cash_wishlist').delete().eq('tg_id', req.tg_id).eq('area', name);
+    await supabase.from('cash_wishlist_areas').delete().eq('tg_id', req.tg_id).eq('name', name);
     res.json({ ok: true });
 });
 

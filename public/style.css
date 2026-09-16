@@ -484,3 +484,60 @@ body {
     .nav-icon { font-size: 17px; }
     .nav-label { font-size: 9px; }
 }
+
+/* ===== BUDGET: чекбокс оплаты ===== */
+.cash-item-check {
+    width: 22px; height: 22px; border-radius: 8px;
+    border: 2px solid var(--text-tertiary); background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: transparent; flex-shrink: 0; cursor: pointer;
+    transition: 0.15s;
+}
+.cash-item-check.done {
+    background: var(--success); border-color: var(--success); color: white;
+}
+.cash-item.paid .cash-item-name {
+    color: var(--text-tertiary); text-decoration: line-through;
+}
+
+/* ===== PIGGY: единый виджет ===== */
+.piggy-hero-new {
+    background: var(--card); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 22px; padding: 22px; margin-bottom: 20px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+.piggy-top {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    padding-bottom: 18px; border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 18px;
+}
+.piggy-top-item .piggy-card-label { margin-bottom: 8px; }
+.piggy-top-item .piggy-card-value { font-size: 24px; letter-spacing: -0.4px; }
+.piggy-top-item.editable { cursor: pointer; transition: 0.15s; border-radius: 12px; padding: 4px; margin: -4px; }
+.piggy-top-item.editable:active { background: var(--card-hover); }
+.piggy-bottom {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.piggy-bottom-item .piggy-card-label { margin-bottom: 4px; }
+.piggy-bottom-item .piggy-card-value { font-size: 16px; }
+.piggy-card-value.debt { color: var(--danger); }
+
+/* Пополнения зелёным */
+.cash-item-amount.plus-green { color: var(--success); }
+
+/* ===== WISHLIST: области ===== */
+.wishlist-area-card {
+    background: var(--card); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border); border-radius: 18px;
+    padding: 16px; margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+.wishlist-area-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; gap: 8px;
+}
+.wishlist-area-name { font-size: 16px; font-weight: 700; color: var(--text); flex: 1; min-width: 0; }
+.wishlist-area-count { font-size: 12px; color: var(--text-tertiary); font-weight: 500; white-space: nowrap; }

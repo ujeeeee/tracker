@@ -422,8 +422,10 @@ function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') + ' ₽'; }
 function formatDate(s) {
     if (!s) return '';
     const d = new Date(s);
-    const m = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-    return `${d.getDate()} ${m[d.getMonth()]}`;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}.${mm}.${yy}`;
 }
 
 // --- BUDGET ---
@@ -442,13 +444,11 @@ function renderBudget(d) {
     const list = document.getElementById('budgetList');
     let html = '';
 
-    // Запланировано (всегда)
     html += `<div class="budget-row">
         <div class="budget-row-label">Запланировано</div>
         <div class="budget-row-value">${fmt(t.planned)}</div>
     </div>`;
 
-    // Кастомные панели
     d.customStats.forEach(s => {
         const val = s.type === 'percent' ? (t.budget * Number(s.value) / 100) : Number(s.value);
         const label = s.type === 'percent' ? `${s.name} (${s.value}%)` : s.name;
@@ -459,22 +459,21 @@ function renderBudget(d) {
         </div>`;
     });
 
-    // Остаток (всегда последний)
     html += `<div class="budget-row">
         <div class="budget-row-label">Остаток</div>
         <div class="budget-row-value ${t.remaining >= 0 ? 'plus' : 'minus'}">${fmt(t.remaining)}</div>
     </div>`;
 
-    // Кнопка добавить панель
     html += `<button class="budget-row-add" onclick="openCustomStatModal()">+ Добавить панель</button>`;
 
     list.innerHTML = html;
 
-    // Subs
+    // Subs с чекбоксом оплаты
     const subsEl = document.getElementById('subsList');
     subsEl.innerHTML = d.subs.length === 0
         ? `<div class="widget-empty">Нет трат</div>`
-        : d.subs.map(s => `<div class="cash-item">
+        : d.subs.map(s => `<div class="cash-item ${s.paid ? 'paid' : ''}">
+            <div class="cash-item-check ${s.paid ? 'done' : ''}" onclick="toggleSubPaid(${s.id}, ${s.paid})">✓</div>
             <div class="cash-item-name">${escapeHtml(s.name)}</div>
             <div class="cash-item-amount">${fmt(s.amount)}</div>
             <button class="cash-item-del" onclick="deleteSub(${s.id})">✕</button>
@@ -491,6 +490,11 @@ function renderBudget(d) {
             <button class="cash-item-del" onclick="deleteWeekly(${w.id})">✕</button>
         </div>`).join('');
     document.getElementById('weeklyTotal').innerHTML = `× ${d.weeksInMonth} нед. = <b>${fmt(t.weekly)}</b>`;
+}
+
+async function toggleSubPaid(id, paid) {
+    await api(`/api/cash/subs/${id}`, 'PATCH', { paid: !paid });
+    await loadBudget();
 }
 
 function openBudgetModal() {
@@ -568,54 +572,81 @@ async function deleteWeekly(id) { if (!confirm('Удалить?')) return; await
 
 // --- WISHLIST ---
 let wishlistItems = [];
+let wishlistAreas = [];
+
 async function loadWishlist() {
-    try { const { items } = await api('/api/cash/wishlist'); wishlistItems = items; renderWishlist(); }
-    catch (e) { console.error(e); }
+    try {
+        const [itemsR, areasR] = await Promise.all([
+            api('/api/cash/wishlist'),
+            api('/api/cash/wishlist/areas'),
+        ]);
+        wishlistItems = itemsR.items;
+
+        const dbAreas = areasR.areas.map(a => ({ id: a.id, name: a.name }));
+        const dbNames = new Set(dbAreas.map(a => a.name));
+        wishlistItems.forEach(i => {
+            const n = i.area || 'Общее';
+            if (!dbNames.has(n)) { dbAreas.push({ id: null, name: n }); dbNames.add(n); }
+        });
+        wishlistAreas = dbAreas;
+
+        renderWishlist();
+    } catch (e) { console.error(e); }
 }
+
 function renderWishlist() {
     const c = document.getElementById('wishlistGrid');
-    if (!wishlistItems.length) { c.innerHTML = `<div class="empty-state">Пока пусто. Нажми + чтобы добавить</div>`; return; }
-
-    const groups = {};
-    wishlistItems.forEach(x => {
-        const a = x.area || 'Общее';
-        if (!groups[a]) groups[a] = [];
-        groups[a].push(x);
-    });
+    if (!wishlistAreas.length && !wishlistItems.length) {
+        c.innerHTML = `<div class="empty-state">Пока нет областей. Нажми +</div>`;
+        return;
+    }
 
     let html = '';
-    Object.entries(groups).forEach(([area, items]) => {
-        html += `<div class="wishlist-group">
-            <div class="wishlist-group-header">
-                <div class="wishlist-group-title">${escapeHtml(area)}</div>
-                <button class="btn-icon-add" onclick="openWishlistModalForArea('${escapeHtml(area).replace(/'/g, "\\'")}')">+</button>
+    wishlistAreas.forEach(area => {
+        const areaName = area.name;
+        const items = wishlistItems.filter(i => (i.area || 'Общее') === areaName);
+        const safeName = escapeHtml(areaName).replace(/'/g, "\\'");
+
+        html += `<div class="wishlist-area-card">
+            <div class="wishlist-area-header">
+                <div class="wishlist-area-name">${escapeHtml(areaName)}</div>
+                <div class="wishlist-area-count">${items.length}</div>
+                <button class="btn-icon-add" onclick="openWishlistModal('${safeName}')">+</button>
+                <button class="area-delete" onclick="deleteWishlistArea('${safeName}')">🗑</button>
             </div>`;
-        items.forEach(it => {
-            html += `<div class="wishlist-item">
-                <div class="wishlist-check ${it.done ? 'done' : ''}" onclick="toggleWish(${it.id}, ${it.done})">✓</div>
-                <div class="wishlist-name ${it.done ? 'done' : ''}">${escapeHtml(it.name)}</div>
-                ${it.price ? `<div class="wishlist-price">${fmt(it.price)}</div>` : ''}
-                <button class="wishlist-del" onclick="deleteWish(${it.id})">✕</button>
-            </div>`;
-        });
+
+        if (items.length === 0) {
+            html += `<div class="widget-empty" style="padding:8px 4px;">Пусто</div>`;
+        } else {
+            items.forEach(it => {
+                html += `<div class="wishlist-item">
+                    <div class="wishlist-check ${it.done ? 'done' : ''}" onclick="toggleWish(${it.id}, ${it.done})">✓</div>
+                    <div class="wishlist-name ${it.done ? 'done' : ''}">${escapeHtml(it.name)}</div>
+                    ${it.price ? `<div class="wishlist-price">${fmt(it.price)}</div>` : ''}
+                    <button class="wishlist-del" onclick="deleteWish(${it.id})">✕</button>
+                </div>`;
+            });
+        }
         html += `</div>`;
     });
 
-    // Кнопка добавить новую область
-    html += `<button class="budget-row-add" onclick="openWishlistModal()">+ Добавить покупку</button>`;
-
     c.innerHTML = html;
 }
+
+// Wishlist modal (добавление товара в область)
 function openWishlistModal(area = '') {
     document.getElementById('wishName').value = '';
     document.getElementById('wishPrice').value = '';
-    document.getElementById('wishArea').value = area;
+    document.getElementById('wishArea').value = area || 'Общее';
     document.getElementById('wishUrl').value = '';
     document.getElementById('wishlistModal').classList.add('open');
     setTimeout(() => document.getElementById('wishName').focus(), 200);
 }
-function openWishlistModalForArea(area) { openWishlistModal(area); }
-function closeWishlistModal() { document.getElementById('wishlistModal').classList.remove('open'); }
+
+function closeWishlistModal() {
+    document.getElementById('wishlistModal').classList.remove('open');
+}
+
 async function saveWishlist() {
     const name = document.getElementById('wishName').value.trim();
     if (!name) return alert('Введи название');
@@ -627,6 +658,31 @@ async function saveWishlist() {
             url: document.getElementById('wishUrl').value,
         });
         closeWishlistModal();
+        await loadWishlist();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+
+// Wishlist area modal
+function openWishlistAreaModal() {
+    document.getElementById('wishAreaName').value = '';
+    document.getElementById('wishlistAreaModal').classList.add('open');
+    setTimeout(() => document.getElementById('wishAreaName').focus(), 200);
+}
+function closeWishlistAreaModal() { document.getElementById('wishlistAreaModal').classList.remove('open'); }
+async function saveWishlistArea() {
+    const name = document.getElementById('wishAreaName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        await api('/api/cash/wishlist/areas', 'POST', { name });
+        closeWishlistAreaModal();
+        await loadWishlist();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteWishlistArea(name) {
+    if (!confirm(`Удалить область "${name}" и все товары в ней?`)) return;
+    try {
+        await api(`/api/cash/wishlist/areas/by-name/${encodeURIComponent(name)}`, 'DELETE');
         await loadWishlist();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
@@ -652,22 +708,27 @@ function renderPiggy() {
     const t = d.totals;
 
     document.getElementById('piggyGrid').innerHTML = `
-        <div class="piggy-card big">
-            <div class="piggy-card-label">Копилка</div>
-            <div class="piggy-card-value">${fmt(t.balance)}</div>
-        </div>
-        <div class="piggy-card big editable" onclick="openFactModal()">
-            <div class="piggy-card-label">Есть по факту</div>
-            <div class="piggy-card-value">${fmt(t.fact)}</div>
-            <div class="piggy-card-hint">нажми, чтобы изменить</div>
-        </div>
-        <div class="piggy-card">
-            <div class="piggy-card-label">Всего пополнений</div>
-            <div class="piggy-card-value" style="font-size:18px;">${fmt(t.deposited)}</div>
-        </div>
-        <div class="piggy-card">
-            <div class="piggy-card-label">Долг</div>
-            <div class="piggy-card-value debt" style="font-size:18px;">${fmt(t.debt)}</div>
+        <div class="piggy-hero-new">
+            <div class="piggy-top">
+                <div class="piggy-top-item">
+                    <div class="piggy-card-label">Копилка</div>
+                    <div class="piggy-card-value">${fmt(t.balance)}</div>
+                </div>
+                <div class="piggy-top-item editable" onclick="openFactModal()">
+                    <div class="piggy-card-label">Есть по факту</div>
+                    <div class="piggy-card-value">${fmt(t.fact)}</div>
+                </div>
+            </div>
+            <div class="piggy-bottom">
+                <div class="piggy-bottom-item">
+                    <div class="piggy-card-label">Всего пополнений</div>
+                    <div class="piggy-card-value">${fmt(t.deposited)}</div>
+                </div>
+                <div class="piggy-bottom-item">
+                    <div class="piggy-card-label">Долг</div>
+                    <div class="piggy-card-value debt">${fmt(t.debt)}</div>
+                </div>
+            </div>
         </div>
     `;
 
@@ -682,7 +743,7 @@ function renderPiggy() {
                 <div class="cash-item-name">${escapeHtml(x.description || (x.type === 'deposit' ? 'Пополнение' : 'Трата'))}</div>
                 <div class="cash-item-date">${formatDate(x.date)}</div>
             </div>
-            <div class="cash-item-amount ${x.type === 'withdraw' ? 'minus' : ''}">
+            <div class="cash-item-amount ${x.type === 'withdraw' ? 'minus' : 'plus-green'}">
                 ${x.type === 'withdraw' ? '−' : '+'}${fmt(x.amount)}
             </div>
             <button class="cash-item-del" onclick="deletePiggyItem(${x.id})">✕</button>

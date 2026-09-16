@@ -120,6 +120,10 @@
 
                     <!-- WISHLIST -->
                     <div id="cash-wishlist" class="subtab">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Мои области</span>
+                            <button class="btn-icon-add" onclick="openWishlistAreaModal()">+</button>
+                        </div>
                         <div id="wishlistGrid"></div>
                     </div>
 
@@ -365,6 +369,18 @@
         <div class="modal-actions">
             <button class="modal-btn secondary" onclick="closeFactModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveFact()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="wishlistAreaModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Новая область</h3>
+        <input type="text" class="modal-input" id="wishAreaName" placeholder="Например: Техника" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeWishlistAreaModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveWishlistArea()">Сохранить</button>
         </div>
     </div>
 </div>
