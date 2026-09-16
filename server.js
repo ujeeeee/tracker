@@ -67,7 +67,6 @@ function verifyInitData(initData) {
 async function authMiddleware(req, res, next) {
     const initData = req.headers['x-init-data'] || req.body?.initData;
 
-    // DEV-режим: если нет initData и мы не в продакшене
     if (!initData && process.env.NODE_ENV !== 'production') {
         req.user = { id: 999999999, first_name: 'Dev', username: 'dev_user' };
         req.tg_id = 999999999;
@@ -105,7 +104,6 @@ app.get('/api/debug', async (req, res) => {
         hasUrl: !!process.env.SUPABASE_URL,
         hasKey: !!process.env.SUPABASE_SECRET_KEY,
         hasBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
-        botTokenLength: process.env.TELEGRAM_BOT_TOKEN?.length || 0,
         nodeEnv: process.env.NODE_ENV,
         usersCount: data?.length ?? null,
         users: data ?? null,
@@ -132,7 +130,6 @@ app.post('/api/auth', authMiddleware, async (req, res) => {
     }
 
     if (existing) {
-        // Обновляем
         const { error: updErr } = await supabase
             .from('users')
             .update({
@@ -151,7 +148,6 @@ app.post('/api/auth', authMiddleware, async (req, res) => {
         }
         console.log('✅ Юзер обновлён:', u.id);
     } else {
-        // Вставляем
         const { error: insErr } = await supabase
             .from('users')
             .insert({
@@ -194,6 +190,46 @@ app.get('/api/me', authMiddleware, async (req, res) => {
     if (!data) return res.status(404).json({ error: 'User not found' });
 
     res.json({ ok: true, user: data });
+});
+
+// ==========================================
+// ===== BACKUP =====
+// ==========================================
+app.get('/api/backup', authMiddleware, async (req, res) => {
+    try {
+        const tables = [
+            'users', 'disc_areas', 'disc_goals', 'disc_habits', 'disc_habit_logs',
+            'cash_budget', 'cash_subs', 'cash_weekly', 'cash_expenses', 'cash_wishlist', 'cash_piggy',
+            'gym_metrics', 'gym_metric_logs', 'gym_programs', 'gym_program_days', 'gym_exercises',
+            'gym_photos', 'gym_materials',
+            'food_recipes', 'food_recipe_ingredients', 'food_recipe_steps', 'food_recipe_links',
+            'food_products', 'food_diary', 'food_goals', 'food_shopping',
+            'film_genres', 'film_movies',
+            'tea_groups', 'tea_items', 'tea_links',
+            'places_items', 'places_photos',
+        ];
+
+        const backup = {
+            exported_at: new Date().toISOString(),
+            tg_id: req.tg_id,
+            data: {},
+        };
+
+        for (const table of tables) {
+            const column = table === 'users' ? 'id' : 'tg_id';
+            const { data, error } = await supabase
+                .from(table)
+                .select('*')
+                .eq(column, req.tg_id);
+
+            if (!error) backup.data[table] = data || [];
+        }
+
+        res.json(backup);
+    } catch (e) {
+        console.error('Backup error:', e);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ==========================================

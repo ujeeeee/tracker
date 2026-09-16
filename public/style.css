@@ -1,4 +1,46 @@
-/* ===== RESET ===== */
+/* ==========================================
+   CSS-ПЕРЕМЕННЫЕ: ТЁМНАЯ ТЕМА
+   ========================================== */
+:root {
+    --bg: #0a0a0c;
+    --bg-gradient: radial-gradient(ellipse at top, #1a1a24 0%, #0a0a0c 60%);
+    --glass: rgba(28, 28, 32, 0.65);
+    --glass-strong: rgba(28, 28, 32, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.04);
+    --card: rgba(38, 38, 44, 0.55);
+    --card-hover: rgba(48, 48, 56, 0.7);
+    --text: #f5f5f7;
+    --text-secondary: #98989f;
+    --text-tertiary: #5a5a5f;
+    --accent: #0a84ff;
+    --danger: #ff453a;
+    --success: #32d74b;
+}
+
+/* ==========================================
+   СВЕТЛАЯ ТЕМА
+   ========================================== */
+:root[data-theme="light"] {
+    --bg: #f2f2f7;
+    --bg-gradient: radial-gradient(ellipse at top, #ffffff 0%, #e8e8f0 60%);
+    --glass: rgba(255, 255, 255, 0.7);
+    --glass-strong: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.06);
+    --glass-highlight: rgba(255, 255, 255, 0.6);
+    --card: rgba(255, 255, 255, 0.6);
+    --card-hover: rgba(255, 255, 255, 0.85);
+    --text: #000000;
+    --text-secondary: #6e6e73;
+    --text-tertiary: #8e8e93;
+    --accent: #007aff;
+    --danger: #ff3b30;
+    --success: #34c759;
+}
+
+/* ==========================================
+   RESET
+   ========================================== */
 * {
     margin: 0;
     padding: 0;
@@ -6,39 +48,69 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-body {
-    background: #0f0e17;
-    color: #fffffe;
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    min-height: 100vh;
+html, body {
     overflow-x: hidden;
-    padding-bottom: 70px;
 }
 
-/* ===== ЭКРАНЫ ===== */
+body {
+    background: var(--bg);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 90px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s ease, color 0.3s ease;
+    overscroll-behavior-x: none;
+}
+
+/* ==========================================
+   ЭКРАНЫ + СВАЙП
+   ========================================== */
+.screens-viewport {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.screens-track {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+}
+
 .screen {
-    display: none;
+    flex: 0 0 100vw;
+    width: 100vw;
+    min-height: calc(100vh - 90px);
+    padding: 16px;
+    display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 70px);
-    padding: 12px;
+}
+
+.screen-inner {
     max-width: 480px;
     margin: 0 auto;
-}
-
-.screen.active {
+    width: 100%;
+    flex: 1;
     display: flex;
+    flex-direction: column;
 }
 
 .screen-header {
-    padding: 8px 0 16px;
-    border-bottom: 1px solid #2a2a4a;
-    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 20px;
+    margin-bottom: 20px;
 }
 
 .screen-header h2 {
-    font-size: 22px;
-    color: #ff8906;
+    font-size: 28px;
+    color: var(--text);
     font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .screen-content {
@@ -47,35 +119,97 @@ body {
 }
 
 .hint {
-    color: #a7a9be;
+    color: var(--text-secondary);
     font-size: 14px;
     line-height: 1.6;
 }
 
-/* ===== ТАБЫ (подвкладки) ===== */
-.tabs {
+/* ==========================================
+   ИНДИКАТОР СТРАНИЦ
+   ========================================== */
+.page-indicator {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 0 10px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    pointer-events: none;
 }
 
-.tabs::-webkit-scrollbar {
-    display: none;
+.page-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--text-tertiary);
+    opacity: 0.4;
+    transition: 0.25s ease;
+}
+
+.page-dot.active {
+    width: 20px;
+    background: var(--accent);
+    opacity: 1;
+}
+
+/* ==========================================
+   КНОПКА НАСТРОЕК (glass)
+   ========================================== */
+.settings-btn {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s ease;
+    flex-shrink: 0;
+    font-family: inherit;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 var(--glass-highlight);
+}
+
+.settings-btn:active {
+    transform: scale(0.92);
+    background: var(--card-hover);
+}
+
+/* ==========================================
+   ТАБЫ (glass)
+   ========================================== */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    padding: 4px;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
 .tab {
-    background: #1a1a2e;
-    border: 2px solid transparent;
-    color: #a7a9be;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 8px 16px;
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 12px;
     border-radius: 10px;
     cursor: pointer;
     white-space: nowrap;
-    transition: 0.15s;
+    transition: 0.15s ease;
+    font-family: inherit;
 }
 
 .tab:active {
@@ -83,9 +217,9 @@ body {
 }
 
 .tab.active {
-    border-color: #ff8906;
-    color: #ff8906;
-    background: #2a2a4a;
+    background: var(--card-hover);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .subtab {
@@ -96,45 +230,66 @@ body {
     display: block;
 }
 
-/* ===== НИЖНЕЕ МЕНЮ ===== */
+/* ==========================================
+   НИЖНЕЕ МЕНЮ (LIQUID GLASS)
+   ========================================== */
 .bottom-nav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #1a1a2e;
-    border-top: 1px solid #2a2a4a;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
     display: flex;
     justify-content: space-around;
-    padding: 6px 4px 8px;
+    padding: 8px 6px;
     z-index: 90;
-    max-width: 480px;
+    max-width: 456px;
     margin: 0 auto;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 var(--glass-highlight);
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .nav-btn {
     background: none;
     border: none;
-    color: #a7a9be;
+    color: var(--text-tertiary);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 6px 8px;
+    gap: 3px;
+    padding: 8px 6px;
     cursor: pointer;
-    border-radius: 10px;
-    transition: 0.15s;
+    border-radius: 16px;
+    transition: 0.2s ease;
     flex: 1;
     min-width: 0;
+    font-family: inherit;
+    position: relative;
 }
 
 .nav-btn:active {
-    background: #2a2a4a;
-    transform: scale(0.95);
+    transform: scale(0.9);
 }
 
 .nav-btn.active {
-    color: #ff8906;
+    color: var(--accent);
+}
+
+.nav-btn.active::before {
+    content: '';
+    position: absolute;
+    inset: 4px 20%;
+    background: var(--accent);
+    opacity: 0.1;
+    border-radius: 12px;
+    z-index: -1;
+    transition: 0.25s ease;
 }
 
 .nav-btn.active .nav-icon {
@@ -143,7 +298,7 @@ body {
 
 .nav-icon {
     font-size: 20px;
-    transition: 0.15s;
+    transition: 0.2s ease;
     line-height: 1;
 }
 
@@ -154,9 +309,12 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    letter-spacing: 0.2px;
 }
 
-/* ===== МОДАЛКА / ШТОРКА "ЕЩЁ" ===== */
+/* ==========================================
+   ШТОРКА "ЕЩЁ" (LIQUID GLASS)
+   ========================================== */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -164,23 +322,35 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 200;
     justify-content: center;
     align-items: flex-end;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: fadeIn 0.2s ease;
 }
 
 .modal-overlay.open {
     display: flex;
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .more-sheet {
-    background: #1a1a2e;
-    border-radius: 20px 20px 0 0;
-    padding: 12px 20px 30px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-top: 1px solid var(--glass-border);
+    border-radius: 28px 28px 0 0;
+    padding: 14px 20px 40px;
     width: 100%;
     max-width: 480px;
-    animation: slideUp 0.25s ease;
+    animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 var(--glass-highlight);
 }
 
 @keyframes slideUp {
@@ -191,14 +361,18 @@ body {
 .more-handle {
     width: 40px;
     height: 4px;
-    background: #2a2a4a;
+    background: var(--text-tertiary);
+    opacity: 0.5;
     border-radius: 2px;
-    margin: 0 auto 16px;
+    margin: 0 auto 18px;
 }
 
 .more-title {
-    color: #ff8906;
-    font-size: 16px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     margin-bottom: 16px;
     text-align: center;
 }
@@ -210,33 +384,191 @@ body {
 }
 
 .more-item {
-    background: #0f0e17;
-    border: 1px solid #2a2a4a;
-    color: #fffffe;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 16px 8px;
-    border-radius: 14px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 18px 8px;
+    border-radius: 18px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    transition: 0.15s;
+    gap: 10px;
+    transition: 0.15s ease;
+    font-family: inherit;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
 .more-item:active {
-    background: #2a2a4a;
-    transform: scale(0.97);
+    background: var(--card-hover);
+    transform: scale(0.96);
 }
 
 .more-icon {
-    font-size: 26px;
+    font-size: 24px;
     line-height: 1;
 }
 
-/* ===== АДАПТИВ ===== */
+/* ==========================================
+   НАСТРОЙКИ
+   ========================================== */
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section-title {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    padding-left: 4px;
+}
+
+.settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: 0.15s ease;
+    font-family: inherit;
+    color: var(--text);
+    font-size: 15px;
+    width: 100%;
+    text-align: left;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.settings-item:active {
+    background: var(--card-hover);
+    transform: scale(0.99);
+}
+
+.settings-item-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-item-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.settings-item-arrow {
+    color: var(--text-tertiary);
+    font-size: 14px;
+}
+
+.settings-item.danger {
+    color: var(--danger);
+}
+
+.theme-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 4px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.theme-option {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.15s ease;
+}
+
+.theme-option.active {
+    background: var(--card-hover);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.theme-option:active {
+    transform: scale(0.97);
+}
+
+.user-info-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    padding: 16px;
+    border-radius: 18px;
+    margin-bottom: 24px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.user-info-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #5e5ce6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+}
+
+.user-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.user-info-name {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-info-id {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+/* ==========================================
+   АДАПТИВ
+   ========================================== */
 @media (max-height: 700px) {
-    .screen-header h2 { font-size: 19px; }
-    .tab { padding: 6px 12px; font-size: 13px; }
+    .screen-header h2 { font-size: 22px; }
+    .tab { padding: 8px 10px; font-size: 12px; }
+    .nav-icon { font-size: 18px; }
+    .nav-label { font-size: 9px; }
+    .bottom-nav { bottom: 8px; left: 8px; right: 8px; }
 }
