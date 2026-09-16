@@ -9,389 +9,366 @@
 </head>
 <body>
 
-    <div class="screens-viewport">
-        <div class="screens-track" id="screensTrack">
+<div class="screens-viewport">
+    <div class="screens-track" id="screensTrack">
 
-            <!-- ========== HOME ========== -->
-            <div class="screen" data-screen-name="Home">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <div>
-                            <div class="home-greeting" id="homeGreeting">Привет</div>
-                            <div class="home-date" id="homeDate"></div>
+        <!-- HOME -->
+        <div class="screen" data-screen-name="Home">
+            <div class="screen-inner">
+                <div class="screen-header">
+                    <div>
+                        <div class="home-greeting" id="homeGreeting">Привет</div>
+                        <div class="home-date" id="homeDate"></div>
+                    </div>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="screen-content"><div id="homeWidgets"></div></div>
+            </div>
+        </div>
+
+        <!-- DISCIPLINE -->
+        <div class="screen" data-screen-name="Discipline">
+            <div class="screen-inner">
+                <div class="screen-header">
+                    <h2>🎯 Discipline</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('discipline', 'habits', this)">Привычки</button>
+                    <button class="tab" onclick="switchSubTab('discipline', 'goals', this)">Цели</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="discipline-habits" class="subtab active">
+                        <div class="week-nav">
+                            <button class="week-nav-btn" onclick="weekPrev()">‹</button>
+                            <div class="week-range" id="weekRange"></div>
+                            <button class="week-nav-btn" onclick="weekNext()">›</button>
+                            <button class="btn-icon-add" onclick="openHabitModal()">+</button>
                         </div>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                        <div id="weekGrid"></div>
+                        <div class="chart-block">
+                            <div class="chart-title" id="chartTitle">Активность за месяц</div>
+                            <div class="chart-canvas" id="habitsChart"></div>
+                            <div class="chart-legend" id="chartLegend"></div>
+                        </div>
                     </div>
-                    <div class="screen-content">
-                        <div id="homeWidgets"></div>
+
+                    <div id="discipline-goals" class="subtab">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Мои области</span>
+                            <button class="btn-icon-add" onclick="openAddModal('area')">+</button>
+                        </div>
+                        <div id="areasList"></div>
                     </div>
+
                 </div>
             </div>
+        </div>
 
-            <!-- ========== DISCIPLINE ========== -->
-            <div class="screen" data-screen-name="Discipline">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>🎯 Discipline</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchSubTab('discipline', 'goals', this)">Цели</button>
-                        <button class="tab" onclick="switchSubTab('discipline', 'habits', this)">Привычки</button>
-                    </div>
-                    <div class="screen-content">
+        <!-- CASH -->
+        <div class="screen" data-screen-name="Cash">
+            <div class="screen-inner">
+                <div class="screen-header">
+                    <h2>💸 Cash</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('cash', 'budget', this)">Бюджет</button>
+                    <button class="tab" onclick="switchSubTab('cash', 'piggy', this)">Копилка</button>
+                    <button class="tab" onclick="switchSubTab('cash', 'wishlist', this)">Вишлист</button>
+                </div>
+                <div class="screen-content">
 
-                        <div id="discipline-goals" class="subtab active">
+                    <!-- БЮДЖЕТ -->
+                    <div id="cash-budget" class="subtab active">
+                        <div class="budget-hero" onclick="openBudgetModal()">
+                            <div class="budget-hero-label">Бюджет на месяц</div>
+                            <div class="budget-hero-value" id="budgetValue">0 ₽</div>
+                        </div>
+                        <div class="budget-list" id="budgetList"></div>
+
+                        <div class="cash-section">
                             <div class="goals-header">
-                                <span class="goals-header-title">Мои области</span>
-                                <button class="btn-icon-add" onclick="openAddModal('area')">+</button>
+                                <span class="goals-header-title">Разовые траты месяца</span>
+                                <button class="btn-icon-add" onclick="openCashAddModal('sub')">+</button>
                             </div>
-                            <div id="areasList"></div>
+                            <div id="subsList"></div>
+                            <div class="cash-total" id="subsTotal"></div>
                         </div>
 
-                        <div id="discipline-habits" class="subtab">
-                            <div class="week-nav">
-                                <button class="week-nav-btn" onclick="weekPrev()">‹</button>
-                                <div class="week-range" id="weekRange"></div>
-                                <button class="week-nav-btn" onclick="weekNext()">›</button>
-                                <button class="btn-icon-add" onclick="openHabitModal()" title="Добавить привычку">+</button>
+                        <div class="cash-section">
+                            <div class="goals-header">
+                                <span class="goals-header-title">Недельные покупки</span>
+                                <button class="btn-icon-add" onclick="openCashAddModal('weekly')">+</button>
                             </div>
-                            <div id="weekGrid"></div>
-
-                            <div class="chart-block">
-                                <div class="chart-title" id="chartTitle">Активность за месяц</div>
-                                <div class="chart-canvas" id="habitsChart"></div>
-                                <div class="chart-legend" id="chartLegend"></div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <div class="screen" data-screen-name="Cash">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>💸 Cash</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchSubTab('cash', 'budget', this)">Бюджет</button>
-                        <button class="tab" onclick="switchSubTab('cash', 'wishlist', this)">Wishlist</button>
-                        <button class="tab" onclick="switchSubTab('cash', 'piggy', this)">Копилка</button>
-                    </div>
-                    <div class="screen-content">
-
-                        <!-- БЮДЖЕТ -->
-                        <div id="cash-budget" class="subtab active">
-                            <div class="budget-hero" id="budgetHero">
-                                <div class="budget-hero-label">Бюджет на месяц</div>
-                                <div class="budget-hero-value" id="budgetValue">0 ₽</div>
-                                <button class="btn-icon-add" onclick="openBudgetModal()">✎</button>
-                            </div>
-
-                            <div class="budget-stats" id="budgetStats"></div>
-
-                            <div class="cash-section">
-                                <div class="goals-header">
-                                    <span class="goals-header-title">Подписки месяца</span>
-                                    <button class="btn-icon-add" onclick="openCashAddModal('sub')">+</button>
-                                </div>
-                                <div id="subsList"></div>
-                                <div class="cash-total" id="subsTotal"></div>
-                            </div>
-
-                            <div class="cash-section">
-                                <div class="goals-header">
-                                    <span class="goals-header-title">Недельные покупки</span>
-                                    <button class="btn-icon-add" onclick="openCashAddModal('weekly')">+</button>
-                                </div>
-                                <div id="weeklyList"></div>
-                                <div class="cash-total" id="weeklyTotal"></div>
-                            </div>
-
-                            <div class="cash-section">
-                                <div class="goals-header">
-                                    <span class="goals-header-title">Траты за месяц</span>
-                                    <button class="btn-icon-add" onclick="openCashAddModal('expense')">+</button>
-                                </div>
-                                <div id="expensesList"></div>
-                                <div class="cash-total" id="expensesTotal"></div>
-                            </div>
-                        </div>
-
-                        <!-- WISHLIST -->
-                        <div id="cash-wishlist" class="subtab">
-                            <div class="wishlist-legend">
-                                <span>🎯 Матрица Эйзенхауэра</span>
-                            </div>
-
-                            <div class="wishlist-grid" id="wishlistGrid"></div>
-
-                            <button class="btn-add" style="margin-top:16px;" onclick="openWishlistModal()">
-                                <span>+</span> Добавить покупку
-                            </button>
-                        </div>
-
-                        <!-- КОПИЛКА -->
-                        <div id="cash-piggy" class="subtab">
-                            <div class="piggy-hero" id="piggyHero"></div>
-
-                            <div class="goals-header" style="margin-top:20px;">
-                                <span class="goals-header-title">История</span>
-                                <div style="display:flex;gap:8px;">
-                                    <button class="btn-icon-add" onclick="openPiggyModal('deposit')" title="Положить">↓</button>
-                                    <button class="btn-icon-add" onclick="openPiggyModal('withdraw')" title="Взять">↑</button>
-                                </div>
-                            </div>
-                            <div id="piggyList"></div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- ========== GYM ========== -->
-            <div class="screen" data-screen-name="Gym">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>🏋️ Gym</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
-                        <button class="tab" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
-                        <button class="tab" onclick="switchSubTab('gym', 'photos', this)">Фото</button>
-                    </div>
-                    <div class="screen-content">
-                        <div id="gym-metrics" class="subtab active"><p class="hint">Метрики. Пока пусто.</p></div>
-                        <div id="gym-programs" class="subtab"><p class="hint">Программы. Пока пусто.</p></div>
-                        <div id="gym-photos" class="subtab"><p class="hint">Фото. Пока пусто.</p></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ========== FOOD ========== -->
-            <div class="screen" data-screen-name="Food">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>🍽️ Food</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchSubTab('food', 'diary', this)">Дневник</button>
-                        <button class="tab" onclick="switchSubTab('food', 'recipes', this)">Рецепты</button>
-                        <button class="tab" onclick="switchSubTab('food', 'shopping', this)">Покупки</button>
-                    </div>
-                    <div class="screen-content">
-                        <div id="food-diary" class="subtab active"><p class="hint">Дневник. Пока пусто.</p></div>
-                        <div id="food-recipes" class="subtab"><p class="hint">Рецепты. Пока пусто.</p></div>
-                        <div id="food-shopping" class="subtab"><p class="hint">Покупки. Пока пусто.</p></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ========== FILM ========== -->
-            <div class="screen" data-screen-name="Film">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>🎬 Film</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="screen-content"><p class="hint">Фильмы. Пока пусто.</p></div>
-                </div>
-            </div>
-
-            <!-- ========== TEA ========== -->
-            <div class="screen" data-screen-name="Tea">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>🍵 Tea</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="screen-content"><p class="hint">Чай. Пока пусто.</p></div>
-                </div>
-            </div>
-
-            <!-- ========== PLACES ========== -->
-            <div class="screen" data-screen-name="Places">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>📍 Places</h2>
-                        <button class="settings-btn" onclick="openSettings()">⚙️</button>
-                    </div>
-                    <div class="screen-content"><p class="hint">Места. Пока пусто.</p></div>
-                </div>
-            </div>
-
-            <!-- ========== SETTINGS ========== -->
-            <div class="screen" data-screen-name="Settings">
-                <div class="screen-inner">
-                    <div class="screen-header">
-                        <h2>⚙️ Настройки</h2>
-                        <button class="settings-btn" onclick="closeSettings()">✕</button>
-                    </div>
-                    <div class="screen-content">
-                        <div class="user-info-card">
-                            <div class="user-info-avatar" id="settingsAvatar">?</div>
-                            <div class="user-info-text">
-                                <div class="user-info-name" id="settingsUserName">Загрузка...</div>
-                                <div class="user-info-id" id="settingsUserId">ID: —</div>
-                            </div>
-                        </div>
-                        <div class="settings-section">
-                            <div class="settings-section-title">Оформление</div>
-                            <div class="theme-switcher">
-                                <button class="theme-option" data-theme-value="auto" onclick="setThemeMode('auto', this)">Авто</button>
-                                <button class="theme-option" data-theme-value="light" onclick="setThemeMode('light', this)">☀️ Светлая</button>
-                                <button class="theme-option" data-theme-value="dark" onclick="setThemeMode('dark', this)">🌙 Тёмная</button>
-                            </div>
-                        </div>
-                        <div class="settings-section">
-                            <div class="settings-section-title">Данные</div>
-                            <button class="settings-item" onclick="exportBackup()">
-                                <span class="settings-item-label">
-                                    <span class="settings-item-icon">📥</span>
-                                    <span>Скачать бекап</span>
-                                </span>
-                                <span class="settings-item-arrow">→</span>
-                            </button>
-                            <button class="settings-item" onclick="showInfo()">
-                                <span class="settings-item-label">
-                                    <span class="settings-item-icon">ℹ️</span>
-                                    <span>О приложении</span>
-                                </span>
-                                <span class="settings-item-arrow">→</span>
-                            </button>
+                            <div id="weeklyList"></div>
+                            <div class="cash-total" id="weeklyTotal"></div>
                         </div>
                     </div>
+
+                    <!-- КОПИЛКА -->
+                    <div id="cash-piggy" class="subtab">
+                        <div class="piggy-grid" id="piggyGrid"></div>
+
+                        <div class="goals-header" style="margin-top:24px;">
+                            <span class="goals-header-title">История</span>
+                            <button class="btn-icon-add" onclick="openPiggyModal()">+</button>
+                        </div>
+                        <div id="piggyList"></div>
+                    </div>
+
+                    <!-- WISHLIST -->
+                    <div id="cash-wishlist" class="subtab">
+                        <div id="wishlistGrid"></div>
+                    </div>
+
                 </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- НИЖНЕЕ МЕНЮ -->
-    <!-- ========================================== -->
-    <nav class="bottom-nav" id="bottomNav">
-        <button class="nav-btn" data-index="0" onclick="goToScreen(0)">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-label">Главная</span>
-        </button>
-        <button class="nav-btn" data-index="1" onclick="goToScreen(1)">
-            <span class="nav-icon">🎯</span>
-            <span class="nav-label">Discipline</span>
-        </button>
-        <button class="nav-btn" data-index="2" onclick="goToScreen(2)">
-            <span class="nav-icon">💸</span>
-            <span class="nav-label">Cash</span>
-        </button>
-        <button class="nav-btn" data-index="3" onclick="goToScreen(3)">
-            <span class="nav-icon">🏋️</span>
-            <span class="nav-label">Gym</span>
-        </button>
-        <button class="nav-btn" data-index="4" onclick="goToScreen(4)">
-            <span class="nav-icon">🍽️</span>
-            <span class="nav-label">Food</span>
-        </button>
-        <button class="nav-btn" data-index="5" onclick="goToScreen(5)">
-            <span class="nav-icon">🎬</span>
-            <span class="nav-label">Film</span>
-        </button>
-        <button class="nav-btn" data-index="6" onclick="goToScreen(6)">
-            <span class="nav-icon">🍵</span>
-            <span class="nav-label">Tea</span>
-        </button>
-        <button class="nav-btn" data-index="7" onclick="goToScreen(7)">
-            <span class="nav-icon">📍</span>
-            <span class="nav-label">Places</span>
-        </button>
-    </nav>
-
-    <!-- ========================================== -->
-    <!-- МОДАЛКА ВВОДА (универсальная) -->
-    <!-- ========================================== -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal-sheet">
-            <div class="modal-handle"></div>
-            <h3 class="modal-title" id="inputModalTitle">Добавить</h3>
-            <input type="text" class="modal-input" id="inputModalField" placeholder="Название..." />
-            <div class="modal-actions">
-                <button class="modal-btn secondary" onclick="closeInputModal()">Отмена</button>
-                <button class="modal-btn primary" onclick="submitInputModal()">Сохранить</button>
             </div>
         </div>
-    </div>
 
-    <!-- ========================================== -->
-    <!-- МОДАЛКА КАЛЕНДАРЯ ПРИВЫЧКИ -->
-    <!-- ========================================== -->
-    <div class="modal-overlay" id="calendarModal">
-        <div class="modal-sheet">
-            <div class="modal-handle"></div>
-            <h3 class="modal-title" id="calTitle">Привычка</h3>
-            <div class="cal-header">
-                <button class="cal-nav" onclick="calPrev()">‹</button>
-                <div class="cal-month" id="calMonth"></div>
-                <button class="cal-nav" onclick="calNext()">›</button>
-            </div>
-            <div class="cal-weekdays">
-                <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-            </div>
-            <div class="cal-grid" id="calGrid"></div>
-            <div class="cal-footer">
-                <div class="cal-stat" id="calStats"></div>
-                <button class="modal-btn primary" onclick="closeCalendar()">Готово</button>
+        <!-- GYM -->
+        <div class="screen" data-screen-name="Gym">
+            <div class="screen-inner">
+                <div class="screen-header"><h2>🏋️ Gym</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
+                <div class="tabs">
+                    <button class="tab active">Метрики</button>
+                    <button class="tab">Программы</button>
+                    <button class="tab">Фото</button>
+                </div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
             </div>
         </div>
-    </div>
 
-    <!-- ========================================== -->
-    <!-- МОДАЛКА ПРИВЫЧКИ (создание / редактирование) -->
-    <!-- ========================================== -->
-    <div class="modal-overlay" id="habitModal">
-        <div class="modal-sheet">
-            <div class="modal-handle"></div>
-            <h3 class="modal-title" id="habitModalTitle">Новая привычка</h3>
-
-            <div class="field-label">Название</div>
-            <input type="text" class="modal-input" id="habitName" placeholder="Например: Зал" />
-
-            <div class="field-label">Периодичность</div>
-            <div class="freq-tabs">
-                <button class="freq-tab active" data-freq="daily" onclick="pickFreq('daily', this)">Каждый день</button>
-                <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
-                <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
-            </div>
-
-            <div id="freqDays" style="display:none;margin-top:12px;">
-                <div class="days-picker">
-                    <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
-                    <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
-                    <button class="day-opt" data-dow="3" onclick="toggleDow(3)">Ср</button>
-                    <button class="day-opt" data-dow="4" onclick="toggleDow(4)">Чт</button>
-                    <button class="day-opt" data-dow="5" onclick="toggleDow(5)">Пт</button>
-                    <button class="day-opt" data-dow="6" onclick="toggleDow(6)">Сб</button>
-                    <button class="day-opt" data-dow="7" onclick="toggleDow(7)">Вс</button>
-                </div>
-            </div>
-
-            <div id="freqInterval" style="display:none;margin-top:12px;">
-                <div class="interval-row">
-                    <span>Каждые</span>
-                    <input type="number" class="interval-input" id="intervalInput" value="2" min="2" max="60" />
-                    <span>дней</span>
-                </div>
-            </div>
-
-            <div class="modal-actions" style="margin-top:20px;">
-                <button class="modal-btn secondary" onclick="closeHabitModal()">Отмена</button>
-                <button class="modal-btn primary" onclick="saveHabit()">Сохранить</button>
+        <!-- FOOD -->
+        <div class="screen" data-screen-name="Food">
+            <div class="screen-inner">
+                <div class="screen-header"><h2>🍽️ Food</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
+                <div class="tabs"><button class="tab active">Дневник</button><button class="tab">Рецепты</button><button class="tab">Покупки</button></div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
             </div>
         </div>
-    </div>
 
-    <script src="script.js"></script>
+        <!-- FILM -->
+        <div class="screen" data-screen-name="Film">
+            <div class="screen-inner">
+                <div class="screen-header"><h2>🎬 Film</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
+            </div>
+        </div>
+
+        <!-- TEA -->
+        <div class="screen" data-screen-name="Tea">
+            <div class="screen-inner">
+                <div class="screen-header"><h2>🍵 Tea</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
+            </div>
+        </div>
+
+        <!-- PLACES -->
+        <div class="screen" data-screen-name="Places">
+            <div class="screen-inner">
+                <div class="screen-header"><h2>📍 Places</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="screen" data-screen-name="Settings">
+            <div class="screen-inner">
+                <div class="screen-header"><h2>⚙️ Настройки</h2><button class="settings-btn" onclick="closeSettings()">✕</button></div>
+                <div class="screen-content">
+                    <div class="user-info-card">
+                        <div class="user-info-avatar" id="settingsAvatar">?</div>
+                        <div class="user-info-text">
+                            <div class="user-info-name" id="settingsUserName">Загрузка...</div>
+                            <div class="user-info-id" id="settingsUserId">ID: —</div>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Оформление</div>
+                        <div class="theme-switcher">
+                            <button class="theme-option" data-theme-value="auto" onclick="setThemeMode('auto', this)">Авто</button>
+                            <button class="theme-option" data-theme-value="light" onclick="setThemeMode('light', this)">☀️ Светлая</button>
+                            <button class="theme-option" data-theme-value="dark" onclick="setThemeMode('dark', this)">🌙 Тёмная</button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Данные</div>
+                        <button class="settings-item" onclick="exportBackup()">
+                            <span class="settings-item-label"><span class="settings-item-icon">📥</span><span>Скачать бекап</span></span>
+                            <span class="settings-item-arrow">→</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- НИЖНЕЕ МЕНЮ -->
+<nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">🏠</span><span class="nav-label">Главная</span></button>
+    <button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
+    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
+    <button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">🏋️</span><span class="nav-label">Gym</span></button>
+    <button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">🍽️</span><span class="nav-label">Food</span></button>
+    <button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
+    <button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">🍵</span><span class="nav-label">Tea</span></button>
+    <button class="nav-btn" data-index="7" onclick="goToScreen(7)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
+</nav>
+
+<!-- МОДАЛКИ -->
+<div class="modal-overlay" id="inputModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="inputModalTitle">Добавить</h3>
+        <input type="text" class="modal-input" id="inputModalField" placeholder="Название..." />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeInputModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="submitInputModal()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="habitModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="habitModalTitle">Новая привычка</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="habitName" placeholder="Например: Зал" />
+        <div class="field-label">Периодичность</div>
+        <div class="freq-tabs">
+            <button class="freq-tab active" data-freq="daily" onclick="pickFreq('daily', this)">Каждый день</button>
+            <button class="freq-tab" data-freq="days" onclick="pickFreq('days', this)">Дни недели</button>
+            <button class="freq-tab" data-freq="interval" onclick="pickFreq('interval', this)">Интервал</button>
+        </div>
+        <div id="freqDays" style="display:none;margin-top:12px;">
+            <div class="days-picker">
+                <button class="day-opt" data-dow="1" onclick="toggleDow(1)">Пн</button>
+                <button class="day-opt" data-dow="2" onclick="toggleDow(2)">Вт</button>
+                <button class="day-opt" data-dow="3" onclick="toggleDow(3)">Ср</button>
+                <button class="day-opt" data-dow="4" onclick="toggleDow(4)">Чт</button>
+                <button class="day-opt" data-dow="5" onclick="toggleDow(5)">Пт</button>
+                <button class="day-opt" data-dow="6" onclick="toggleDow(6)">Сб</button>
+                <button class="day-opt" data-dow="7" onclick="toggleDow(7)">Вс</button>
+            </div>
+        </div>
+        <div id="freqInterval" style="display:none;margin-top:12px;">
+            <div class="interval-row">
+                <span>Каждые</span>
+                <input type="number" class="interval-input" id="intervalInput" value="2" min="2" max="60" />
+                <span>дней</span>
+            </div>
+        </div>
+        <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn secondary" onclick="closeHabitModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveHabit()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="budgetModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Бюджет на месяц</h3>
+        <div class="field-label">Сумма</div>
+        <input type="number" class="modal-input" id="budgetAmount" placeholder="22000" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeBudgetModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveBudget()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="cashAddModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="cashAddTitle">Добавить</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="cashAddName" placeholder="Название..." />
+        <div class="field-label">Сумма</div>
+        <input type="number" class="modal-input" id="cashAddAmount" placeholder="0" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeCashAddModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveCashAdd()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="customStatModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Новая панель</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="customStatName" placeholder="Например: Инвестиции" />
+        <div class="field-label">Тип</div>
+        <div class="freq-tabs">
+            <button class="freq-tab active" data-type="rub" onclick="pickStatType('rub', this)">₽ Рубли</button>
+            <button class="freq-tab" data-type="percent" onclick="pickStatType('percent', this)">% от бюджета</button>
+        </div>
+        <div class="field-label" style="margin-top:12px;">Значение</div>
+        <input type="number" class="modal-input" id="customStatValue" placeholder="0" />
+        <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn secondary" onclick="closeCustomStatModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveCustomStat()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="wishlistModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Добавить покупку</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="wishName" placeholder="Что хочу" />
+        <div class="field-label">Цена</div>
+        <input type="number" class="modal-input" id="wishPrice" placeholder="0" />
+        <div class="field-label">Область</div>
+        <input type="text" class="modal-input" id="wishArea" placeholder="Например: Техника" />
+        <div class="field-label">Ссылка (опционально)</div>
+        <input type="text" class="modal-input" id="wishUrl" placeholder="https://..." />
+        <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn secondary" onclick="closeWishlistModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveWishlist()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="piggyModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Добавить в историю</h3>
+        <div class="field-label">Название / на что</div>
+        <input type="text" class="modal-input" id="piggyDesc" placeholder="Описание" />
+        <div class="field-label">Сумма</div>
+        <input type="number" class="modal-input" id="piggyAmount" placeholder="0" />
+        <div class="field-label">Тип</div>
+        <div class="freq-tabs">
+            <button class="freq-tab active" data-ptype="withdraw" onclick="pickPiggyType('withdraw', this)">↑ Трата</button>
+            <button class="freq-tab" data-ptype="deposit" onclick="pickPiggyType('deposit', this)">↓ Пополнение</button>
+        </div>
+        <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn secondary" onclick="closePiggyModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="savePiggy()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="factModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Есть по факту</h3>
+        <div class="field-label">Сумма</div>
+        <input type="number" class="modal-input" id="factAmount" placeholder="0" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeFactModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveFact()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
