@@ -9,8 +9,6 @@
 </head>
 <body>
 
-    <div class="page-indicator" id="pageIndicator"></div>
-
     <div class="screens-viewport">
         <div class="screens-track" id="screensTrack">
 
@@ -198,52 +196,36 @@
     <!-- ========================================== -->
     <!-- НИЖНЕЕ МЕНЮ -->
     <!-- ========================================== -->
-    <nav class="bottom-nav" id="bottomNav">
-        <button class="nav-btn" data-index="0" onclick="goToScreen(0)">
-            <span class="nav-icon">🎯</span>
-            <span class="nav-label">Discipline</span>
-        </button>
-        <button class="nav-btn" data-index="1" onclick="goToScreen(1)">
-            <span class="nav-icon">💸</span>
-            <span class="nav-label">Cash</span>
-        </button>
-        <button class="nav-btn" data-index="2" onclick="goToScreen(2)">
-            <span class="nav-icon">🏋️</span>
-            <span class="nav-label">Gym</span>
-        </button>
-        <button class="nav-btn" data-index="3" onclick="goToScreen(3)">
-            <span class="nav-icon">🍽️</span>
-            <span class="nav-label">Food</span>
-        </button>
-        <button class="nav-btn" onclick="openMoreMenu()">
-            <span class="nav-icon">⋯</span>
-            <span class="nav-label">Ещё</span>
-        </button>
-    </nav>
-
-    <!-- ========================================== -->
-    <!-- ШТОРКА "ЕЩЁ" -->
-    <!-- ========================================== -->
-    <div class="modal-overlay" id="moreModal" onclick="closeMoreMenu(event)">
-        <div class="more-sheet" onclick="event.stopPropagation()">
-            <div class="more-handle"></div>
-            <h3 class="more-title">Все разделы</h3>
-            <div class="more-grid">
-                <button class="more-item" onclick="goToScreen(4); closeMoreMenu();">
-                    <span class="more-icon">🎬</span>
-                    <span>Film</span>
-                </button>
-                <button class="more-item" onclick="goToScreen(5); closeMoreMenu();">
-                    <span class="more-icon">🍵</span>
-                    <span>Tea</span>
-                </button>
-                <button class="more-item" onclick="goToScreen(6); closeMoreMenu();">
-                    <span class="more-icon">📍</span>
-                    <span>Places</span>
-                </button>
-            </div>
-        </div>
-    </div>
+<nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn" data-index="0" onclick="goToScreen(0)">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-label">Discipline</span>
+    </button>
+    <button class="nav-btn" data-index="1" onclick="goToScreen(1)">
+        <span class="nav-icon">💸</span>
+        <span class="nav-label">Cash</span>
+    </button>
+    <button class="nav-btn" data-index="2" onclick="goToScreen(2)">
+        <span class="nav-icon">🏋️</span>
+        <span class="nav-label">Gym</span>
+    </button>
+    <button class="nav-btn" data-index="3" onclick="goToScreen(3)">
+        <span class="nav-icon">🍽️</span>
+        <span class="nav-label">Food</span>
+    </button>
+    <button class="nav-btn" data-index="4" onclick="goToScreen(4)">
+        <span class="nav-icon">🎬</span>
+        <span class="nav-label">Film</span>
+    </button>
+    <button class="nav-btn" data-index="5" onclick="goToScreen(5)">
+        <span class="nav-icon">🍵</span>
+        <span class="nav-label">Tea</span>
+    </button>
+    <button class="nav-btn" data-index="6" onclick="goToScreen(6)">
+        <span class="nav-icon">📍</span>
+        <span class="nav-label">Places</span>
+    </button>
+</nav>
 
     <script src="script.js"></script>
 </body>

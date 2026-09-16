@@ -124,21 +124,12 @@ async function auth() {
 // ==========================================
 const track = document.getElementById('screensTrack');
 const pages = track.querySelectorAll('.screen');
-const indicator = document.getElementById('pageIndicator');
 
 function initScreens() {
     // Показываем только 8 главных страниц + settings в конце
     pages.forEach((p, i) => {
         if (i < TOTAL_MAIN_SCREENS || p.dataset.screenName === 'Settings') return;
     });
-
-    // Индикатор — по количеству главных экранов
-    indicator.innerHTML = '';
-    for (let i = 0; i < TOTAL_MAIN_SCREENS; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'page-dot' + (i === 0 ? ' active' : '');
-        indicator.appendChild(dot);
-    }
 
     goToScreen(0, false);
 }
@@ -157,10 +148,13 @@ function goToScreen(index, animate = true) {
         b.classList.toggle('active', idx !== undefined && parseInt(idx) === index);
     });
 
-    // Индикатор
-    document.querySelectorAll('.page-dot').forEach((d, i) => {
-        d.classList.toggle('active', i === index);
-    });
+    // Подкрутка нижнего меню к активной кнопке
+    const nav = document.getElementById('bottomNav');
+    const btn = nav.querySelector(`.nav-btn[data-index="${index}"]`);
+    if (nav && btn) {
+        const target = btn.offsetLeft - nav.clientWidth / 2 + btn.clientWidth / 2;
+        nav.scrollTo({ left: target, behavior: animate ? 'smooth' : 'auto' });
+    }
 
     window.scrollTo(0, 0);
 }
@@ -265,17 +259,6 @@ function confirmLogout() {
     }
 }
 
-// ==========================================
-// ===== ШТОРКА "ЕЩЁ" =====
-// ==========================================
-function openMoreMenu() {
-    document.getElementById('moreModal').classList.add('open');
-}
-
-function closeMoreMenu(event) {
-    if (event && event.target !== event.currentTarget) return;
-    document.getElementById('moreModal').classList.remove('open');
-}
 
 // ==========================================
 // ===== HAPTIC =====
