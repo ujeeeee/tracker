@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: DISCIPLINE -->
+    <!-- ========================================== -->
+    <div id="screenDiscipline" class="screen active">
+        <div class="screen-header">
+            <h2>🎯 Discipline</h2>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchSubTab('discipline', 'goals', this)">Цели</button>
+            <button class="tab" onclick="switchSubTab('discipline', 'habits', this)">Привычки</button>
+        </div>
+        <div class="screen-content">
+            <div id="discipline-goals" class="subtab active">
+                <p class="hint">Тут будут цели. Пока пусто.</p>
+            </div>
+            <div id="discipline-habits" class="subtab">
+                <p class="hint">Тут будут привычки. Пока пусто.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: CASH -->
+    <!-- ========================================== -->
+    <div id="screenCash" class="screen">
+        <div class="screen-header">
+            <h2>💸 Cash</h2>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchSubTab('cash', 'budget', this)">Бюджет</button>
+            <button class="tab" onclick="switchSubTab('cash', 'wishlist', this)">Wishlist</button>
+            <button class="tab" onclick="switchSubTab('cash', 'piggy', this)">Копилка</button>
+        </div>
+        <div class="screen-content">
+            <div id="cash-budget" class="subtab active">
+                <p class="hint">Бюджет. Пока пусто.</p>
+            </div>
+            <div id="cash-wishlist" class="subtab">
+                <p class="hint">Wishlist. Пока пусто.</p>
+            </div>
+            <div id="cash-piggy" class="subtab">
+                <p class="hint">Копилка. Пока пусто.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: GYM -->
+    <!-- ========================================== -->
+    <div id="screenGym" class="screen">
+        <div class="screen-header">
+            <h2>🏋️ Gym</h2>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
+            <button class="tab" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
+            <button class="tab" onclick="switchSubTab('gym', 'photos', this)">Фото</button>
+        </div>
+        <div class="screen-content">
+            <div id="gym-metrics" class="subtab active">
+                <p class="hint">Метрики. Пока пусто.</p>
+            </div>
+            <div id="gym-programs" class="subtab">
+                <p class="hint">Программы. Пока пусто.</p>
+            </div>
+            <div id="gym-photos" class="subtab">
+                <p class="hint">Фото. Пока пусто.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: FOOD -->
+    <!-- ========================================== -->
+    <div id="screenFood" class="screen">
+        <div class="screen-header">
+            <h2>🍽️ Food</h2>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchSubTab('food', 'diary', this)">Дневник</button>
+            <button class="tab" onclick="switchSubTab('food', 'recipes', this)">Рецепты</button>
+            <button class="tab" onclick="switchSubTab('food', 'shopping', this)">Покупки</button>
+        </div>
+        <div class="screen-content">
+            <div id="food-diary" class="subtab active">
+                <p class="hint">Дневник питания. Пока пусто.</p>
+            </div>
+            <div id="food-recipes" class="subtab">
+                <p class="hint">Рецепты. Пока пусто.</p>
+            </div>
+            <div id="food-shopping" class="subtab">
+                <p class="hint">Список покупок. Пока пусто.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: FILM -->
+    <!-- ========================================== -->
+    <div id="screenFilm" class="screen">
+        <div class="screen-header">
+            <h2>🎬 Film</h2>
+        </div>
+        <div class="screen-content">
+            <p class="hint">Фильмы. Пока пусто.</p>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: TEA -->
+    <!-- ========================================== -->
+    <div id="screenTea" class="screen">
+        <div class="screen-header">
+            <h2>🍵 Tea</h2>
+        </div>
+        <div class="screen-content">
+            <p class="hint">Чай. Пока пусто.</p>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ЭКРАН: PLACES -->
+    <!-- ========================================== -->
+    <div id="screenPlaces" class="screen">
+        <div class="screen-header">
+            <h2>📍 Places</h2>
+        </div>
+        <div class="screen-content">
+            <p class="hint">Места. Пока пусто.</p>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- НИЖНЕЕ МЕНЮ -->
+    <!-- ========================================== -->
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-btn active" data-screen="screenDiscipline" onclick="showScreen('screenDiscipline', this)">
+            <span class="nav-icon">🎯</span>
+            <span class="nav-label">Discipline</span>
+        </button>
+        <button class="nav-btn" data-screen="screenCash" onclick="showScreen('screenCash', this)">
+            <span class="nav-icon">💸</span>
+            <span class="nav-label">Cash</span>
+        </button>
+        <button class="nav-btn" data-screen="screenGym" onclick="showScreen('screenGym', this)">
+            <span class="nav-icon">🏋️</span>
+            <span class="nav-label">Gym</span>
+        </button>
+        <button class="nav-btn" data-screen="screenFood" onclick="showScreen('screenFood', this)">
+            <span class="nav-icon">🍽️</span>
+            <span class="nav-label">Food</span>
+        </button>
+        <button class="nav-btn" onclick="openMoreMenu()">
+            <span class="nav-icon">⋯</span>
+            <span class="nav-label">Ещё</span>
+        </button>
+    </nav>
+
+    <!-- ========================================== -->
+    <!-- ШТОРКА "ЕЩЁ" -->
+    <!-- ========================================== -->
+    <div class="modal-overlay" id="moreModal" onclick="closeMoreMenu(event)">
+        <div class="more-sheet" onclick="event.stopPropagation()">
+            <div class="more-handle"></div>
+            <h3 class="more-title">Все разделы</h3>
+            <div class="more-grid">
+                <button class="more-item" onclick="showScreen('screenFilm'); closeMoreMenu();">
+                    <span class="more-icon">🎬</span>
+                    <span>Film</span>
+                </button>
+                <button class="more-item" onclick="showScreen('screenTea'); closeMoreMenu();">
+                    <span class="more-icon">🍵</span>
+                    <span>Tea</span>
+                </button>
+                <button class="more-item" onclick="showScreen('screenPlaces'); closeMoreMenu();">
+                    <span class="more-icon">📍</span>
+                    <span>Places</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

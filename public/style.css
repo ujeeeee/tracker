@@ -1,0 +1,242 @@
+/* ===== RESET ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background: #0f0e17;
+    color: #fffffe;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 70px;
+}
+
+/* ===== ЭКРАНЫ ===== */
+.screen {
+    display: none;
+    flex-direction: column;
+    min-height: calc(100vh - 70px);
+    padding: 12px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.screen.active {
+    display: flex;
+}
+
+.screen-header {
+    padding: 8px 0 16px;
+    border-bottom: 1px solid #2a2a4a;
+    margin-bottom: 12px;
+}
+
+.screen-header h2 {
+    font-size: 22px;
+    color: #ff8906;
+    font-weight: 700;
+}
+
+.screen-content {
+    flex: 1;
+    padding-bottom: 12px;
+}
+
+.hint {
+    color: #a7a9be;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ===== ТАБЫ (подвкладки) ===== */
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab {
+    background: #1a1a2e;
+    border: 2px solid transparent;
+    color: #a7a9be;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.15s;
+}
+
+.tab:active {
+    transform: scale(0.97);
+}
+
+.tab.active {
+    border-color: #ff8906;
+    color: #ff8906;
+    background: #2a2a4a;
+}
+
+.subtab {
+    display: none;
+}
+
+.subtab.active {
+    display: block;
+}
+
+/* ===== НИЖНЕЕ МЕНЮ ===== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1a1a2e;
+    border-top: 1px solid #2a2a4a;
+    display: flex;
+    justify-content: space-around;
+    padding: 6px 4px 8px;
+    z-index: 90;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: #a7a9be;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: 0.15s;
+    flex: 1;
+    min-width: 0;
+}
+
+.nav-btn:active {
+    background: #2a2a4a;
+    transform: scale(0.95);
+}
+
+.nav-btn.active {
+    color: #ff8906;
+}
+
+.nav-btn.active .nav-icon {
+    transform: scale(1.15);
+}
+
+.nav-icon {
+    font-size: 20px;
+    transition: 0.15s;
+    line-height: 1;
+}
+
+.nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ===== МОДАЛКА / ШТОРКА "ЕЩЁ" ===== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.more-sheet {
+    background: #1a1a2e;
+    border-radius: 20px 20px 0 0;
+    padding: 12px 20px 30px;
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.more-handle {
+    width: 40px;
+    height: 4px;
+    background: #2a2a4a;
+    border-radius: 2px;
+    margin: 0 auto 16px;
+}
+
+.more-title {
+    color: #ff8906;
+    font-size: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.more-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.more-item {
+    background: #0f0e17;
+    border: 1px solid #2a2a4a;
+    color: #fffffe;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 16px 8px;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: 0.15s;
+}
+
+.more-item:active {
+    background: #2a2a4a;
+    transform: scale(0.97);
+}
+
+.more-icon {
+    font-size: 26px;
+    line-height: 1;
+}
+
+/* ===== АДАПТИВ ===== */
+@media (max-height: 700px) {
+    .screen-header h2 { font-size: 19px; }
+    .tab { padding: 6px 12px; font-size: 13px; }
+}
