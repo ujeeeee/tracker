@@ -156,20 +156,25 @@ function goToScreen(index, animate = true) {
 }
 
 let touchStartX = 0, touchStartY = 0, touchMoved = false;
+let touchInNav = false;
 
 document.addEventListener('touchstart', (e) => {
+    // Если свайп начался в нижнем меню — не переключаем страницы
+    touchInNav = !!e.target.closest('.bottom-nav');
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchMoved = false;
 }, { passive: true });
 
 document.addEventListener('touchmove', (e) => {
+    if (touchInNav) return;
     const dx = e.touches[0].clientX - touchStartX;
     const dy = e.touches[0].clientY - touchStartY;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) touchMoved = true;
 }, { passive: true });
 
 document.addEventListener('touchend', (e) => {
+    if (touchInNav) return;
     if (!touchMoved) return;
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;

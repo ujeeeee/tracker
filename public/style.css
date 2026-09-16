@@ -640,9 +640,8 @@ body {
 .week-nav {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     margin-bottom: 14px;
-    gap: 10px;
 }
 .week-nav-btn {
     background: var(--bg-secondary);
@@ -723,15 +722,15 @@ body {
 
 .week-cell {
     aspect-ratio: 1;
-    max-width: 32px;
+    max-width: 22px;
     margin: 0 auto;
-    border-radius: 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: 1px solid transparent;
-    font-size: 13px;
+    font-size: 11px;
     color: transparent;
     cursor: pointer;
     transition: 0.12s;
