@@ -6,7 +6,7 @@ let initData = '';
 let currentUser = null;
 let tg = null;
 
-const TOTAL_MAIN_SCREENS = 7;
+const TOTAL_MAIN_SCREENS = 8; // Home + 7
 let currentScreenIndex = 0;
 
 // ==========================================
@@ -34,7 +34,7 @@ try {
         tg.BackButton.onClick(() => closeSettings());
     }
 } catch (e) {
-    console.log('Not in Telegram — работаем в браузере');
+    console.log('Not in Telegram');
 }
 
 initTheme();
@@ -57,12 +57,8 @@ function applyTheme(scheme) {
     const theme = scheme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     try {
-        if (tg && tg.setHeaderColor) {
-            tg.setHeaderColor(theme === 'light' ? '#f2f2f7' : '#0a0a0c');
-        }
-        if (tg && tg.setBackgroundColor) {
-            tg.setBackgroundColor(theme === 'light' ? '#f2f2f7' : '#0a0a0c');
-        }
+        if (tg && tg.setHeaderColor) tg.setHeaderColor(theme === 'light' ? '#f2f2f7' : '#0a0a0c');
+        if (tg && tg.setBackgroundColor) tg.setBackgroundColor(theme === 'light' ? '#f2f2f7' : '#0a0a0c');
     } catch (e) {}
 }
 
@@ -94,7 +90,10 @@ async function api(path, method = 'GET', body = null) {
     };
     if (body) opts.body = JSON.stringify({ ...body, initData });
     const res = await fetch(path, opts);
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch { throw new Error('Server returned HTML instead of JSON'); }
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
 }
@@ -111,7 +110,7 @@ async function auth() {
         updateSettingsUI();
         return true;
     } catch (e) {
-        console.error('❌ Ошибка авторизации:', e.message);
+        console.error('Auth error:', e.message);
         return false;
     }
 }
@@ -147,17 +146,14 @@ function goToScreen(index, animate = true) {
 
     window.scrollTo(0, 0);
 
-    // Ленивая подгрузка данных
-    if (index === 0) {
+    if (index === 0 && typeof loadHome === 'function') loadHome();
+    if (index === 1) {
         if (typeof loadHabits === 'function') loadHabits();
         if (typeof loadAreas === 'function') loadAreas();
     }
 }
 
-// Свайпы
-let touchStartX = 0;
-let touchStartY = 0;
-let touchMoved = false;
+let touchStartX = 0, touchStartY = 0, touchMoved = false;
 
 document.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
@@ -237,9 +233,117 @@ function showInfo() {
     alert('Tracker v1.0\nТвой личный трекер жизни.\n\nВ разработке 🚧');
 }
 
-function confirmLogout() {
-    if (confirm('Выйти из аккаунта? Данные останутся в базе.')) {
-        alert('Выход пока не реализован');
+// ==========================================
+// ===== HOME / ДАШБОРД =====
+// ==========================================
+async function loadHome() {
+    try {
+        const data = await api('/api/home');
+        renderHome(data);
+    } catch (e) {
+        console.error('loadHome:', e);
+    }
+}
+
+function renderHome(data) {
+    renderGreeting();
+    const widgets = document.getElementById('homeWidgets');
+    if (!widgets) return;
+
+    const habitsToday = data.habits.filter(h => h.doneToday).length;
+    const habitsTotal = data.habits.length;
+
+    let html = '';
+
+    // Статистика
+    if (habitsTotal > 0) {
+        html += `
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-box-value">${habitsToday}/${habitsTotal}</div>
+                    <div class="stat-box-label">Сегодня</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-value">${data.habits.reduce((m, h) => Math.max(m, h.streak), 0)}</div>
+                    <div class="stat-box-label">🔥 Рекорд</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Привычки сегодня
+    html += `<div class="widget">
+        <div class="widget-title">
+            <span>Привычки сегодня</span>
+            ${habitsTotal > 0 ? `<span class="widget-title-count">${habitsToday}/${habitsTotal}</span>` : ''}
+        </div>`;
+
+    if (habitsTotal === 0) {
+        html += `<div class="widget-empty">Пока нет привычек. Добавь в Discipline →</div>`;
+    } else {
+        html += `<div class="habits-today-list">`;
+        data.habits.forEach(h => {
+            html += `
+                <button class="habit-quick ${h.doneToday ? 'done' : ''}" onclick="quickToggleHabit(${h.id})">
+                    <div class="habit-quick-check">✓</div>
+                    <div class="habit-quick-name">${escapeHtml(h.name)}</div>
+                    ${h.streak > 0 ? `<div class="habit-quick-streak">🔥 ${h.streak}</div>` : ''}
+                </button>
+            `;
+        });
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // Прогресс областей
+    const areasWithGoals = data.areas.filter(a => a.total > 0);
+    html += `<div class="widget">
+        <div class="widget-title"><span>Прогресс целей</span></div>`;
+
+    if (areasWithGoals.length === 0) {
+        html += `<div class="widget-empty">Пока нет целей. Добавь в Discipline →</div>`;
+    } else {
+        areasWithGoals.forEach(a => {
+            const pct = a.total > 0 ? (a.done / a.total * 100) : 0;
+            html += `
+                <div class="area-progress-row">
+                    <div class="area-progress-name">${escapeHtml(a.name)}</div>
+                    <div class="area-progress-bar"><div class="area-progress-fill" style="width:${pct}%"></div></div>
+                    <div class="area-progress-count">${a.done}/${a.total}</div>
+                </div>
+            `;
+        });
+    }
+    html += `</div>`;
+
+    widgets.innerHTML = html;
+}
+
+function renderGreeting() {
+    const h = new Date().getHours();
+    let greeting = 'Привет';
+    if (h < 6) greeting = 'Доброй ночи';
+    else if (h < 12) greeting = 'Доброе утро';
+    else if (h < 18) greeting = 'Добрый день';
+    else greeting = 'Добрый вечер';
+
+    const gEl = document.getElementById('homeGreeting');
+    if (gEl) gEl.textContent = `${greeting}, ${tgUser.name}`;
+
+    const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+    const d = new Date();
+    const dEl = document.getElementById('homeDate');
+    if (dEl) dEl.textContent = `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+async function quickToggleHabit(id) {
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+        await api(`/api/disc/habits/${id}/toggle`, 'POST', { date: today });
+        await loadHome();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
     }
 }
 
@@ -277,13 +381,13 @@ function renderHabits() {
         }).join('');
         return `
             <div class="habit-card">
-                <div class="habit-top">
+                <div class="habit-top" onclick="openCalendar(${h.id})" style="cursor:pointer">
                     <div class="habit-name">${escapeHtml(h.name)}</div>
                     ${streak > 0 ? `<div class="habit-streak">🔥 ${streak}</div>` : ''}
-                    <button class="habit-delete" onclick="deleteHabit(${h.id})">✕</button>
+                    <button class="habit-delete" onclick="event.stopPropagation(); deleteHabit(${h.id})">✕</button>
                 </div>
                 <div class="habit-bottom">
-                    <div class="habit-heatmap">${heat}</div>
+                    <div class="habit-heatmap" onclick="openCalendar(${h.id})" style="cursor:pointer">${heat}</div>
                     <button class="habit-toggle ${doneToday ? 'done' : ''}" onclick="toggleHabit(${h.id})">
                         ${doneToday ? '✓' : '○'}
                     </button>
@@ -336,6 +440,104 @@ async function deleteHabit(id) {
     } catch (e) {
         alert('Ошибка: ' + e.message);
     }
+}
+
+// ==========================================
+// ===== КАЛЕНДАРЬ ПРИВЫЧКИ =====
+// ==========================================
+let calState = { habitId: null, habitName: '', year: 0, month: 0, logs: new Set() };
+
+async function openCalendar(habitId) {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const now = new Date();
+    calState.habitId = habitId;
+    calState.habitName = habit.name;
+    calState.year = now.getFullYear();
+    calState.month = now.getMonth() + 1;
+
+    document.getElementById('calTitle').textContent = habit.name;
+    document.getElementById('calendarModal').classList.add('open');
+
+    await loadCalMonth();
+}
+
+async function loadCalMonth() {
+    try {
+        const { logs } = await api(`/api/disc/habits/${calState.habitId}/month?year=${calState.year}&month=${calState.month}`);
+        calState.logs = new Set(logs.filter(l => l.done).map(l => l.date));
+        renderCalendar();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+function renderCalendar() {
+    const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    document.getElementById('calMonth').textContent = `${monthNames[calState.month - 1]} ${calState.year}`;
+
+    const firstDay = new Date(calState.year, calState.month - 1, 1);
+    const lastDay = new Date(calState.year, calState.month, 0).getDate();
+    const startWeekday = (firstDay.getDay() + 6) % 7; // Пн = 0
+
+    const today = new Date().toISOString().slice(0, 10);
+    const grid = document.getElementById('calGrid');
+    let html = '';
+
+    for (let i = 0; i < startWeekday; i++) {
+        html += `<div class="cal-day empty"></div>`;
+    }
+
+    let doneCount = 0;
+    for (let d = 1; d <= lastDay; d++) {
+        const dateStr = `${calState.year}-${String(calState.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isDone = calState.logs.has(dateStr);
+        const isToday = dateStr === today;
+        const isFuture = dateStr > today;
+        if (isDone) doneCount++;
+
+        let cls = 'cal-day';
+        if (isDone) cls += ' done';
+        if (isToday) cls += ' today';
+        if (isFuture) cls += ' future';
+
+        const onclick = isFuture ? '' : `onclick="calToggle('${dateStr}')"`;
+        html += `<div class="${cls}" ${onclick}>${d}</div>`;
+    }
+
+    grid.innerHTML = html;
+    document.getElementById('calStats').textContent = `Выполнено: ${doneCount} / ${lastDay} дней`;
+}
+
+async function calToggle(dateStr) {
+    try {
+        await api(`/api/disc/habits/${calState.habitId}/toggle`, 'POST', { date: dateStr });
+        // Обновляем локально без перезагрузки месяца
+        if (calState.logs.has(dateStr)) calState.logs.delete(dateStr);
+        else calState.logs.add(dateStr);
+        renderCalendar();
+        // Обновим и список привычек под календарём (когда закроют)
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+}
+
+function calPrev() {
+    calState.month--;
+    if (calState.month < 1) { calState.month = 12; calState.year--; }
+    loadCalMonth();
+}
+
+function calNext() {
+    calState.month++;
+    if (calState.month > 12) { calState.month = 1; calState.year++; }
+    loadCalMonth();
+}
+
+async function closeCalendar() {
+    document.getElementById('calendarModal').classList.remove('open');
+    await loadHabits();
 }
 
 // ==========================================
@@ -396,9 +598,7 @@ function renderAreas(orphanGoals = []) {
         `).join('');
         html += `
             <div class="area-card">
-                <div class="area-header">
-                    <div class="area-name">Без области</div>
-                </div>
+                <div class="area-header"><div class="area-name">Без области</div></div>
                 ${goalsHtml}
                 <button class="goal-add-inline" onclick="openAddModal('goal', null)">+ Добавить цель</button>
             </div>
@@ -498,9 +698,6 @@ function escapeHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
-// ==========================================
-// ===== HAPTIC =====
-// ==========================================
 function haptic(type = 'light') {
     try {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type);
@@ -516,7 +713,5 @@ document.addEventListener('click', (e) => {
 (async function start() {
     initScreens();
     const ok = await auth();
-    if (ok) {
-        await Promise.all([loadHabits(), loadAreas()]);
-    }
+    if (ok) await loadHome();
 })();

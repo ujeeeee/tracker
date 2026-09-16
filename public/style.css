@@ -655,3 +655,317 @@ body {
     .nav-label { font-size: 9px; }
     .bottom-nav { bottom: 8px; left: 8px; right: 8px; }
 }
+
+/* ==========================================
+   HOME / ДАШБОРД
+   ========================================== */
+.home-greeting {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+}
+.home-date {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.widget {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.widget-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 14px;
+}
+
+.widget-title-count {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.widget-empty {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    padding: 8px 0;
+}
+
+/* Виджет привычек */
+.habits-today-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.habit-quick {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.15s ease;
+    font-family: inherit;
+    width: 100%;
+    text-align: left;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.habit-quick:active {
+    transform: scale(0.98);
+}
+
+.habit-quick.done {
+    background: rgba(50, 215, 75, 0.1);
+    border-color: rgba(50, 215, 75, 0.3);
+}
+
+.habit-quick-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    border: 2px solid var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: transparent;
+    flex-shrink: 0;
+    transition: 0.15s ease;
+}
+
+.habit-quick.done .habit-quick-check {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+
+.habit-quick-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.habit-quick-streak {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Виджет прогресса областей */
+.area-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.area-progress-name {
+    font-size: 14px;
+    color: var(--text);
+    min-width: 100px;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.area-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.area-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #5e5ce6);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.area-progress-count {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Стат-строка */
+.stats-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.stat-box {
+    flex: 1;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.stat-box-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-box-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 600;
+}
+
+/* ==========================================
+   КАЛЕНДАРЬ ПРИВЫЧКИ
+   ========================================== */
+.cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+.cal-month {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.cal-nav {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cal-nav:active {
+    transform: scale(0.9);
+}
+
+.cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+    padding: 0 2px;
+}
+
+.cal-weekdays div {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 18px;
+}
+
+.cal-day {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: 0.15s ease;
+    font-family: inherit;
+    position: relative;
+}
+
+.cal-day.empty {
+    cursor: default;
+    visibility: hidden;
+}
+
+.cal-day:not(.empty):active {
+    transform: scale(0.9);
+}
+
+.cal-day.done {
+    background: var(--success);
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(50, 215, 75, 0.3);
+}
+
+.cal-day.today {
+    border-color: var(--accent);
+    border-width: 2px;
+}
+
+.cal-day.future {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.cal-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cal-stat {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.cal-footer .modal-btn {
+    flex: 0 0 auto;
+    padding: 12px 24px;
+}

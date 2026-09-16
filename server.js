@@ -213,6 +213,137 @@ app.post('/api/disc/habits/:id/toggle', authMiddleware, async (req, res) => {
 });
 
 // ==========================================
+// ===== DISCIPLINE: КАЛЕНДАРЬ ПРИВЫЧКИ =====
+// ==========================================
+app.get('/api/disc/habits/:id/month', authMiddleware, async (req, res) => {
+    const { year, month } = req.query;
+    if (!year || !month) return res.status(400).json({ error: 'year & month required' });
+
+    const y = parseInt(year);
+    const m = parseInt(month);
+    const start = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const { data: logs, error } = await supabase
+        .from('disc_habit_logs')
+        .select('date, done')
+        .eq('habit_id', req.params.id)
+        .eq('tg_id', req.tg_id)
+        .gte('date', start)
+        .lte('date', end);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ logs: logs || [] });
+});
+
+// ==========================================
+// ===== DISCIPLINE: КАЛЕНДАРЬ ПРИВЫЧКИ =====
+// ==========================================
+app.get('/api/disc/habits/:id/month', authMiddleware, async (req, res) => {
+    const { year, month } = req.query;
+    if (!year || !month) return res.status(400).json({ error: 'year & month required' });
+
+    const y = parseInt(year);
+    const m = parseInt(month); // 1-12
+    const start = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const { data: logs, error } = await supabase
+        .from('disc_habit_logs')
+        .select('date, done')
+        .eq('habit_id', req.params.id)
+        .eq('tg_id', req.tg_id)
+        .gte('date', start)
+        .lte('date', end);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ logs: logs || [] });
+});
+
+// ==========================================
+// ===== HOME: ДАШБОРД =====
+// ==========================================
+app.get('/api/home', authMiddleware, async (req, res) => {
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+
+        const { data: habits } = await supabase
+            .from('disc_habits')
+            .select('*')
+            .eq('tg_id', req.tg_id)
+            .eq('archived', false)
+            .order('created_at', { ascending: true });
+
+        const since = new Date();
+        since.setDate(since.getDate() - 60);
+
+        const { data: logs } = await supabase
+            .from('disc_habit_logs')
+            .select('habit_id, date, done')
+            .eq('tg_id', req.tg_id)
+            .gte('date', since.toISOString().slice(0, 10));
+
+        const logsMap = {};
+        (logs || []).forEach(l => {
+            if (!logsMap[l.habit_id]) logsMap[l.habit_id] = [];
+            logsMap[l.habit_id].push(l);
+        });
+
+        const habitsWithLogs = (habits || []).map(h => ({
+            id: h.id,
+            name: h.name,
+            doneToday: (logsMap[h.id] || []).some(l => l.date === today && l.done),
+            streak: calcStreak(logsMap[h.id] || []),
+        }));
+
+        // Цели по областям
+        const { data: areas } = await supabase
+            .from('disc_areas')
+            .select('*')
+            .eq('tg_id', req.tg_id)
+            .order('sort_order', { ascending: true });
+
+        const { data: goals } = await supabase
+            .from('disc_goals')
+            .select('id, area_id, status')
+            .eq('tg_id', req.tg_id);
+
+        const areasStats = (areas || []).map(a => {
+            const gs = (goals || []).filter(g => g.area_id === a.id);
+            return {
+                id: a.id,
+                name: a.name,
+                total: gs.length,
+                done: gs.filter(g => g.status === 'done').length,
+            };
+        });
+
+        res.json({
+            today,
+            habits: habitsWithLogs,
+            areas: areasStats,
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+function calcStreak(logs) {
+    const done = new Set(logs.filter(l => l.done).map(l => l.date));
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+        const key = d.toISOString().slice(0, 10);
+        if (done.has(key)) { streak++; d.setDate(d.getDate() - 1); }
+        else break;
+    }
+    return streak;
+}
+
+
+// ==========================================
 // ===== DISCIPLINE: ЦЕЛИ =====
 // ==========================================
 app.get('/api/disc/areas', authMiddleware, async (req, res) => {
