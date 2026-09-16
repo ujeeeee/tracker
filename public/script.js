@@ -99,32 +99,9 @@ function goToScreen(index, animate = true) {
     if (index === 0) loadHome();
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadMonthChart(); }
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
-    if (index === 3) { loadMetrics(); loadPrograms(); }
+    if (index === 3) { loadPrograms(); loadMetrics(); }
+    if (index === 5) { loadFilm(); }
 }
-
-// Свайп
-let touchStartX = 0, touchStartY = 0, touchMoved = false, touchInNav = false;
-document.addEventListener('touchstart', (e) => {
-    touchInNav = !!e.target.closest('.bottom-nav') || !!e.target.closest('.week-grid-table') || !!e.target.closest('.tabs');
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchMoved = false;
-}, { passive: true });
-document.addEventListener('touchmove', (e) => {
-    if (touchInNav) return;
-    const dx = e.touches[0].clientX - touchStartX;
-    const dy = e.touches[0].clientY - touchStartY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) touchMoved = true;
-}, { passive: true });
-document.addEventListener('touchend', (e) => {
-    if (touchInNav || !touchMoved) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = e.changedTouches[0].clientY - touchStartY;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
-        if (dx < 0) goToScreen(currentScreenIndex + 1);
-        else goToScreen(currentScreenIndex - 1);
-    }
-}, { passive: true });
 
 // ===== SUBTABS =====
 function switchSubTab(parent, tab, btn) {
@@ -1225,6 +1202,215 @@ async function deleteCurrentLog() {
     await loadMetrics();
 }
 
+// ==========================================
+// ===== FILM =====
+// ==========================================
+let filmGenres = [];
+let filmOrphans = [];
+let filmCtx = { genreId: null, priority: null, currentMovieId: null, status: 'want' };
+let filmRandomMovie = null;
+
+async function loadFilm() {
+    try {
+        const { genres, orphans } = await api('/api/film');
+        filmGenres = genres;
+        filmOrphans = orphans;
+        renderFilmGenres();
+        renderFilmWatched();
+    } catch (e) { console.error(e); }
+}
+
+function renderFilmGenres() {
+    const c = document.getElementById('filmGenres');
+    if (!c) return;
+
+    const allGenres = [...filmGenres];
+    if (filmOrphans.length > 0) {
+        allGenres.push({ id: null, name: 'Без жанра', movies: filmOrphans });
+    }
+
+    if (!allGenres.length) {
+        c.innerHTML = `<div class="empty-state">Нет фильмов. Нажми +</div>`;
+        return;
+    }
+
+    c.innerHTML = allGenres.map(g => {
+        const movies = (g.movies || []).filter(m => m.status !== 'watched');
+        return `<div class="film-genre-card">
+            <div class="film-genre-header">
+                <div class="film-genre-name">${escapeHtml(g.name)}</div>
+                <div class="film-genre-count">${movies.length}</div>
+                ${g.id ? `<button class="btn-icon-add" onclick="openFilmModal(${g.id})">+</button>` : ''}
+                ${g.id ? `<button class="area-delete" onclick="deleteFilmGenre(${g.id})">🗑</button>` : ''}
+            </div>
+            ${movies.length === 0 ? `<div class="widget-empty">Пусто</div>`
+                : movies.map(m => filmItemHTML(m)).join('')}
+        </div>`;
+    }).join('');
+}
+
+function filmItemHTML(m) {
+    const p = m.priority || 0;
+    const priorityClass = p >= 5 ? 'p5' : p >= 4 ? 'p4' : p >= 3 ? 'p3' : '';
+    const statusLabels = { want: 'Хочу', watching: 'Смотрю', watched: 'Видел' };
+    return `<div class="film-item" onclick="openFilmCard(${m.id})">
+        ${p ? `<div class="film-priority ${priorityClass}">${p}</div>` : ''}
+        <div class="film-info">
+            <div class="film-title">${escapeHtml(m.title)}</div>
+            <div class="film-sub">${m.year ? m.year : ''}${m.review ? ' · ' + escapeHtml(m.review.slice(0, 40)) : ''}</div>
+        </div>
+        ${m.rating ? `<div class="film-rating">★ ${m.rating}</div>` : ''}
+        <div class="film-status-badge ${m.status}">${statusLabels[m.status] || ''}</div>
+    </div>`;
+}
+
+function renderFilmWatched() {
+    const c = document.getElementById('filmWatched');
+    if (!c) return;
+
+    const allMovies = [];
+    filmGenres.forEach(g => (g.movies || []).forEach(m => { if (m.status === 'watched') allMovies.push(m); }));
+    filmOrphans.forEach(m => { if (m.status === 'watched') allMovies.push(m); });
+
+    if (!allMovies.length) {
+        c.innerHTML = `<div class="empty-state">Пока ничего не посмотрел</div>`;
+        return;
+    }
+
+    allMovies.sort((a,b) => (b.rating || 0) - (a.rating || 0));
+    c.innerHTML = allMovies.map(m => filmItemHTML(m)).join('');
+}
+
+// Жанр
+function openFilmGenreModal() {
+    document.getElementById('filmGenreName').value = '';
+    document.getElementById('filmGenreModal').classList.add('open');
+    setTimeout(() => document.getElementById('filmGenreName').focus(), 200);
+}
+function closeFilmGenreModal() { document.getElementById('filmGenreModal').classList.remove('open'); }
+async function saveFilmGenre() {
+    const name = document.getElementById('filmGenreName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        await api('/api/film/genres', 'POST', { name });
+        closeFilmGenreModal();
+        await loadFilm();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteFilmGenre(id) {
+    if (!confirm('Удалить жанр? Фильмы останутся без жанра.')) return;
+    await api(`/api/film/genres/${id}`, 'DELETE');
+    await loadFilm();
+}
+
+// Фильм
+function openFilmModal(genreId = null) {
+    filmCtx = { genreId, priority: null, currentMovieId: null, status: 'want' };
+    document.getElementById('filmModalTitle').textContent = 'Новый фильм';
+    document.getElementById('filmTitle').value = '';
+    document.getElementById('filmYear').value = '';
+    document.getElementById('filmUrl').value = '';
+    document.querySelectorAll('#filmPriority button').forEach(b => b.classList.remove('active'));
+
+    const sel = document.getElementById('filmGenreSelect');
+    sel.innerHTML = `<option value="">Без жанра</option>` +
+        filmGenres.map(g => `<option value="${g.id}" ${g.id === genreId ? 'selected' : ''}>${escapeHtml(g.name)}</option>`).join('');
+
+    document.getElementById('filmModal').classList.add('open');
+    setTimeout(() => document.getElementById('filmTitle').focus(), 200);
+}
+function closeFilmModal() { document.getElementById('filmModal').classList.remove('open'); }
+function pickPriority(p, btn) {
+    filmCtx.priority = p;
+    document.querySelectorAll('#filmPriority button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+async function saveFilm() {
+    const title = document.getElementById('filmTitle').value.trim();
+    if (!title) return alert('Введи название');
+    const genreVal = document.getElementById('filmGenreSelect').value;
+    try {
+        await api('/api/film/movies', 'POST', {
+            title,
+            year: document.getElementById('filmYear').value || null,
+            genre_id: genreVal ? parseInt(genreVal) : null,
+            priority: filmCtx.priority,
+            url: document.getElementById('filmUrl').value || null,
+        });
+        closeFilmModal();
+        await loadFilm();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// Карточка фильма
+async function openFilmCard(movieId) {
+    // Найдём фильм в локальных данных
+    let movie = null;
+    for (const g of filmGenres) {
+        const found = (g.movies || []).find(m => m.id === movieId);
+        if (found) { movie = found; break; }
+    }
+    if (!movie) movie = filmOrphans.find(m => m.id === movieId);
+    if (!movie) return;
+
+    filmCtx.currentMovieId = movieId;
+    filmCtx.status = movie.status || 'want';
+
+    document.getElementById('filmCardTitle').textContent = movie.title;
+    document.getElementById('filmCardMeta').textContent =
+        [movie.year, movie.priority ? `Приоритет ${movie.priority}` : null].filter(Boolean).join(' · ') || '—';
+
+    document.querySelectorAll('#filmStatusTabs [data-st]').forEach(b =>
+        b.classList.toggle('active', b.dataset.st === filmCtx.status));
+
+    document.getElementById('filmRating').value = movie.rating || '';
+    document.getElementById('filmReview').value = movie.review || '';
+
+    document.getElementById('filmCardModal').classList.add('open');
+}
+function closeFilmCardModal() { document.getElementById('filmCardModal').classList.remove('open'); }
+function pickFilmStatus(st, btn) {
+    filmCtx.status = st;
+    document.querySelectorAll('#filmStatusTabs [data-st]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+async function saveFilmCard() {
+    try {
+        await api(`/api/film/movies/${filmCtx.currentMovieId}`, 'PATCH', {
+            status: filmCtx.status,
+            rating: document.getElementById('filmRating').value || null,
+            review: document.getElementById('filmReview').value || null,
+        });
+        closeFilmCardModal();
+        await loadFilm();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteCurrentFilm() {
+    if (!confirm('Удалить фильм?')) return;
+    await api(`/api/film/movies/${filmCtx.currentMovieId}`, 'DELETE');
+    closeFilmCardModal();
+    await loadFilm();
+}
+
+// Рандом
+async function randomMovie() {
+    try {
+        const { movie } = await api('/api/film/random');
+        const box = document.getElementById('randomFilmBox');
+        if (!movie) {
+            box.innerHTML = `<div class="film-meta-random">Пусто — добавь фильмы со статусом «Хочу»</div>`;
+        } else {
+            filmRandomMovie = movie;
+            box.innerHTML = `
+                <div class="film-title-random">${escapeHtml(movie.title)}</div>
+                <div class="film-meta-random">${movie.year || ''}</div>
+            `;
+        }
+        document.getElementById('randomFilmModal').classList.add('open');
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+function closeRandomFilm() { document.getElementById('randomFilmModal').classList.remove('open'); }
+
 // ===== СТАРТ =====
 (async function start() {
     goToScreen(0, false);
@@ -1232,6 +1418,6 @@ async function deleteCurrentLog() {
     if (ok) {
         await Promise.all([loadHome(), loadHabits(), loadWeek(), loadMonthChart(), loadAreas(),
                            loadBudget(), loadWishlist(), loadPiggy(),
-                           loadMetrics(), loadPrograms()]);
+                           loadMetrics(), loadPrograms(), loadFilm()]);
     }
 })();

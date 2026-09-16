@@ -182,8 +182,29 @@
         <!-- FILM -->
         <div class="screen" data-screen-name="Film">
             <div class="screen-inner">
-                <div class="screen-header"><h2>🎬 Film</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
-                <div class="screen-content"><p class="hint">Скоро.</p></div>
+                <div class="screen-header">
+                    <h2>🎬 Film</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('film', 'list', this)">Список</button>
+                    <button class="tab" onclick="switchSubTab('film', 'watched', this)">Просмотрено</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="film-list" class="subtab active">
+                        <div class="film-actions">
+                            <button class="film-random-btn" onclick="randomMovie()">🎲 Что посмотреть?</button>
+                            <button class="btn-icon-add" onclick="openFilmGenreModal()">+</button>
+                        </div>
+                        <div id="filmGenres"></div>
+                    </div>
+
+                    <div id="film-watched" class="subtab">
+                        <div id="filmWatched"></div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -559,6 +580,94 @@
         <div class="modal-actions">
             <button class="modal-btn secondary" onclick="closeNewSetModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveNewSet()">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: НОВЫЙ ЖАНР -->
+<div class="modal-overlay" id="filmGenreModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Новый жанр</h3>
+        <input type="text" class="modal-input" id="filmGenreName" placeholder="Например: Комедии" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeFilmGenreModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveFilmGenre()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: НОВЫЙ ФИЛЬМ -->
+<div class="modal-overlay" id="filmModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="filmModalTitle">Новый фильм</h3>
+
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="filmTitle" placeholder="Например: Криминальное чтиво" />
+
+        <div class="field-label">Год</div>
+        <input type="number" class="modal-input" id="filmYear" placeholder="1994" />
+
+        <div class="field-label">Жанр</div>
+        <select class="modal-input modal-select" id="filmGenreSelect"></select>
+
+        <div class="field-label">Приоритет (1-5)</div>
+        <div class="priority-picker" id="filmPriority">
+            <button data-p="1" onclick="pickPriority(1,this)">1</button>
+            <button data-p="2" onclick="pickPriority(2,this)">2</button>
+            <button data-p="3" onclick="pickPriority(3,this)">3</button>
+            <button data-p="4" onclick="pickPriority(4,this)">4</button>
+            <button data-p="5" onclick="pickPriority(5,this)">5</button>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Ссылка (Кинопоиск, IMDb)</div>
+        <input type="text" class="modal-input" id="filmUrl" placeholder="https://..." />
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" onclick="closeFilmModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveFilm()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: КАРТОЧКА ФИЛЬМА -->
+<div class="modal-overlay" id="filmCardModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="filmCardTitle">Фильм</h3>
+
+        <div class="film-card-meta" id="filmCardMeta"></div>
+
+        <div class="field-label">Статус</div>
+        <div class="freq-tabs" id="filmStatusTabs">
+            <button class="freq-tab" data-st="want" onclick="pickFilmStatus('want', this)">Хочу</button>
+            <button class="freq-tab" data-st="watching" onclick="pickFilmStatus('watching', this)">Смотрю</button>
+            <button class="freq-tab" data-st="watched" onclick="pickFilmStatus('watched', this)">Посмотрел</button>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Оценка (1-10)</div>
+        <input type="number" class="modal-input" id="filmRating" min="1" max="10" placeholder="Необязательно" />
+
+        <div class="field-label">Отзыв</div>
+        <input type="text" class="modal-input" id="filmReview" placeholder="Коротко о впечатлении..." />
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" style="color:var(--danger);" onclick="deleteCurrentFilm()">Удалить</button>
+            <button class="modal-btn primary" onclick="saveFilmCard()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: РАНДОМ -->
+<div class="modal-overlay" id="randomFilmModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">🎬 Что посмотреть?</h3>
+        <div class="random-film-box" id="randomFilmBox"></div>
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" onclick="randomMovie()">Ещё раз</button>
+            <button class="modal-btn primary" onclick="closeRandomFilm()">Ок</button>
         </div>
     </div>
 </div>

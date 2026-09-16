@@ -701,7 +701,85 @@ app.delete('/api/gym/sets/:id', authMiddleware, async (req, res) => {
     res.json({ ok: true });
 });
 
+// ==========================================
+// ===== FILM =====
+// ==========================================
+app.get('/api/film', authMiddleware, async (req, res) => {
+    const { data: genres } = await supabase.from('film_genres').select('*')
+        .eq('tg_id', req.tg_id).order('created_at');
 
+    const { data: movies } = await supabase.from('film_movies').select('*')
+        .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
+
+    const result = (genres || []).map(g => ({
+        ...g,
+        movies: (movies || []).filter(m => m.genre_id === g.id),
+    }));
+
+    const orphans = (movies || []).filter(m => !m.genre_id);
+    res.json({ genres: result, orphans });
+});
+
+app.post('/api/film/genres', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase.from('film_genres').insert({
+        tg_id: req.tg_id, name: name.trim(),
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ genre: { ...data, movies: [] } });
+});
+
+app.delete('/api/film/genres/:id', authMiddleware, async (req, res) => {
+    await supabase.from('film_movies').update({ genre_id: null }).eq('genre_id', req.params.id).eq('tg_id', req.tg_id);
+    await supabase.from('film_genres').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+app.post('/api/film/movies', authMiddleware, async (req, res) => {
+    const { title, year, genre_id, status, priority, url } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
+    const { data, error } = await supabase.from('film_movies').insert({
+        tg_id: req.tg_id,
+        title: title.trim(),
+        year: year ? parseInt(year) : null,
+        genre_id: genre_id || null,
+        status: status || 'want',
+        priority: priority ? parseInt(priority) : null,
+        url: url || null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ movie: data });
+});
+
+app.patch('/api/film/movies/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    ['title','year','status','priority','rating','review','url','genre_id'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    if (req.body.status === 'watched' && !req.body.watched_at) {
+        updates.watched_at = new Date().toISOString().slice(0,10);
+    }
+    const { data, error } = await supabase.from('film_movies').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ movie: data });
+});
+
+app.delete('/api/film/movies/:id', authMiddleware, async (req, res) => {
+    await supabase.from('film_movies').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+app.get('/api/film/random', authMiddleware, async (req, res) => {
+    const { data } = await supabase.from('film_movies').select('*')
+        .eq('tg_id', req.tg_id).eq('status', 'want');
+    if (!data?.length) return res.json({ movie: null });
+    const sorted = data.sort((a,b) => (b.priority || 0) - (a.priority || 0));
+    const pool = sorted.filter(m => m.priority === (sorted[0].priority || 0));
+    const movie = pool[Math.floor(Math.random() * pool.length)];
+    res.json({ movie });
+});
 
 // ==========================================
 // ===== ЗАПУСК =====
