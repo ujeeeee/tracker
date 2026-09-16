@@ -35,19 +35,16 @@ function verifyInitData(initData) {
 
         params.delete('hash');
 
-        // Сортируем ключи и собираем строку для проверки
         const dataCheckString = [...params.entries()]
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([k, v]) => `${k}=${v}`)
             .join('\n');
 
-        // Секретный ключ = HMAC_SHA256("WebAppData", bot_token)
         const secretKey = crypto
             .createHmac('sha256', 'WebAppData')
             .update(BOT_TOKEN)
             .digest();
 
-        // Проверочный hash
         const calculatedHash = crypto
             .createHmac('sha256', secretKey)
             .update(dataCheckString)
@@ -55,7 +52,6 @@ function verifyInitData(initData) {
 
         if (calculatedHash !== hash) return null;
 
-        // Возвращаем user
         const userRaw = params.get('user');
         if (!userRaw) return null;
         return JSON.parse(userRaw);
@@ -69,20 +65,24 @@ function verifyInitData(initData) {
 // ===== MIDDLEWARE =====
 // ==========================================
 async function authMiddleware(req, res, next) {
-    // initData можно передавать в header или в body
     const initData = req.headers['x-init-data'] || req.body?.initData;
 
-    // DEV-режим: если нет initData и мы не в продакшене — используем фейкового юзера
+    // DEV-режим: если нет initData и мы не в продакшене
     if (!initData && process.env.NODE_ENV !== 'production') {
         req.user = { id: 999999999, first_name: 'Dev', username: 'dev_user' };
         req.tg_id = 999999999;
         return next();
     }
 
+    console.log('📨 initData получен, длина:', initData?.length || 0);
+
     const user = verifyInitData(initData);
     if (!user) {
+        console.log('❌ initData не прошёл проверку');
         return res.status(401).json({ error: 'Invalid initData' });
     }
+
+    console.log('✅ initData валиден, user.id =', user.id);
 
     req.user = user;
     req.tg_id = user.id;
@@ -97,21 +97,43 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==========================================
+// ===== DEBUG =====
+// ==========================================
+app.get('/api/debug', async (req, res) => {
+    const { data, error } = await supabase.from('users').select('*').limit(5);
+    res.json({
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasKey: !!process.env.SUPABASE_SECRET_KEY,
+        hasBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
+        botTokenLength: process.env.TELEGRAM_BOT_TOKEN?.length || 0,
+        nodeEnv: process.env.NODE_ENV,
+        usersCount: data?.length ?? null,
+        users: data ?? null,
+        error: error?.message ?? null,
+    });
+});
+
+// ==========================================
 // ===== AUTH =====
 // ==========================================
 app.post('/api/auth', authMiddleware, async (req, res) => {
     const u = req.user;
+    console.log('🔐 AUTH для user:', u.id, u.first_name);
 
-    // Проверяем, есть ли юзер в базе
-    const { data: existing } = await supabase
+    const { data: existing, error: findErr } = await supabase
         .from('users')
         .select('id')
         .eq('id', u.id)
         .maybeSingle();
 
+    if (findErr) {
+        console.error('❌ Ошибка поиска:', findErr.message);
+        return res.status(500).json({ error: 'DB find error: ' + findErr.message });
+    }
+
     if (existing) {
-        // Обновляем данные (могли поменяться username, first_name, аватарка)
-        await supabase
+        // Обновляем
+        const { error: updErr } = await supabase
             .from('users')
             .update({
                 username: u.username || null,
@@ -122,9 +144,15 @@ app.post('/api/auth', authMiddleware, async (req, res) => {
                 updated_at: new Date().toISOString(),
             })
             .eq('id', u.id);
+
+        if (updErr) {
+            console.error('❌ Ошибка обновления:', updErr.message);
+            return res.status(500).json({ error: 'DB update error: ' + updErr.message });
+        }
+        console.log('✅ Юзер обновлён:', u.id);
     } else {
-        // Создаём нового юзера
-        await supabase
+        // Вставляем
+        const { error: insErr } = await supabase
             .from('users')
             .insert({
                 id: u.id,
@@ -134,6 +162,12 @@ app.post('/api/auth', authMiddleware, async (req, res) => {
                 photo_url: u.photo_url || null,
                 language_code: u.language_code || null,
             });
+
+        if (insErr) {
+            console.error('❌ Ошибка вставки:', insErr.message);
+            return res.status(500).json({ error: 'DB insert error: ' + insErr.message });
+        }
+        console.log('✅ Юзер создан:', u.id);
     }
 
     res.json({
@@ -167,4 +201,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 // ==========================================
 app.listen(PORT, () => {
     console.log(`🚀 Tracker запущен: http://localhost:${PORT}`);
+    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`BOT_TOKEN: ${BOT_TOKEN ? 'есть' : 'НЕТ!'}`);
+    console.log(`SUPABASE_URL: ${process.env.SUPABASE_URL ? 'есть' : 'НЕТ!'}`);
 });
