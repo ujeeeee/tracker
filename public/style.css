@@ -1155,3 +1155,8 @@ body {
 .random-film-box .film-meta-random {
     font-size: 13px; color: var(--text-tertiary);
 }
+
+.film-random-btn {
+    padding: 12px 10px;
+    font-size: 13px;
+}

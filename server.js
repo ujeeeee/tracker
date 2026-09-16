@@ -771,14 +771,36 @@ app.delete('/api/film/movies/:id', authMiddleware, async (req, res) => {
     res.json({ ok: true });
 });
 
+app.patch('/api/film/genres/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    if (req.body.name !== undefined) updates.name = req.body.name.trim();
+    const { data, error } = await supabase.from('film_genres').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ genre: data });
+});
+
 app.get('/api/film/random', authMiddleware, async (req, res) => {
+    const type = req.query.type === 'rewatch' ? 'watched' : 'want';
+
     const { data } = await supabase.from('film_movies').select('*')
-        .eq('tg_id', req.tg_id).eq('status', 'want');
-    if (!data?.length) return res.json({ movie: null });
-    const sorted = data.sort((a,b) => (b.priority || 0) - (a.priority || 0));
-    const pool = sorted.filter(m => m.priority === (sorted[0].priority || 0));
-    const movie = pool[Math.floor(Math.random() * pool.length)];
-    res.json({ movie });
+        .eq('tg_id', req.tg_id).eq('status', type);
+
+    if (!data?.length) return res.json({ movie: null, type });
+
+    // Для "хочу" — приоритет имеет значение. Для "пересмотреть" — по оценке
+    let sorted;
+    if (type === 'want') {
+        sorted = data.sort((a,b) => (b.priority || 0) - (a.priority || 0));
+        const top = sorted[0].priority || 0;
+        const pool = sorted.filter(m => (m.priority || 0) === top);
+        return res.json({ movie: pool[Math.floor(Math.random() * pool.length)], type });
+    } else {
+        sorted = data.sort((a,b) => (b.rating || 0) - (a.rating || 0));
+        const top = sorted[0].rating || 0;
+        const pool = sorted.filter(m => (m.rating || 0) === top);
+        return res.json({ movie: pool[Math.floor(Math.random() * pool.length)], type });
+    }
 });
 
 // ==========================================

@@ -194,7 +194,11 @@
 
                     <div id="film-list" class="subtab active">
                         <div class="film-actions">
-                            <button class="film-random-btn" onclick="randomMovie()">🎲 Что посмотреть?</button>
+                            <div class="film-actions">
+                                <button class="film-random-btn" onclick="randomMovie('want')">🎲 Что посмотреть?</button>
+                                <button class="film-random-btn" onclick="randomMovie('rewatch')">🔁 Пересмотреть</button>
+                                <button class="btn-icon-add" onclick="openFilmGenreModal()">+</button>
+                            </div>
                             <button class="btn-icon-add" onclick="openFilmGenreModal()">+</button>
                         </div>
                         <div id="filmGenres"></div>
@@ -637,9 +641,22 @@
         <div class="modal-handle"></div>
         <h3 class="modal-title" id="filmCardTitle">Фильм</h3>
 
-        <div class="film-card-meta" id="filmCardMeta"></div>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="filmCardName" />
 
-        <div class="field-label">Статус</div>
+        <div class="field-label">Год</div>
+        <input type="number" class="modal-input" id="filmCardYear" placeholder="Необязательно" />
+
+        <div class="field-label">Приоритет (1-5)</div>
+        <div class="priority-picker" id="filmCardPriority">
+            <button data-p="1" onclick="pickCardPriority(1,this)">1</button>
+            <button data-p="2" onclick="pickCardPriority(2,this)">2</button>
+            <button data-p="3" onclick="pickCardPriority(3,this)">3</button>
+            <button data-p="4" onclick="pickCardPriority(4,this)">4</button>
+            <button data-p="5" onclick="pickCardPriority(5,this)">5</button>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Статус</div>
         <div class="freq-tabs" id="filmStatusTabs">
             <button class="freq-tab" data-st="want" onclick="pickFilmStatus('want', this)">Хочу</button>
             <button class="freq-tab" data-st="watching" onclick="pickFilmStatus('watching', this)">Смотрю</button>
@@ -663,11 +680,23 @@
 <div class="modal-overlay" id="randomFilmModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">🎬 Что посмотреть?</h3>
+        <h3 class="modal-title" id="randomFilmTitle">🎬 Что посмотреть?</h3>
         <div class="random-film-box" id="randomFilmBox"></div>
         <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" onclick="randomMovie()">Ещё раз</button>
+            <button class="modal-btn secondary" onclick="randomAgain()">Ещё раз</button>
             <button class="modal-btn primary" onclick="closeRandomFilm()">Ок</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="filmGenreEditModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title">Изменить жанр</h3>
+        <input type="text" class="modal-input" id="filmGenreEditName" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeFilmGenreEdit()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveFilmGenreEdit()">Сохранить</button>
         </div>
     </div>
 </div>

@@ -1205,10 +1205,14 @@ async function deleteCurrentLog() {
 // ==========================================
 // ===== FILM =====
 // ==========================================
+// ==========================================
+// ===== FILM =====
+// ==========================================
 let filmGenres = [];
 let filmOrphans = [];
-let filmCtx = { genreId: null, priority: null, currentMovieId: null, status: 'want' };
-let filmRandomMovie = null;
+let filmCtx = { genreId: null, priority: null, currentMovieId: null, status: 'want', cardPriority: null };
+let filmGenreEditCtx = { id: null };
+let filmRandomType = 'want';
 
 async function loadFilm() {
     try {
@@ -1238,7 +1242,7 @@ function renderFilmGenres() {
         const movies = (g.movies || []).filter(m => m.status !== 'watched');
         return `<div class="film-genre-card">
             <div class="film-genre-header">
-                <div class="film-genre-name">${escapeHtml(g.name)}</div>
+                <div class="film-genre-name" ${g.id ? `onclick="openFilmGenreEdit(${g.id})" style="cursor:pointer;"` : ''}>${escapeHtml(g.name)}</div>
                 <div class="film-genre-count">${movies.length}</div>
                 ${g.id ? `<button class="btn-icon-add" onclick="openFilmModal(${g.id})">+</button>` : ''}
                 ${g.id ? `<button class="area-delete" onclick="deleteFilmGenre(${g.id})">🗑</button>` : ''}
@@ -1281,7 +1285,27 @@ function renderFilmWatched() {
     c.innerHTML = allMovies.map(m => filmItemHTML(m)).join('');
 }
 
-// Жанр
+// Редактирование жанра
+function openFilmGenreEdit(id) {
+    const genre = filmGenres.find(g => g.id === id);
+    if (!genre) return;
+    filmGenreEditCtx.id = id;
+    document.getElementById('filmGenreEditName').value = genre.name;
+    document.getElementById('filmGenreEditModal').classList.add('open');
+    setTimeout(() => document.getElementById('filmGenreEditName').focus(), 200);
+}
+function closeFilmGenreEdit() { document.getElementById('filmGenreEditModal').classList.remove('open'); }
+async function saveFilmGenreEdit() {
+    const name = document.getElementById('filmGenreEditName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        await api(`/api/film/genres/${filmGenreEditCtx.id}`, 'PATCH', { name });
+        closeFilmGenreEdit();
+        await loadFilm();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// Создание жанра
 function openFilmGenreModal() {
     document.getElementById('filmGenreName').value = '';
     document.getElementById('filmGenreModal').classList.add('open');
@@ -1303,9 +1327,9 @@ async function deleteFilmGenre(id) {
     await loadFilm();
 }
 
-// Фильм
+// Фильм — создание
 function openFilmModal(genreId = null) {
-    filmCtx = { genreId, priority: null, currentMovieId: null, status: 'want' };
+    filmCtx = { genreId, priority: null, currentMovieId: null, status: 'want', cardPriority: null };
     document.getElementById('filmModalTitle').textContent = 'Новый фильм';
     document.getElementById('filmTitle').value = '';
     document.getElementById('filmYear').value = '';
@@ -1342,9 +1366,8 @@ async function saveFilm() {
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-// Карточка фильма
+// Карточка фильма — редактирование
 async function openFilmCard(movieId) {
-    // Найдём фильм в локальных данных
     let movie = null;
     for (const g of filmGenres) {
         const found = (g.movies || []).find(m => m.id === movieId);
@@ -1355,11 +1378,15 @@ async function openFilmCard(movieId) {
 
     filmCtx.currentMovieId = movieId;
     filmCtx.status = movie.status || 'want';
+    filmCtx.cardPriority = movie.priority || null;
 
     document.getElementById('filmCardTitle').textContent = movie.title;
-    document.getElementById('filmCardMeta').textContent =
-        [movie.year, movie.priority ? `Приоритет ${movie.priority}` : null].filter(Boolean).join(' · ') || '—';
+    document.getElementById('filmCardName').value = movie.title;
+    document.getElementById('filmCardYear').value = movie.year || '';
 
+    document.querySelectorAll('#filmCardPriority button').forEach(b => {
+        b.classList.toggle('active', filmCtx.cardPriority === parseInt(b.dataset.p));
+    });
     document.querySelectorAll('#filmStatusTabs [data-st]').forEach(b =>
         b.classList.toggle('active', b.dataset.st === filmCtx.status));
 
@@ -1374,9 +1401,24 @@ function pickFilmStatus(st, btn) {
     document.querySelectorAll('#filmStatusTabs [data-st]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 }
+function pickCardPriority(p, btn) {
+    if (filmCtx.cardPriority === p) {
+        filmCtx.cardPriority = null;
+        btn.classList.remove('active');
+    } else {
+        filmCtx.cardPriority = p;
+        document.querySelectorAll('#filmCardPriority button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
 async function saveFilmCard() {
+    const name = document.getElementById('filmCardName').value.trim();
+    if (!name) return alert('Введи название');
     try {
         await api(`/api/film/movies/${filmCtx.currentMovieId}`, 'PATCH', {
+            title: name,
+            year: document.getElementById('filmCardYear').value || null,
+            priority: filmCtx.cardPriority,
             status: filmCtx.status,
             rating: document.getElementById('filmRating').value || null,
             review: document.getElementById('filmReview').value || null,
@@ -1393,23 +1435,34 @@ async function deleteCurrentFilm() {
 }
 
 // Рандом
-async function randomMovie() {
+async function randomMovie(type = 'want') {
+    filmRandomType = type;
     try {
-        const { movie } = await api('/api/film/random');
+        const { movie } = await api(`/api/film/random?type=${type}`);
         const box = document.getElementById('randomFilmBox');
+        const titleEl = document.getElementById('randomFilmTitle');
+        titleEl.textContent = type === 'rewatch' ? '🔁 Что пересмотреть?' : '🎬 Что посмотреть?';
+
         if (!movie) {
-            box.innerHTML = `<div class="film-meta-random">Пусто — добавь фильмы со статусом «Хочу»</div>`;
+            box.innerHTML = `<div class="film-meta-random">${
+                type === 'rewatch' ? 'Нет просмотренных фильмов' : 'Пусто — добавь фильмы со статусом «Хочу»'
+            }</div>`;
         } else {
-            filmRandomMovie = movie;
             box.innerHTML = `
                 <div class="film-title-random">${escapeHtml(movie.title)}</div>
-                <div class="film-meta-random">${movie.year || ''}</div>
+                <div class="film-meta-random">${[
+                    movie.year,
+                    movie.rating ? `★ ${movie.rating}` : null,
+                    movie.priority ? `Приоритет ${movie.priority}` : null,
+                ].filter(Boolean).join(' · ')}</div>
             `;
         }
         document.getElementById('randomFilmModal').classList.add('open');
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
+function randomAgain() { randomMovie(filmRandomType); }
 function closeRandomFilm() { document.getElementById('randomFilmModal').classList.remove('open'); }
+
 
 // ===== СТАРТ =====
 (async function start() {
