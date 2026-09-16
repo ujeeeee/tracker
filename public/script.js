@@ -153,6 +153,11 @@ function goToScreen(index, animate = true) {
         if (typeof loadWeek === 'function') loadWeek();
         if (typeof loadMonthChart === 'function') loadMonthChart();
     }
+    if (index === 2) {
+        if (typeof loadBudget === 'function') loadBudget();
+        if (typeof loadWishlist === 'function') loadWishlist();
+        if (typeof loadPiggy === 'function') loadPiggy();
+    }
 }
 
 let touchStartX = 0, touchStartY = 0, touchMoved = false;
@@ -777,6 +782,359 @@ document.addEventListener('click', (e) => {
     if (e.target.closest('button')) haptic('light');
 });
 
+
+// ==========================================
+// ===== CASH: БЮДЖЕТ =====
+// ==========================================
+let cashBudgetData = null;
+let cashMonth = new Date().getMonth() + 1;
+let cashYear = new Date().getFullYear();
+
+async function loadBudget() {
+    try {
+        const data = await api(`/api/cash/budget?year=${cashYear}&month=${cashMonth}`);
+        cashBudgetData = data;
+        renderBudget(data);
+    } catch (e) {
+        console.error('loadBudget:', e);
+    }
+}
+
+function fmt(n) {
+    return Number(n || 0).toLocaleString('ru-RU') + ' ₽';
+}
+
+function renderBudget(data) {
+    const t = data.totals;
+
+    // Hero
+    document.getElementById('budgetValue').textContent = fmt(t.budget);
+
+    // Stats
+    const stats = document.getElementById('budgetStats');
+    stats.innerHTML = `
+        <div class="budget-stat">
+            <div class="budget-stat-label">Запланировано</div>
+            <div class="budget-stat-value">${fmt(t.planned)}</div>
+        </div>
+        <div class="budget-stat">
+            <div class="budget-stat-label">Потрачено</div>
+            <div class="budget-stat-value minus">${fmt(t.expenses)}</div>
+        </div>
+        <div class="budget-stat">
+            <div class="budget-stat-label">Остаток</div>
+            <div class="budget-stat-value ${t.remaining >= 0 ? 'plus' : 'minus'}">${fmt(t.remaining)}</div>
+        </div>
+        <div class="budget-stat">
+            <div class="budget-stat-label">Недель</div>
+            <div class="budget-stat-value">${data.weeksInMonth}</div>
+        </div>
+    `;
+
+    // Subs
+    const subsEl = document.getElementById('subsList');
+    if (data.subs.length === 0) {
+        subsEl.innerHTML = `<div class="widget-empty">Нет подписок</div>`;
+    } else {
+        subsEl.innerHTML = data.subs.map(s => `
+            <div class="cash-item">
+                <div class="cash-item-name">${escapeHtml(s.name)}</div>
+                <div class="cash-item-amount">${fmt(s.amount)}</div>
+                <button class="cash-item-del" onclick="deleteSub(${s.id})">✕</button>
+            </div>
+        `).join('');
+    }
+    document.getElementById('subsTotal').innerHTML = `Итого: <b>${fmt(t.subs)}</b>`;
+
+    // Weekly
+    const weekEl = document.getElementById('weeklyList');
+    if (data.weekly.length === 0) {
+        weekEl.innerHTML = `<div class="widget-empty">Нет позиций</div>`;
+    } else {
+        weekEl.innerHTML = data.weekly.map(w => `
+            <div class="cash-item">
+                <div class="cash-item-name">${escapeHtml(w.name)}</div>
+                <div class="cash-item-amount">${fmt(w.amount)}</div>
+                <button class="cash-item-del" onclick="deleteWeekly(${w.id})">✕</button>
+            </div>
+        `).join('');
+    }
+    document.getElementById('weeklyTotal').innerHTML =
+        `× ${data.weeksInMonth} нед. = <b>${fmt(t.weekly)}</b>`;
+
+    // Expenses
+    const expEl = document.getElementById('expensesList');
+    if (data.expenses.length === 0) {
+        expEl.innerHTML = `<div class="widget-empty">Нет трат в этом месяце</div>`;
+    } else {
+        expEl.innerHTML = data.expenses.map(e => `
+            <div class="cash-item">
+                <div style="flex:1;min-width:0;">
+                    <div class="cash-item-name">${escapeHtml(e.name)}</div>
+                    <div class="cash-item-date">${formatDate(e.date)}</div>
+                </div>
+                <div class="cash-item-amount minus">${fmt(e.amount)}</div>
+                <button class="cash-item-del" onclick="deleteExpense(${e.id})">✕</button>
+            </div>
+        `).join('');
+    }
+    document.getElementById('expensesTotal').innerHTML = `Итого: <b>${fmt(t.expenses)}</b>`;
+}
+
+function formatDate(s) {
+    if (!s) return '';
+    const d = new Date(s);
+    const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+    return `${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+// Бюджет модалка
+function openBudgetModal() {
+    const b = cashBudgetData?.budget || {};
+    document.getElementById('budgetAmount').value = b.budget_amount || '';
+    document.getElementById('budgetInvest').value = b.invest_amount || '';
+    document.getElementById('budgetPiggy').value = b.piggy_amount || '';
+    document.getElementById('budgetModal').classList.add('open');
+}
+function closeBudgetModal() {
+    document.getElementById('budgetModal').classList.remove('open');
+}
+async function saveBudget() {
+    const amount = document.getElementById('budgetAmount').value;
+    const invest = document.getElementById('budgetInvest').value;
+    const piggy = document.getElementById('budgetPiggy').value;
+    try {
+        await api('/api/cash/budget', 'POST', {
+            year: cashYear, month: cashMonth,
+            budget_amount: amount, invest_amount: invest, piggy_amount: piggy,
+        });
+        closeBudgetModal();
+        await loadBudget();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// Универсальная модалка добавления (sub/weekly/expense)
+let cashAddCtx = { type: null };
+
+function openCashAddModal(type) {
+    cashAddCtx.type = type;
+    const titles = { sub: 'Новая подписка', weekly: 'Недельная покупка', expense: 'Новая трата' };
+    document.getElementById('cashAddTitle').textContent = titles[type];
+    document.getElementById('cashAddName').value = '';
+    document.getElementById('cashAddAmount').value = '';
+    document.getElementById('cashAddDateWrap').style.display = type === 'expense' ? 'block' : 'none';
+    document.getElementById('cashAddDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('cashAddModal').classList.add('open');
+    setTimeout(() => document.getElementById('cashAddName').focus(), 200);
+}
+function closeCashAddModal() {
+    document.getElementById('cashAddModal').classList.remove('open');
+}
+async function saveCashAdd() {
+    const name = document.getElementById('cashAddName').value.trim();
+    const amount = document.getElementById('cashAddAmount').value;
+    if (!name) return alert('Введи название');
+
+    const endpoints = { sub: '/api/cash/subs', weekly: '/api/cash/weekly', expense: '/api/cash/expenses' };
+    const body = { name, amount };
+    if (cashAddCtx.type === 'expense') body.date = document.getElementById('cashAddDate').value;
+
+    try {
+        await api(endpoints[cashAddCtx.type], 'POST', body);
+        closeCashAddModal();
+        await loadBudget();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function deleteSub(id) {
+    if (!confirm('Удалить?')) return;
+    await api(`/api/cash/subs/${id}`, 'DELETE'); await loadBudget();
+}
+async function deleteWeekly(id) {
+    if (!confirm('Удалить?')) return;
+    await api(`/api/cash/weekly/${id}`, 'DELETE'); await loadBudget();
+}
+async function deleteExpense(id) {
+    if (!confirm('Удалить?')) return;
+    await api(`/api/cash/expenses/${id}`, 'DELETE'); await loadBudget();
+}
+
+// ==========================================
+// ===== CASH: WISHLIST =====
+// ==========================================
+let wishlistItems = [];
+let wishCtx = { priority: 'important_urgent' };
+
+async function loadWishlist() {
+    try {
+        const { items } = await api('/api/cash/wishlist');
+        wishlistItems = items;
+        renderWishlist();
+    } catch (e) { console.error('loadWishlist:', e); }
+}
+
+function renderWishlist() {
+    const grid = document.getElementById('wishlistGrid');
+    if (!grid) return;
+
+    if (wishlistItems.length === 0) {
+        grid.innerHTML = `<div class="empty-state">Пока пусто.<br>Добавь первую хотелку 👇</div>`;
+        return;
+    }
+
+    const groups = {
+        important_urgent: { title: '🔥 Важно, срочно', items: [] },
+        important_not_urgent: { title: '🎯 Важно, не срочно', items: [] },
+        not_important: { title: '💤 Не важно', items: [] },
+        clothes: { title: '👕 Одежда', items: [] },
+    };
+
+    wishlistItems.forEach(x => {
+        const key = groups[x.priority] ? x.priority : 'important_not_urgent';
+        groups[key].items.push(x);
+    });
+
+    let html = '';
+    Object.entries(groups).forEach(([key, g]) => {
+        if (g.items.length === 0) return;
+        html += `<div class="wishlist-group">
+            <div class="wishlist-group-title">${g.title}</div>`;
+        g.items.forEach(it => {
+            html += `<div class="wishlist-item">
+                <div class="wishlist-check ${it.done ? 'done' : ''}" onclick="toggleWish(${it.id}, ${it.done})">✓</div>
+                <div class="wishlist-name ${it.done ? 'done' : ''}">${escapeHtml(it.name)}</div>
+                ${it.price ? `<div class="wishlist-price">${fmt(it.price)}</div>` : ''}
+                <button class="wishlist-del" onclick="deleteWish(${it.id})">✕</button>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+
+    grid.innerHTML = html;
+}
+
+function openWishlistModal() {
+    document.getElementById('wishName').value = '';
+    document.getElementById('wishPrice').value = '';
+    document.getElementById('wishUrl').value = '';
+    wishCtx.priority = 'important_urgent';
+    document.querySelectorAll('#wishlistModal [data-prio]').forEach(b => {
+        b.classList.toggle('active', b.dataset.prio === 'important_urgent');
+    });
+    document.getElementById('wishlistModal').classList.add('open');
+}
+function closeWishlistModal() {
+    document.getElementById('wishlistModal').classList.remove('open');
+}
+function pickPriority(p, btn) {
+    wishCtx.priority = p;
+    document.querySelectorAll('#wishlistModal [data-prio]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+async function saveWishlist() {
+    const name = document.getElementById('wishName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        await api('/api/cash/wishlist', 'POST', {
+            name,
+            price: document.getElementById('wishPrice').value,
+            priority: wishCtx.priority,
+            url: document.getElementById('wishUrl').value,
+        });
+        closeWishlistModal();
+        await loadWishlist();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function toggleWish(id, done) {
+    try {
+        await api(`/api/cash/wishlist/${id}`, 'PATCH', { done: !done });
+        await loadWishlist();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteWish(id) {
+    if (!confirm('Удалить?')) return;
+    await api(`/api/cash/wishlist/${id}`, 'DELETE'); await loadWishlist();
+}
+
+// ==========================================
+// ===== CASH: КОПИЛКА =====
+// ==========================================
+let piggyCtx = { type: 'deposit' };
+
+async function loadPiggy() {
+    try {
+        const { items, totals } = await api('/api/cash/piggy');
+        renderPiggy(items, totals);
+    } catch (e) { console.error('loadPiggy:', e); }
+}
+
+function renderPiggy(items, totals) {
+    const hero = document.getElementById('piggyHero');
+    hero.innerHTML = `
+        <div class="piggy-hero-balance">${fmt(totals.balance)}</div>
+        <div class="piggy-hero-label">В копилке сейчас</div>
+        <div class="piggy-hero-stats">
+            <div class="piggy-stat">
+                <div class="piggy-stat-label">Положил</div>
+                <div class="piggy-stat-value plus">${fmt(totals.deposited)}</div>
+            </div>
+            <div class="piggy-stat">
+                <div class="piggy-stat-label">Взял</div>
+                <div class="piggy-stat-value minus">${fmt(totals.withdrew)}</div>
+            </div>
+        </div>
+    `;
+
+    const list = document.getElementById('piggyList');
+    if (items.length === 0) {
+        list.innerHTML = `<div class="widget-empty">Пока пусто</div>`;
+        return;
+    }
+
+    list.innerHTML = items.map(x => `
+        <div class="cash-item">
+            <div style="flex:1;min-width:0;">
+                <div class="cash-item-name">${escapeHtml(x.description || (x.type === 'deposit' ? 'Пополнение' : 'Снятие'))}</div>
+                <div class="cash-item-date">${formatDate(x.date)}</div>
+            </div>
+            <div class="cash-item-amount ${x.type === 'withdraw' ? 'minus' : ''}">
+                ${x.type === 'withdraw' ? '−' : '+'}${fmt(x.amount)}
+            </div>
+            <button class="cash-item-del" onclick="deletePiggyItem(${x.id})">✕</button>
+        </div>
+    `).join('');
+}
+
+function openPiggyModal(type) {
+    piggyCtx.type = type;
+    document.getElementById('piggyModalTitle').textContent =
+        type === 'deposit' ? 'Положить в копилку' : 'Взять из копилки';
+    document.getElementById('piggyAmount').value = '';
+    document.getElementById('piggyDesc').value = '';
+    document.getElementById('piggyModal').classList.add('open');
+    setTimeout(() => document.getElementById('piggyAmount').focus(), 200);
+}
+function closePiggyModal() {
+    document.getElementById('piggyModal').classList.remove('open');
+}
+async function savePiggy() {
+    const amount = document.getElementById('piggyAmount').value;
+    if (!amount) return alert('Введи сумму');
+    try {
+        await api('/api/cash/piggy', 'POST', {
+            type: piggyCtx.type,
+            amount,
+            description: document.getElementById('piggyDesc').value,
+        });
+        closePiggyModal();
+        await loadPiggy();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deletePiggyItem(id) {
+    if (!confirm('Удалить?')) return;
+    await api(`/api/cash/piggy/${id}`, 'DELETE'); await loadPiggy();
+}
+
 // ==========================================
 // ===== СТАРТ =====
 // ==========================================
@@ -789,5 +1147,8 @@ document.addEventListener('click', (e) => {
         await loadWeek();
         await loadMonthChart();
         await loadAreas();
+        await loadBudget();
+        await loadWishlist();
+        await loadPiggy();
     }
 })();

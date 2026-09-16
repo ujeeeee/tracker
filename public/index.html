@@ -69,7 +69,6 @@
                 </div>
             </div>
 
-            <!-- ========== CASH ========== -->
             <div class="screen" data-screen-name="Cash">
                 <div class="screen-inner">
                     <div class="screen-header">
@@ -82,9 +81,72 @@
                         <button class="tab" onclick="switchSubTab('cash', 'piggy', this)">Копилка</button>
                     </div>
                     <div class="screen-content">
-                        <div id="cash-budget" class="subtab active"><p class="hint">Бюджет. Пока пусто.</p></div>
-                        <div id="cash-wishlist" class="subtab"><p class="hint">Wishlist. Пока пусто.</p></div>
-                        <div id="cash-piggy" class="subtab"><p class="hint">Копилка. Пока пусто.</p></div>
+
+                        <!-- БЮДЖЕТ -->
+                        <div id="cash-budget" class="subtab active">
+                            <div class="budget-hero" id="budgetHero">
+                                <div class="budget-hero-label">Бюджет на месяц</div>
+                                <div class="budget-hero-value" id="budgetValue">0 ₽</div>
+                                <button class="btn-icon-add" onclick="openBudgetModal()">✎</button>
+                            </div>
+
+                            <div class="budget-stats" id="budgetStats"></div>
+
+                            <div class="cash-section">
+                                <div class="goals-header">
+                                    <span class="goals-header-title">Подписки месяца</span>
+                                    <button class="btn-icon-add" onclick="openCashAddModal('sub')">+</button>
+                                </div>
+                                <div id="subsList"></div>
+                                <div class="cash-total" id="subsTotal"></div>
+                            </div>
+
+                            <div class="cash-section">
+                                <div class="goals-header">
+                                    <span class="goals-header-title">Недельные покупки</span>
+                                    <button class="btn-icon-add" onclick="openCashAddModal('weekly')">+</button>
+                                </div>
+                                <div id="weeklyList"></div>
+                                <div class="cash-total" id="weeklyTotal"></div>
+                            </div>
+
+                            <div class="cash-section">
+                                <div class="goals-header">
+                                    <span class="goals-header-title">Траты за месяц</span>
+                                    <button class="btn-icon-add" onclick="openCashAddModal('expense')">+</button>
+                                </div>
+                                <div id="expensesList"></div>
+                                <div class="cash-total" id="expensesTotal"></div>
+                            </div>
+                        </div>
+
+                        <!-- WISHLIST -->
+                        <div id="cash-wishlist" class="subtab">
+                            <div class="wishlist-legend">
+                                <span>🎯 Матрица Эйзенхауэра</span>
+                            </div>
+
+                            <div class="wishlist-grid" id="wishlistGrid"></div>
+
+                            <button class="btn-add" style="margin-top:16px;" onclick="openWishlistModal()">
+                                <span>+</span> Добавить покупку
+                            </button>
+                        </div>
+
+                        <!-- КОПИЛКА -->
+                        <div id="cash-piggy" class="subtab">
+                            <div class="piggy-hero" id="piggyHero"></div>
+
+                            <div class="goals-header" style="margin-top:20px;">
+                                <span class="goals-header-title">История</span>
+                                <div style="display:flex;gap:8px;">
+                                    <button class="btn-icon-add" onclick="openPiggyModal('deposit')" title="Положить">↓</button>
+                                    <button class="btn-icon-add" onclick="openPiggyModal('withdraw')" title="Взять">↑</button>
+                                </div>
+                            </div>
+                            <div id="piggyList"></div>
+                        </div>
+
                     </div>
                 </div>
             </div>

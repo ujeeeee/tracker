@@ -518,6 +518,249 @@ function calcStreak(logs) {
 }
 
 // ==========================================
+// ===== CASH: БЮДЖЕТ =====
+// ==========================================
+app.get('/api/cash/budget', authMiddleware, async (req, res) => {
+    const now = new Date();
+    const year = parseInt(req.query.year) || now.getFullYear();
+    const month = parseInt(req.query.month) || (now.getMonth() + 1);
+
+    const first = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const last = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    // Недель в месяце
+    const weeksInMonth = Math.ceil(lastDay / 7);
+
+    const [budgetR, subsR, weeklyR, expR] = await Promise.all([
+        supabase.from('cash_budget').select('*')
+            .eq('tg_id', req.tg_id).eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('cash_subs').select('*').eq('tg_id', req.tg_id).eq('active', true),
+        supabase.from('cash_weekly').select('*').eq('tg_id', req.tg_id),
+        supabase.from('cash_expenses').select('*')
+            .eq('tg_id', req.tg_id).gte('date', first).lte('date', last)
+            .order('date', { ascending: false }),
+    ]);
+
+    const subsTotal = (subsR.data || []).reduce((s, x) => s + Number(x.amount || 0), 0);
+    const weeklyTotal = (weeklyR.data || []).reduce((s, x) => s + Number(x.amount || 0), 0) * weeksInMonth;
+    const expensesTotal = (expR.data || []).reduce((s, x) => s + Number(x.amount || 0), 0);
+
+    const budget = budgetR.data || { year, month, budget_amount: 0, invest_amount: 0, piggy_amount: 0 };
+    const planned = subsTotal + weeklyTotal;
+    const remaining = Number(budget.budget_amount || 0) - expensesTotal - planned;
+
+    res.json({
+        year, month,
+        weeksInMonth,
+        budget,
+        subs: subsR.data || [],
+        weekly: weeklyR.data || [],
+        expenses: expR.data || [],
+        totals: {
+            budget: Number(budget.budget_amount || 0),
+            subs: subsTotal,
+            weekly: weeklyTotal,
+            planned,
+            expenses: expensesTotal,
+            remaining,
+        },
+    });
+});
+
+app.post('/api/cash/budget', authMiddleware, async (req, res) => {
+    const { year, month, budget_amount, invest_amount, piggy_amount } = req.body;
+    if (!year || !month) return res.status(400).json({ error: 'year & month required' });
+
+    const { data: existing } = await supabase
+        .from('cash_budget').select('id')
+        .eq('tg_id', req.tg_id).eq('year', year).eq('month', month).maybeSingle();
+
+    const payload = {
+        tg_id: req.tg_id,
+        year, month,
+        budget_amount: Number(budget_amount) || 0,
+        invest_amount: Number(invest_amount) || 0,
+        piggy_amount: Number(piggy_amount) || 0,
+        updated_at: new Date().toISOString(),
+    };
+
+    let result;
+    if (existing) {
+        result = await supabase.from('cash_budget').update(payload).eq('id', existing.id).select().single();
+    } else {
+        result = await supabase.from('cash_budget').insert(payload).select().single();
+    }
+
+    if (result.error) return res.status(500).json({ error: result.error.message });
+    res.json({ budget: result.data });
+});
+
+// Подписки
+app.post('/api/cash/subs', authMiddleware, async (req, res) => {
+    const { name, amount } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+
+    const { data, error } = await supabase
+        .from('cash_subs').insert({ tg_id: req.tg_id, name: name.trim(), amount: Number(amount) || 0 })
+        .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ sub: data });
+});
+
+app.delete('/api/cash/subs/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('cash_subs').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+// Недельные
+app.post('/api/cash/weekly', authMiddleware, async (req, res) => {
+    const { name, amount } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+
+    const { data, error } = await supabase
+        .from('cash_weekly').insert({ tg_id: req.tg_id, name: name.trim(), amount: Number(amount) || 0 })
+        .select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ weekly: data });
+});
+
+app.delete('/api/cash/weekly/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('cash_weekly').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+// Траты
+app.post('/api/cash/expenses', authMiddleware, async (req, res) => {
+    const { name, amount, date, category, note } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+
+    const { data, error } = await supabase
+        .from('cash_expenses').insert({
+            tg_id: req.tg_id,
+            name: name.trim(),
+            amount: Number(amount) || 0,
+            date: date || new Date().toISOString().slice(0, 10),
+            category: category || null,
+            note: note || null,
+        }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ expense: data });
+});
+
+app.delete('/api/cash/expenses/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('cash_expenses').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+// ==========================================
+// ===== CASH: WISHLIST =====
+// ==========================================
+app.get('/api/cash/wishlist', authMiddleware, async (req, res) => {
+    const { data, error } = await supabase
+        .from('cash_wishlist').select('*')
+        .eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ items: data || [] });
+});
+
+app.post('/api/cash/wishlist', authMiddleware, async (req, res) => {
+    const { name, price, priority, url } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+
+    const { data, error } = await supabase
+        .from('cash_wishlist').insert({
+            tg_id: req.tg_id,
+            name: name.trim(),
+            price: Number(price) || 0,
+            priority: priority || 'important_not_urgent',
+            url: url || null,
+        }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ item: data });
+});
+
+app.patch('/api/cash/wishlist/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    ['name', 'price', 'priority', 'url', 'done'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    const { data, error } = await supabase.from('cash_wishlist').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ item: data });
+});
+
+app.delete('/api/cash/wishlist/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('cash_wishlist').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+// ==========================================
+// ===== CASH: КОПИЛКА =====
+// ==========================================
+app.get('/api/cash/piggy', authMiddleware, async (req, res) => {
+    const { data, error } = await supabase
+        .from('cash_piggy').select('*')
+        .eq('tg_id', req.tg_id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    let total = 0, took = 0;
+    (data || []).forEach(x => {
+        if (x.type === 'deposit') total += Number(x.amount);
+        else if (x.type === 'withdraw') took += Number(x.amount);
+    });
+
+    res.json({
+        items: data || [],
+        totals: {
+            deposited: total,
+            withdrew: took,
+            balance: total - took,
+        },
+    });
+});
+
+app.post('/api/cash/piggy', authMiddleware, async (req, res) => {
+    const { type, amount, description, date } = req.body;
+    if (!type || !['deposit', 'withdraw'].includes(type)) {
+        return res.status(400).json({ error: 'type must be deposit or withdraw' });
+    }
+    if (!amount) return res.status(400).json({ error: 'amount required' });
+
+    const { data, error } = await supabase
+        .from('cash_piggy').insert({
+            tg_id: req.tg_id,
+            type,
+            amount: Number(amount),
+            description: description || null,
+            date: date || new Date().toISOString().slice(0, 10),
+        }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ item: data });
+});
+
+app.delete('/api/cash/piggy/:id', authMiddleware, async (req, res) => {
+    const { error } = await supabase.from('cash_piggy').delete()
+        .eq('id', req.params.id).eq('tg_id', req.tg_id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+});
+
+// ==========================================
 // ===== ЗАПУСК =====
 // ==========================================
 app.listen(PORT, () => {

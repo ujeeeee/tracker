@@ -1061,3 +1061,304 @@ body {
     .nav-label { font-size: 9px; }
     .bottom-nav { bottom: 8px; left: 8px; right: 8px; }
 }
+
+
+/* ==========================================
+   CASH
+   ========================================== */
+.budget-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.budget-hero-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.budget-hero-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+}
+
+.budget-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.budget-stat {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.budget-stat-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.budget-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.budget-stat-value.plus { color: var(--success); }
+.budget-stat-value.minus { color: var(--danger); }
+
+.cash-section {
+    margin-bottom: 20px;
+}
+
+.cash-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    gap: 10px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.cash-item-name {
+    flex: 1;
+    color: var(--text);
+    font-size: 14px;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.cash-item-amount {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cash-item-amount.minus {
+    color: var(--danger);
+}
+
+.cash-item-del {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-family: inherit;
+    opacity: 0.6;
+}
+
+.cash-item-del:active {
+    color: var(--danger);
+    opacity: 1;
+}
+
+.cash-item-date {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+.cash-total {
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 4px 6px;
+}
+
+.cash-total b {
+    color: var(--text);
+    font-size: 15px;
+}
+
+/* WISHLIST */
+.wishlist-legend {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.wishlist-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wishlist-group {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.wishlist-group-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.wishlist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px;
+    border-radius: 10px;
+}
+
+.wishlist-item:active {
+    background: var(--bg-secondary);
+}
+
+.wishlist-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    border: 2px solid var(--text-tertiary);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: 0.15s;
+    font-size: 13px;
+    color: transparent;
+    cursor: pointer;
+}
+
+.wishlist-check.done {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+
+.wishlist-name {
+    color: var(--text);
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.wishlist-name.done {
+    color: var(--text-tertiary);
+    text-decoration: line-through;
+}
+
+.wishlist-price {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.wishlist-del {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    padding: 2px 4px;
+    cursor: pointer;
+    font-family: inherit;
+    opacity: 0.5;
+}
+
+.wishlist-del:active {
+    color: var(--danger);
+    opacity: 1;
+}
+
+/* КОПИЛКА */
+.piggy-hero {
+    background: linear-gradient(135deg, rgba(10, 132, 255, 0.15), rgba(94, 92, 230, 0.1));
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.piggy-hero-balance {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+}
+
+.piggy-hero-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.piggy-hero-stats {
+    display: flex;
+    gap: 16px;
+}
+
+.piggy-stat {
+    flex: 1;
+}
+
+.piggy-stat-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.piggy-stat-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.piggy-stat-value.plus { color: var(--success); }
+.piggy-stat-value.minus { color: var(--danger); }
