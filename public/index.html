@@ -134,13 +134,40 @@
         <!-- GYM -->
         <div class="screen" data-screen-name="Gym">
             <div class="screen-inner">
-                <div class="screen-header"><h2>🏋️ Gym</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
-                <div class="tabs">
-                    <button class="tab active">Метрики</button>
-                    <button class="tab">Программы</button>
-                    <button class="tab">Фото</button>
+                <div class="screen-header">
+                    <h2>🏋️ Gym</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="screen-content"><p class="hint">Скоро.</p></div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
+                    <button class="tab" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
+                    <button class="tab" onclick="switchSubTab('gym', 'materials', this)">Материалы</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="gym-metrics" class="subtab active">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Биометрия</span>
+                            <button class="btn-icon-add" onclick="openMetricModal('bio')">+</button>
+                        </div>
+                        <div id="bioList"></div>
+
+                        <div class="goals-header" style="margin-top:20px;">
+                            <span class="goals-header-title">Сила</span>
+                            <button class="btn-icon-add" onclick="openMetricModal('strength')">+</button>
+                        </div>
+                        <div id="strengthList"></div>
+                    </div>
+
+                    <div id="gym-programs" class="subtab">
+                        <p class="hint">Скоро.</p>
+                    </div>
+
+                    <div id="gym-materials" class="subtab">
+                        <p class="hint">Скоро.</p>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -384,6 +411,84 @@
         </div>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!-- МОДАЛКА: НОВАЯ МЕТРИКА -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="metricModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="metricModalTitle">Новая метрика</h3>
+
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="metricName" placeholder="Например: Вес" />
+
+        <div class="field-label">Категория</div>
+        <div class="freq-tabs">
+            <button class="freq-tab" data-cat="bio" onclick="pickMetricCat('bio', this)">Биометрия</button>
+            <button class="freq-tab" data-cat="strength" onclick="pickMetricCat('strength', this)">Сила</button>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Единица измерения</div>
+        <input type="text" class="modal-input" id="metricUnit" placeholder="кг / см / сек" />
+
+        <div class="field-label">Цель (опционально)</div>
+        <input type="number" class="modal-input" id="metricTarget" placeholder="Необязательно" />
+
+        <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn secondary" onclick="closeMetricModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveMetric()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- МОДАЛКА: ДОБАВИТЬ ЗАМЕР -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="metricLogModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="metricLogTitle">Замер</h3>
+
+        <div class="field-label">Значение</div>
+        <input type="number" class="modal-input" id="logValue" placeholder="0" step="0.1" />
+
+        <div class="field-label">Дата</div>
+        <input type="date" class="modal-input" id="logDate" />
+
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeMetricLogModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveMetricLog()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- МОДАЛКА: ГРАФИК МЕТРИКИ -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="metricChartModal">
+    <div class="modal-sheet" style="max-height:85vh;">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="metricChartTitle">Метрика</h3>
+
+        <div class="metric-chart-wrap">
+            <canvas id="metricChartCanvas"></canvas>
+        </div>
+
+        <div class="goals-header" style="margin-top:20px;">
+            <span class="goals-header-title">История</span>
+            <button class="btn-icon-add" onclick="openMetricLogFromChart()">+</button>
+        </div>
+        <div id="metricHistory"></div>
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" onclick="deleteCurrentMetric()">Удалить метрику</button>
+            <button class="modal-btn primary" onclick="closeMetricChartModal()">Готово</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <script src="script.js"></script>
 </body>

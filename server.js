@@ -518,6 +518,84 @@ app.post('/api/cash/piggy/fact', authMiddleware, async (req, res) => {
 });
 
 // ==========================================
+// ===== GYM: МЕТРИКИ =====
+// ==========================================
+app.get('/api/gym/metrics', authMiddleware, async (req, res) => {
+    const { data: metrics } = await supabase.from('gym_metrics').select('*')
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
+
+    if (!metrics) return res.json({ metrics: [] });
+
+    const { data: logs } = await supabase.from('gym_metric_logs')
+        .select('id, metric_id, value, date')
+        .eq('tg_id', req.tg_id).order('date', { ascending: true });
+
+    const map = {};
+    (logs || []).forEach(l => {
+        (map[l.metric_id] ||= []).push({ id: l.id, value: Number(l.value), date: l.date });
+    });
+
+    res.json({
+        metrics: metrics.map(m => ({
+            ...m,
+            logs: map[m.id] || [],
+        })),
+    });
+});
+
+app.post('/api/gym/metrics', authMiddleware, async (req, res) => {
+    const { name, category, unit, target } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    if (!['bio','strength'].includes(category)) return res.status(400).json({ error: 'category: bio|strength' });
+
+    const { data, error } = await supabase.from('gym_metrics').insert({
+        tg_id: req.tg_id,
+        name: name.trim(),
+        category,
+        unit: unit || 'кг',
+        target: target ? Number(target) : null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ metric: { ...data, logs: [] } });
+});
+
+app.patch('/api/gym/metrics/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    ['name','category','unit','target','sort_order'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+    const { data, error } = await supabase.from('gym_metrics').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ metric: data });
+});
+
+app.delete('/api/gym/metrics/:id', authMiddleware, async (req, res) => {
+    await supabase.from('gym_metrics').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+app.post('/api/gym/metrics/:id/logs', authMiddleware, async (req, res) => {
+    const { value, date, note } = req.body;
+    if (value === undefined || value === null || value === '') return res.status(400).json({ error: 'value required' });
+    const { data, error } = await supabase.from('gym_metric_logs').insert({
+        tg_id: req.tg_id,
+        metric_id: req.params.id,
+        value: Number(value),
+        date: date || new Date().toISOString().slice(0,10),
+        note: note || null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ log: data });
+});
+
+app.delete('/api/gym/metrics/logs/:logId', authMiddleware, async (req, res) => {
+    await supabase.from('gym_metric_logs').delete()
+        .eq('id', req.params.logId).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+// ==========================================
 // ===== ЗАПУСК =====
 // ==========================================
 app.listen(PORT, () => {
