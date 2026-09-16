@@ -17,6 +17,7 @@
     --accent: #0a84ff;
     --danger: #ff453a;
     --success: #32d74b;
+    --card-solid: #1c1c20;
 }
 :root[data-theme="light"] {
     --bg: #f2f2f7;
@@ -34,6 +35,7 @@
     --accent: #007aff;
     --danger: #ff3b30;
     --success: #34c759;
+    --card-solid: #ffffff;
 }
 
 /* ===== RESET ===== */
@@ -807,25 +809,34 @@ body {
 
 .exercise-add-set {
     background: none; border: none;
-    color: var(--accent); font-size: 12px;
+    color: var(--text-tertiary); font-size: 11px;
     padding: 6px 4px; cursor: pointer;
     font-family: inherit; font-weight: 500;
+    opacity: 0.75;
+    transition: 0.15s;
 }
+.exercise-add-set:active { opacity: 1; color: var(--accent); }
 .day-add-exercise {
     background: none; border: none;
-    color: var(--accent); font-size: 12px;
+    color: var(--text-tertiary); font-size: 11px;
     padding: 6px 4px; cursor: pointer;
     font-family: inherit; font-weight: 500;
     margin-top: 4px;
+    opacity: 0.75;
+    transition: 0.15s;
 }
+.day-add-exercise:active { opacity: 1; color: var(--accent); }
 .program-add-day {
     background: none; border: none;
-    color: var(--accent); font-size: 13px;
+    color: var(--text-tertiary); font-size: 12px;
     padding: 8px 4px; cursor: pointer;
     font-family: inherit; font-weight: 500;
     margin-top: 8px;
     width: 100%; text-align: left;
+    opacity: 0.75;
+    transition: 0.15s;
 }
+.program-add-day:active { opacity: 1; color: var(--accent); }
 
 /* ===== GYM: материалы ===== */
 .material-card {
@@ -894,8 +905,7 @@ body {
 
 /* ===== МЕТРИКИ: новая таблица ===== */
 .metrics-table-wrap {
-    background: var(--card); backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--card-solid);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     box-shadow: inset 0 1px 0 var(--glass-highlight);
@@ -915,7 +925,7 @@ body {
 }
 .metrics-table th,
 .metrics-table td {
-    padding: 10px 12px;
+    padding: 10px 8px;
     text-align: center;
     font-size: 13px;
     border-bottom: 1px solid var(--glass-border);
@@ -931,32 +941,51 @@ body {
 }
 .metrics-table tr:last-child td { border-bottom: none; }
 
-/* Sticky columns */
+/* Название метрики — sticky, макс 11 символов, перенос */
 .metrics-table th.col-name,
 .metrics-table td.col-name {
-    position: sticky; left: 0;
+    position: sticky;
+    left: 0;
     z-index: 3;
     text-align: left;
-    min-width: 110px;
-    max-width: 110px;
-    background: var(--card);
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    background: var(--card-solid);
     color: var(--text);
     font-weight: 600;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: table-cell;
+    cursor: pointer;
+    vertical-align: middle;
 }
 .metrics-table th.col-name { background: var(--bg-secondary); }
+.metrics-table td.col-name:active { background: var(--card-hover); }
 
+/* Цель — sticky */
 .metrics-table th.col-target,
 .metrics-table td.col-target {
-    position: sticky; left: 110px;
+    position: sticky;
+    left: 100px;
     z-index: 3;
     text-align: center;
-    min-width: 55px;
-    max-width: 55px;
-    background: var(--card);
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+    background: var(--card-solid);
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 11px;
     border-right: 1px solid var(--glass-border);
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.2;
+    overflow: hidden;
 }
 .metrics-table th.col-target { background: var(--bg-secondary); }
 
@@ -964,7 +993,7 @@ body {
     cursor: pointer;
     color: var(--text);
     font-weight: 600;
-    min-width: 70px;
+    min-width: 65px;
     transition: background 0.15s;
 }
 .metrics-table td.cell:active { background: var(--bg-secondary); }
@@ -974,10 +1003,11 @@ body {
     font-size: 14px;
 }
 .metrics-table td.cell.add-cell {
-    color: var(--accent);
+    color: var(--text-tertiary);
     font-size: 18px;
     font-weight: 500;
     min-width: 40px;
+    opacity: 0.6;
 }
 
 /* Селект в модалке */

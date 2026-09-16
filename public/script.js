@@ -1127,7 +1127,7 @@ function renderTable(containerId, list) {
         const target = m.target ? `${m.target}${unit}` : '—';
 
         html += `<tr>`;
-        html += `<td class="col-name">${escapeHtml(m.name)}</td>`;
+        html += `<td class="col-name" onclick="deleteMetric(${m.id})">${escapeHtml(m.name)}</td>`;
         html += `<td class="col-target">${target}</td>`;
 
         dates.forEach(d => {
@@ -1145,6 +1145,14 @@ function renderTable(containerId, list) {
 
     html += `</tbody></table></div>`;
     c.innerHTML = html;
+
+    // Автопрокрут вправо, чтобы видеть последние даты
+    requestAnimationFrame(() => {
+        c.querySelectorAll('.metrics-table-wrap').forEach(wrap => {
+            wrap.scrollLeft = wrap.scrollWidth;
+        });
+    });
+}
 }
 
 function openAddMetric(category) {
