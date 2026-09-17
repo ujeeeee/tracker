@@ -104,6 +104,7 @@ function goToScreen(index, animate = true) {
     if (index === 3) { loadPrograms(); loadMetrics(); }
     if (index === 5) loadFilm();
     if (index === 6) loadTea();
+    if (index === 7) loadPlaces();
 }
 // ===== SUBTABS =====
 function switchSubTab(parent, tab, btn) {
@@ -1860,6 +1861,309 @@ async function deleteTodoFromModal() {
     await loadTodos();
 }
 
+// ==========================================
+// ===== PLACES =====
+// ==========================================
+let placesTypes = [];
+let placesOrphans = [];
+let placesCtx = {
+    typeId: null,
+    currentId: null,
+    priority: null,
+    cardPriority: null,
+    status: 'want',
+    typeEditId: null
+};
+let placesFilter = { type: '', city: '', rating: '' };
+
+async function loadPlaces() {
+    try {
+        const { types, orphans } = await api('/api/places');
+        placesTypes = types;
+        placesOrphans = orphans;
+        updatePlacesFilters();
+        renderPlacesWant();
+        renderPlacesVisited();
+    } catch (e) { console.error(e); }
+}
+
+function updatePlacesFilters() {
+    // Типы
+    const typeSel = document.getElementById('placesFilterType');
+    const curType = typeSel.value;
+    typeSel.innerHTML = `<option value="">Все типы</option>` +
+        placesTypes.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    typeSel.value = curType;
+
+    // Города
+    const allItems = [];
+    placesTypes.forEach(t => (t.items || []).forEach(i => allItems.push(i)));
+    placesOrphans.forEach(i => allItems.push(i));
+    const cities = [...new Set(allItems.map(i => i.city).filter(Boolean))].sort();
+
+    const citySel = document.getElementById('placesFilterCity');
+    const curCity = citySel.value;
+    citySel.innerHTML = `<option value="">Все города</option>` +
+        cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    citySel.value = curCity;
+}
+
+function onPlacesFilterChange() {
+    placesFilter.type = document.getElementById('placesFilterType').value;
+    placesFilter.city = document.getElementById('placesFilterCity').value;
+    placesFilter.rating = document.getElementById('placesFilterRating').value;
+    renderPlacesWant();
+    renderPlacesVisited();
+}
+
+function placeMatchesFilter(p) {
+    if (placesFilter.type && String(p.type_id) !== placesFilter.type) return false;
+    if (placesFilter.city && (p.city || '') !== placesFilter.city) return false;
+    if (placesFilter.rating && (!p.rating || p.rating < parseInt(placesFilter.rating))) return false;
+    return true;
+}
+
+function renderPlacesWant() {
+    const c = document.getElementById('placesWantList');
+    if (!c) return;
+
+    const all = [...placesTypes];
+    if (placesOrphans.length) all.push({ id: null, name: 'Без типа', items: placesOrphans });
+
+    if (!all.length) {
+        c.innerHTML = `<div class="empty-state">Нет мест. Нажми «+ Тип» чтобы начать</div>`;
+        return;
+    }
+
+    c.innerHTML = all.map(t => {
+        const items = (t.items || []).filter(i => i.status !== 'visited' && placeMatchesFilter(i));
+        const isOrphan = !t.id;
+        const addBtn = `<button class="btn-icon-add" onclick="openPlacesItemModal(${isOrphan ? 'null' : t.id})">+</button>`;
+        const deleteBtn = isOrphan
+            ? (t.items.length > 0 ? `<button class="area-delete" onclick="clearPlaceOrphans()">🗑</button>` : '')
+            : `<button class="area-delete" onclick="deletePlacesType(${t.id})">🗑</button>`;
+        const nameClick = isOrphan ? '' : `onclick="openPlacesTypeEdit(${t.id})" style="cursor:pointer;"`;
+
+        return `<div class="place-card">
+            <div class="place-type-header">
+                <div class="place-type-name" ${nameClick}>${escapeHtml(t.name)}</div>
+                <div class="place-type-count">${items.length}</div>
+                ${addBtn}
+                ${deleteBtn}
+            </div>
+            ${items.length === 0 ? `<div class="widget-empty">Пусто</div>`
+                : items.map(p => placeItemHTML(p)).join('')}
+        </div>`;
+    }).join('');
+}
+
+function renderPlacesVisited() {
+    const c = document.getElementById('placesVisitedList');
+    if (!c) return;
+
+    const byType = [];
+    placesTypes.forEach(t => {
+        const visited = (t.items || []).filter(i => i.status === 'visited' && placeMatchesFilter(i));
+        if (visited.length) byType.push({ name: t.name, items: visited });
+    });
+    const orphansVisited = placesOrphans.filter(i => i.status === 'visited' && placeMatchesFilter(i));
+    if (orphansVisited.length) byType.push({ name: 'Без типа', items: orphansVisited });
+
+    if (!byType.length) {
+        c.innerHTML = `<div class="empty-state">Пока ничего не посетил</div>`;
+        return;
+    }
+
+    c.innerHTML = byType.map(t => {
+        const sorted = [...t.items].sort((a,b) => (b.rating || 0) - (a.rating || 0));
+        return `<div class="place-card">
+            <div class="place-type-header">
+                <div class="place-type-name">${escapeHtml(t.name)}</div>
+                <div class="place-type-count">${sorted.length}</div>
+            </div>
+            ${sorted.map(p => placeItemHTML(p)).join('')}
+        </div>`;
+    }).join('');
+}
+
+function placeItemHTML(p) {
+    const pr = p.priority || 0;
+    const priorityClass = pr >= 5 ? 'p5' : pr >= 4 ? 'p4' : pr >= 3 ? 'p3' : '';
+    const parts = [];
+    if (p.city) parts.push(p.city);
+    if (p.country) parts.push(p.country);
+    return `<div class="place-item" onclick="openPlacesCard(${p.id})">
+        ${pr ? `<div class="place-priority ${priorityClass}">${pr}</div>` : ''}
+        <div class="place-info">
+            <div class="place-name">${escapeHtml(p.name)}</div>
+            <div class="place-sub">${parts.join(', ') || '—'}</div>
+        </div>
+        ${p.rating ? `<div class="place-rating">★ ${p.rating}</div>` : ''}
+    </div>`;
+}
+
+// Тип места
+function openPlacesTypeModal() {
+    placesCtx.typeEditId = null;
+    document.getElementById('placesTypeModalTitle').textContent = 'Новый тип';
+    document.getElementById('placesTypeName').value = '';
+    document.getElementById('placesTypeModal').classList.add('open');
+    setTimeout(() => document.getElementById('placesTypeName').focus(), 200);
+}
+function openPlacesTypeEdit(id) {
+    const t = placesTypes.find(x => x.id === id);
+    if (!t) return;
+    placesCtx.typeEditId = id;
+    document.getElementById('placesTypeModalTitle').textContent = 'Изменить тип';
+    document.getElementById('placesTypeName').value = t.name;
+    document.getElementById('placesTypeModal').classList.add('open');
+    setTimeout(() => document.getElementById('placesTypeName').focus(), 200);
+}
+function closePlacesTypeModal() { document.getElementById('placesTypeModal').classList.remove('open'); }
+async function savePlacesType() {
+    const name = document.getElementById('placesTypeName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        if (placesCtx.typeEditId) {
+            await api(`/api/places/types/${placesCtx.typeEditId}`, 'PATCH', { name });
+        } else {
+            await api('/api/places/types', 'POST', { name });
+        }
+        closePlacesTypeModal();
+        await loadPlaces();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deletePlacesType(id) {
+    if (!confirm('Удалить тип? Места останутся без типа.')) return;
+    await api(`/api/places/types/${id}`, 'DELETE');
+    await loadPlaces();
+}
+async function clearPlaceOrphans() {
+    if (!confirm('Очистить все места из «Без типа»?')) return;
+    await api('/api/places/orphans', 'DELETE');
+    await loadPlaces();
+}
+
+// Место — создание
+function openPlacesItemModal(typeId = null) {
+    placesCtx.typeId = typeId;
+    placesCtx.priority = null;
+    document.getElementById('placesItemTitle').textContent = 'Новое место';
+    document.getElementById('placeName').value = '';
+    document.getElementById('placeCity').value = '';
+    document.getElementById('placeCountry').value = '';
+    document.getElementById('placeMapUrl').value = '';
+    document.querySelectorAll('#placePriority button').forEach(b => b.classList.remove('active'));
+
+    const sel = document.getElementById('placeTypeSelect');
+    sel.innerHTML = `<option value="">Без типа</option>` +
+        placesTypes.map(t => `<option value="${t.id}" ${t.id === typeId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+
+    document.getElementById('placesItemModal').classList.add('open');
+    setTimeout(() => document.getElementById('placeName').focus(), 200);
+}
+function closePlacesItemModal() { document.getElementById('placesItemModal').classList.remove('open'); }
+function pickPlacePriority(p, btn) {
+    placesCtx.priority = p;
+    document.querySelectorAll('#placePriority button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+async function savePlacesItem() {
+    const name = document.getElementById('placeName').value.trim();
+    if (!name) return alert('Введи название');
+    const typeVal = document.getElementById('placeTypeSelect').value;
+    try {
+        await api('/api/places/items', 'POST', {
+            name,
+            type_id: typeVal ? parseInt(typeVal) : null,
+            city: document.getElementById('placeCity').value,
+            country: document.getElementById('placeCountry').value,
+            map_url: document.getElementById('placeMapUrl').value,
+            priority: placesCtx.priority,
+        });
+        closePlacesItemModal();
+        await loadPlaces();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// Карточка места
+async function openPlacesCard(id) {
+    let item = null;
+    for (const t of placesTypes) {
+        const found = (t.items || []).find(i => i.id === id);
+        if (found) { item = found; break; }
+    }
+    if (!item) item = placesOrphans.find(i => i.id === id);
+    if (!item) return;
+
+    placesCtx.currentId = id;
+    placesCtx.status = item.status || 'want';
+    placesCtx.cardPriority = item.priority || null;
+
+    document.getElementById('placesCardTitle').textContent = item.name;
+    document.getElementById('placeCardName').value = item.name;
+    document.getElementById('placeCardCity').value = item.city || '';
+    document.getElementById('placeCardCountry').value = item.country || '';
+    document.getElementById('placeCardMap').value = item.map_url || '';
+    document.getElementById('placeRating').value = item.rating || '';
+    document.getElementById('placeReview').value = item.review || '';
+
+    document.querySelectorAll('#placeStatusTabs [data-st]').forEach(b =>
+        b.classList.toggle('active', b.dataset.st === placesCtx.status));
+    document.querySelectorAll('#placeCardPriority button').forEach(b =>
+        b.classList.toggle('active', placesCtx.cardPriority === parseInt(b.dataset.p)));
+
+    const mapBtn = document.getElementById('placeOpenMapBtn');
+    mapBtn.style.display = item.map_url ? 'block' : 'none';
+
+    document.getElementById('placesCardModal').classList.add('open');
+}
+function closePlacesCardModal() { document.getElementById('placesCardModal').classList.remove('open'); }
+function pickPlaceStatus(st, btn) {
+    placesCtx.status = st;
+    document.querySelectorAll('#placeStatusTabs [data-st]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+function pickPlaceCardPriority(p, btn) {
+    if (placesCtx.cardPriority === p) {
+        placesCtx.cardPriority = null;
+        btn.classList.remove('active');
+    } else {
+        placesCtx.cardPriority = p;
+        document.querySelectorAll('#placeCardPriority button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
+async function savePlaceCard() {
+    const name = document.getElementById('placeCardName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        await api(`/api/places/items/${placesCtx.currentId}`, 'PATCH', {
+            name,
+            city: document.getElementById('placeCardCity').value,
+            country: document.getElementById('placeCardCountry').value,
+            map_url: document.getElementById('placeCardMap').value,
+            status: placesCtx.status,
+            priority: placesCtx.cardPriority,
+            rating: document.getElementById('placeRating').value || null,
+            review: document.getElementById('placeReview').value,
+        });
+        closePlacesCardModal();
+        await loadPlaces();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+async function deleteCurrentPlace() {
+    if (!confirm('Удалить место?')) return;
+    await api(`/api/places/items/${placesCtx.currentId}`, 'DELETE');
+    closePlacesCardModal();
+    await loadPlaces();
+}
+function openPlaceMap() {
+    const url = document.getElementById('placeCardMap').value.trim();
+    if (!url) return;
+    window.open(url, '_blank');
+}
+
 // ===== СТАРТ =====
 (async function start() {
     goToScreen(0, false);
@@ -1867,6 +2171,6 @@ async function deleteTodoFromModal() {
     if (ok) {
         await Promise.all([loadHome(), loadHabits(), loadWeek(), loadAreas(), loadTodos(),
                            loadBudget(), loadWishlist(), loadPiggy(),
-                           loadMetrics(), loadPrograms(), loadFilm()]);
+                           loadMetrics(), loadPrograms(), loadFilm(), loadTea(), loadPlaces()]);
     }
 })();

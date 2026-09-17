@@ -959,6 +959,95 @@ app.delete('/api/tea/shops/:id', authMiddleware, async (req, res) => {
 });
 
 // ==========================================
+// ===== PLACES =====
+// ==========================================
+app.get('/api/places', authMiddleware, async (req, res) => {
+    const { data: types } = await supabase.from('places_types').select('*')
+        .eq('tg_id', req.tg_id).order('created_at');
+
+    const { data: items } = await supabase.from('places_items').select('*')
+        .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
+
+    const result = (types || []).map(t => ({
+        ...t,
+        items: (items || []).filter(i => i.type_id === t.id),
+    }));
+
+    const orphans = (items || []).filter(i => !i.type_id);
+    res.json({ types: result, orphans });
+});
+
+app.post('/api/places/types', authMiddleware, async (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase.from('places_types').insert({
+        tg_id: req.tg_id, name: name.trim(),
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ type: { ...data, items: [] } });
+});
+
+app.patch('/api/places/types/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    if (req.body.name !== undefined) updates.name = req.body.name.trim();
+    const { data, error } = await supabase.from('places_types').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ type: data });
+});
+
+app.delete('/api/places/types/:id', authMiddleware, async (req, res) => {
+    await supabase.from('places_items').update({ type_id: null }).eq('type_id', req.params.id).eq('tg_id', req.tg_id);
+    await supabase.from('places_types').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+app.delete('/api/places/orphans', authMiddleware, async (req, res) => {
+    await supabase.from('places_items').delete()
+        .eq('tg_id', req.tg_id).is('type_id', null);
+    res.json({ ok: true });
+});
+
+app.post('/api/places/items', authMiddleware, async (req, res) => {
+    const { name, type_id, city, country, map_url, status, priority } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase.from('places_items').insert({
+        tg_id: req.tg_id,
+        name: name.trim(),
+        type_id: type_id || null,
+        city: city?.trim() || null,
+        country: country?.trim() || null,
+        map_url: map_url?.trim() || null,
+        status: status || 'want',
+        priority: priority ? parseInt(priority) : null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ item: data });
+});
+
+app.patch('/api/places/items/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    ['name','city','country','map_url','status','review'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k] || null;
+    });
+    ['priority','rating'].forEach(k => {
+        if (req.body[k] !== undefined) updates[k] = req.body[k] ? parseInt(req.body[k]) : null;
+    });
+    if (req.body.status === 'visited' && !req.body.visited_at) {
+        updates.visited_at = new Date().toISOString().slice(0,10);
+    }
+    const { data, error } = await supabase.from('places_items').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ item: data });
+});
+
+app.delete('/api/places/items/:id', authMiddleware, async (req, res) => {
+    await supabase.from('places_items').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
+
+// ==========================================
 // ===== ЗАПУСК =====
 // ==========================================
 app.listen(PORT, () => {

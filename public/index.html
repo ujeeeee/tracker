@@ -248,8 +248,45 @@
         <!-- PLACES -->
         <div class="screen" data-screen-name="Places">
             <div class="screen-inner">
-                <div class="screen-header"><h2>📍 Places</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
-                <div class="screen-content"><p class="hint">Скоро.</p></div>
+                <div class="screen-header">
+                    <h2>📍 Places</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('places', 'want', this)">Хочу</button>
+                    <button class="tab" onclick="switchSubTab('places', 'visited', this)">Был</button>
+                </div>
+                <div class="screen-content">
+
+                    <div class="places-filters">
+                        <select class="places-filter" id="placesFilterType" onchange="onPlacesFilterChange()">
+                            <option value="">Все типы</option>
+                        </select>
+                        <select class="places-filter" id="placesFilterCity" onchange="onPlacesFilterChange()">
+                            <option value="">Все города</option>
+                        </select>
+                        <select class="places-filter" id="placesFilterRating" onchange="onPlacesFilterChange()">
+                            <option value="">Оценка</option>
+                            <option value="9">9+</option>
+                            <option value="8">8+</option>
+                            <option value="7">7+</option>
+                            <option value="5">5+</option>
+                        </select>
+                    </div>
+
+                    <div id="places-want" class="subtab active">
+                        <div class="film-actions">
+                            <div style="flex:1;"></div>
+                            <button class="btn-icon-add" onclick="openPlacesTypeModal()">+ Тип</button>
+                        </div>
+                        <div id="placesWantList"></div>
+                    </div>
+
+                    <div id="places-visited" class="subtab">
+                        <div id="placesVisitedList"></div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -797,6 +834,101 @@
             <button class="modal-btn secondary" id="todoDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteTodoFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeTodoModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveTodo()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: НОВЫЙ ТИП МЕСТА -->
+<div class="modal-overlay" id="placesTypeModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="placesTypeModalTitle">Новый тип</h3>
+        <input type="text" class="modal-input" id="placesTypeName" placeholder="Например: Кафе" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closePlacesTypeModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="savePlacesType()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: НОВОЕ МЕСТО -->
+<div class="modal-overlay" id="placesItemModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="placesItemTitle">Новое место</h3>
+
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="placeName" placeholder="Например: Кафе Пушкин" />
+
+        <div class="field-label">Тип</div>
+        <select class="modal-input modal-select" id="placeTypeSelect"></select>
+
+        <div class="field-label">Город</div>
+        <input type="text" class="modal-input" id="placeCity" placeholder="Например: Москва" />
+
+        <div class="field-label">Страна</div>
+        <input type="text" class="modal-input" id="placeCountry" placeholder="Например: Россия" />
+
+        <div class="field-label">Ссылка на карту</div>
+        <input type="text" class="modal-input" id="placeMapUrl" placeholder="https://maps..." />
+
+        <div class="field-label">Приоритет (1-5)</div>
+        <div class="priority-picker" id="placePriority">
+            <button data-p="1" onclick="pickPlacePriority(1,this)">1</button>
+            <button data-p="2" onclick="pickPlacePriority(2,this)">2</button>
+            <button data-p="3" onclick="pickPlacePriority(3,this)">3</button>
+            <button data-p="4" onclick="pickPlacePriority(4,this)">4</button>
+            <button data-p="5" onclick="pickPlacePriority(5,this)">5</button>
+        </div>
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" onclick="closePlacesItemModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="savePlacesItem()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: КАРТОЧКА МЕСТА -->
+<div class="modal-overlay" id="placesCardModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="placesCardTitle">Место</h3>
+
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="placeCardName" />
+
+        <div class="field-label">Город / Страна</div>
+        <input type="text" class="modal-input" id="placeCardCity" placeholder="Город" />
+        <input type="text" class="modal-input" id="placeCardCountry" placeholder="Страна" />
+
+        <div class="field-label">Ссылка на карту</div>
+        <input type="text" class="modal-input" id="placeCardMap" placeholder="https://maps..." />
+
+        <div class="field-label">Статус</div>
+        <div class="freq-tabs" id="placeStatusTabs">
+            <button class="freq-tab" data-st="want" onclick="pickPlaceStatus('want', this)">Хочу</button>
+            <button class="freq-tab" data-st="visited" onclick="pickPlaceStatus('visited', this)">Был</button>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Приоритет (1-5)</div>
+        <div class="priority-picker" id="placeCardPriority">
+            <button data-p="1" onclick="pickPlaceCardPriority(1,this)">1</button>
+            <button data-p="2" onclick="pickPlaceCardPriority(2,this)">2</button>
+            <button data-p="3" onclick="pickPlaceCardPriority(3,this)">3</button>
+            <button data-p="4" onclick="pickPlaceCardPriority(4,this)">4</button>
+            <button data-p="5" onclick="pickPlaceCardPriority(5,this)">5</button>
+        </div>
+
+        <div class="field-label" style="margin-top:12px;">Оценка (1-10)</div>
+        <input type="number" class="modal-input" id="placeRating" min="1" max="10" placeholder="Необязательно" />
+
+        <div class="field-label">Отзыв</div>
+        <input type="text" class="modal-input" id="placeReview" placeholder="Впечатления..." />
+
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn secondary" id="placeOpenMapBtn" style="display:none;" onclick="openPlaceMap()">Карта</button>
+            <button class="modal-btn secondary" style="color:var(--danger);" onclick="deleteCurrentPlace()">Удалить</button>
+            <button class="modal-btn primary" onclick="savePlaceCard()">Сохранить</button>
         </div>
     </div>
 </div>
