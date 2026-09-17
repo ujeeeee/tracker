@@ -40,6 +40,13 @@
                 <div class="screen-content">
 
                     <div id="discipline-habits" class="subtab active">
+                        <div class="todos-block">
+                            <div class="goals-header">
+                                <span class="goals-header-title" id="todosTitle">Дела на сегодня</span>
+                                <button class="btn-icon-add" onclick="openTodoModal()">+</button>
+                            </div>
+                            <div id="todosList"></div>
+                        </div>
                         <div class="week-nav">
                             <button class="week-nav-btn" onclick="weekPrev()">‹</button>
                             <div class="week-range" id="weekRange"></div>
@@ -532,35 +539,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<!-- МОДАЛКА: МЕТРИКА -->
-<div class="modal-overlay" id="metricModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="metricModalTitle">Новая метрика</h3>
-        <input type="text" class="modal-input" id="metricName" placeholder="Например: Вес" />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeMetricModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveMetric()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: ЗАМЕР -->
-<div class="modal-overlay" id="metricLogModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="metricLogTitle">Замер</h3>
-        <div class="field-label">Значение</div>
-        <input type="number" class="modal-input" id="logValue" placeholder="0" step="0.1" />
-        <div class="field-label">Дата</div>
-        <input type="date" class="modal-input" id="logDate" />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeMetricLogModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveMetricLog()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
 <!-- МОДАЛКА: НОВАЯ ПРОГРАММА -->
 <div class="modal-overlay" id="newProgramModal">
     <div class="modal-sheet">
@@ -794,6 +772,19 @@
         <div class="modal-actions">
             <button class="modal-btn secondary" onclick="closeTeaShopModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveTeaShop()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="todoModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="todoModalTitle">Новое дело</h3>
+        <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
+        <div class="modal-actions">
+            <button class="modal-btn secondary" id="todoDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteTodoFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeTodoModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveTodo()">Сохранить</button>
         </div>
     </div>
 </div>

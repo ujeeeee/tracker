@@ -99,7 +99,7 @@ function goToScreen(index, animate = true) {
     window.scrollTo(0, 0);
 
     if (index === 0) loadHome();
-    if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadMonthChart(); }
+    if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadMonthChart(); loadTodos(); }
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
     if (index === 3) { loadPrograms(); loadMetrics(); }
     if (index === 5) loadFilm();
@@ -123,7 +123,6 @@ function openSettings() {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     window.scrollTo(0, 0);
 }
-function closeSettings() { goToScreen(currentScreenIndex); }
 function closeSettings() { goToScreen(currentScreenIndex); }
 function updateSettingsUI() {
     const name = currentUser?.name || tgUser.name || 'Друг';
@@ -338,6 +337,44 @@ async function saveHabit() {
         await loadMonthChart();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
+
+// ==========================================
+// ===== DISCIPLINE: ДЕЛА НА ДЕНЬ =====
+// ==========================================
+app.get('/api/disc/todos', authMiddleware, async (req, res) => {
+    const d = req.query.date || new Date().toISOString().slice(0,10);
+    const { data } = await supabase.from('disc_todos').select('*')
+        .eq('tg_id', req.tg_id).eq('date', d)
+        .order('done').order('created_at');
+    res.json({ todos: data || [], date: d });
+});
+
+app.post('/api/disc/todos', authMiddleware, async (req, res) => {
+    const { name, date } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const { data, error } = await supabase.from('disc_todos').insert({
+        tg_id: req.tg_id,
+        name: name.trim(),
+        date: date || new Date().toISOString().slice(0,10),
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ todo: data });
+});
+
+app.patch('/api/disc/todos/:id', authMiddleware, async (req, res) => {
+    const updates = {};
+    if (req.body.name !== undefined) updates.name = req.body.name.trim();
+    if (req.body.done !== undefined) updates.done = !!req.body.done;
+    const { data, error } = await supabase.from('disc_todos').update(updates)
+        .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ todo: data });
+});
+
+app.delete('/api/disc/todos/:id', authMiddleware, async (req, res) => {
+    await supabase.from('disc_todos').delete().eq('id', req.params.id).eq('tg_id', req.tg_id);
+    res.json({ ok: true });
+});
 
 // ===== GOALS =====
 let areas = [];
@@ -1215,9 +1252,6 @@ async function deleteCurrentLog() {
 // ==========================================
 // ===== FILM =====
 // ==========================================
-// ==========================================
-// ===== FILM =====
-// ==========================================
 let filmGenres = [];
 let filmOrphans = [];
 let filmCtx = { genreId: null, priority: null, currentMovieId: null, status: 'want', cardPriority: null };
@@ -1239,28 +1273,35 @@ function renderFilmGenres() {
     if (!c) return;
 
     const allGenres = [...filmGenres];
-    if (filmOrphans.length > 0) {
-        allGenres.push({ id: null, name: 'Без жанра', movies: filmOrphans });
-    }
-
-    if (!allGenres.length) {
-        c.innerHTML = `<div class="empty-state">Нет фильмов. Нажми +</div>`;
-        return;
-    }
+    // «Без жанра» показываем всегда — либо с фильмами, либо пустую
+    allGenres.push({ id: null, name: 'Без жанра', movies: filmOrphans });
 
     c.innerHTML = allGenres.map(g => {
         const movies = (g.movies || []).filter(m => m.status !== 'watched');
+        const isOrphan = !g.id;
+        const addBtn = `<button class="btn-icon-add" onclick="openFilmModal(${isOrphan ? 'null' : g.id})">+</button>`;
+        const deleteBtn = isOrphan
+            ? (g.movies.length > 0 ? `<button class="area-delete" onclick="clearFilmOrphans()">🗑</button>` : '')
+            : `<button class="area-delete" onclick="deleteFilmGenre(${g.id})">🗑</button>`;
+        const nameClick = isOrphan ? '' : `onclick="openFilmGenreEdit(${g.id})" style="cursor:pointer;"`;
+
         return `<div class="film-genre-card">
             <div class="film-genre-header">
-                <div class="film-genre-name" ${g.id ? `onclick="openFilmGenreEdit(${g.id})" style="cursor:pointer;"` : ''}>${escapeHtml(g.name)}</div>
+                <div class="film-genre-name" ${nameClick}>${escapeHtml(g.name)}</div>
                 <div class="film-genre-count">${movies.length}</div>
-                ${g.id ? `<button class="btn-icon-add" onclick="openFilmModal(${g.id})">+</button>` : ''}
-                ${g.id ? `<button class="area-delete" onclick="deleteFilmGenre(${g.id})">🗑</button>` : ''}
+                ${addBtn}
+                ${deleteBtn}
             </div>
             ${movies.length === 0 ? `<div class="widget-empty">Пусто</div>`
                 : movies.map(m => filmItemHTML(m)).join('')}
         </div>`;
     }).join('');
+}
+
+async function clearFilmOrphans() {
+    if (!confirm('Очистить все фильмы из «Без жанра»?')) return;
+    await api('/api/film/orphans', 'DELETE');
+    await loadFilm();
 }
 
 function filmItemHTML(m) {
@@ -1731,12 +1772,98 @@ async function deleteHabitFromModal() {
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
+// ==========================================
+// ===== DISCIPLINE: ДЕЛА НА ДЕНЬ =====
+// ==========================================
+let todos = [];
+let todoCtx = { id: null };
+
+async function loadTodos() {
+    try {
+        const { todos: data } = await api('/api/disc/todos');
+        todos = data;
+        renderTodos();
+    } catch (e) { console.error(e); }
+}
+
+function renderTodos() {
+    const c = document.getElementById('todosList');
+    if (!c) return;
+
+    const titleEl = document.getElementById('todosTitle');
+    if (titleEl) {
+        const d = new Date();
+        const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+        titleEl.textContent = `Дела на сегодня · ${d.getDate()} ${months[d.getMonth()]}`;
+    }
+
+    if (!todos.length) {
+        c.innerHTML = `<div class="widget-empty">Пусто. Нажми + чтобы добавить</div>`;
+        return;
+    }
+
+    c.innerHTML = todos.map(t => `
+        <div class="todo-item ${t.done ? 'done' : ''}" onclick="openTodoModal(${t.id})">
+            <div class="todo-check" onclick="event.stopPropagation(); toggleTodo(${t.id}, ${t.done})">✓</div>
+            <div class="todo-name">${escapeHtml(t.name)}</div>
+        </div>
+    `).join('');
+}
+
+function openTodoModal(id = null) {
+    todoCtx.id = id;
+    const title = document.getElementById('todoModalTitle');
+    const nameEl = document.getElementById('todoName');
+    const delBtn = document.getElementById('todoDeleteBtn');
+
+    if (id) {
+        const t = todos.find(x => x.id === id);
+        if (t) { title.textContent = 'Редактировать'; nameEl.value = t.name; }
+        delBtn.style.display = 'block';
+    } else {
+        title.textContent = 'Новое дело';
+        nameEl.value = '';
+        delBtn.style.display = 'none';
+    }
+
+    document.getElementById('todoModal').classList.add('open');
+    setTimeout(() => nameEl.focus(), 200);
+}
+function closeTodoModal() { document.getElementById('todoModal').classList.remove('open'); }
+
+async function saveTodo() {
+    const name = document.getElementById('todoName').value.trim();
+    if (!name) return alert('Введи название');
+    try {
+        if (todoCtx.id) {
+            await api(`/api/disc/todos/${todoCtx.id}`, 'PATCH', { name });
+        } else {
+            await api('/api/disc/todos', 'POST', { name });
+        }
+        closeTodoModal();
+        await loadTodos();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function toggleTodo(id, done) {
+    await api(`/api/disc/todos/${id}`, 'PATCH', { done: !done });
+    await loadTodos();
+}
+
+async function deleteTodoFromModal() {
+    if (!todoCtx.id) return;
+    if (!confirm('Удалить дело?')) return;
+    await api(`/api/disc/todos/${todoCtx.id}`, 'DELETE');
+    closeTodoModal();
+    await loadTodos();
+}
+
 // ===== СТАРТ =====
 (async function start() {
     goToScreen(0, false);
     const ok = await auth();
     if (ok) {
-        await Promise.all([loadHome(), loadHabits(), loadWeek(), loadMonthChart(), loadAreas(),
+        await Promise.all([loadHome(), loadHabits(), loadWeek(), loadMonthChart(), loadAreas(), loadTodos(),
                            loadBudget(), loadWishlist(), loadPiggy(),
                            loadMetrics(), loadPrograms(), loadFilm()]);
     }

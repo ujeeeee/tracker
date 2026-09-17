@@ -736,6 +736,12 @@ app.delete('/api/film/genres/:id', authMiddleware, async (req, res) => {
     res.json({ ok: true });
 });
 
+app.delete('/api/film/orphans', authMiddleware, async (req, res) => {
+    await supabase.from('film_movies').delete()
+        .eq('tg_id', req.tg_id).is('genre_id', null);
+    res.json({ ok: true });
+});
+
 app.post('/api/film/movies', authMiddleware, async (req, res) => {
     const { title, year, genre_id, status, priority, url } = req.body;
     if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
