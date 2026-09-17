@@ -12,21 +12,25 @@
 <div class="screens-viewport">
     <div class="screens-track" id="screensTrack">
 
-        <!-- HOME -->
-        <div class="screen active" data-screen-name="Home">
+        <!-- ========== MAIN ========== -->
+        <div class="screen active" data-screen-name="Main">
             <div class="screen-inner">
                 <div class="screen-header">
                     <div>
-                        <div class="home-greeting" id="homeGreeting">Привет</div>
-                        <div class="home-date" id="homeDate"></div>
+                        <div class="home-greeting" id="mainGreeting">Привет</div>
+                        <div class="home-date" id="mainDate"></div>
                     </div>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="screen-content"><div id="homeWidgets"></div></div>
+                <div class="screen-content">
+                    <div id="mainTodosWidget"></div>
+                    <div id="mainHabitsWidget"></div>
+                    <div id="mainMoneyWidget"></div>
+                </div>
             </div>
         </div>
 
-        <!-- DISCIPLINE -->
+        <!-- ========== DISCIPLINE ========== -->
         <div class="screen" data-screen-name="Discipline">
             <div class="screen-inner">
                 <div class="screen-header">
@@ -40,20 +44,13 @@
                 <div class="screen-content">
 
                     <div id="discipline-habits" class="subtab active">
-                        <div class="todos-block">
-                            <div class="goals-header">
-                                <span class="goals-header-title">Дела</span>
-                                <button class="btn-icon-add" onclick="openTodoModal()">+</button>
-                            </div>
-                            <div class="todos-day-nav">
-                                <button class="week-nav-btn" onclick="todosPrevDay()">‹</button>
-                                <div class="todos-day-label" id="todosDayLabel" onclick="todosToday()">Сегодня</div>
-                                <button class="week-nav-btn" onclick="todosNextDay()">›</button>
-                            </div>
-                            <div id="todosList"></div>
+                        <div class="goals-header">
+                            <span class="goals-header-title">Дела</span>
+                            <button class="btn-icon-add" onclick="openTodoModal()">+</button>
                         </div>
+                        <div id="todosList"></div>
 
-                        <div class="goals-header" style="margin-top:20px;">
+                        <div class="goals-header" style="margin-top:24px;">
                             <span class="goals-header-title">Привычки</span>
                             <button class="btn-icon-add" onclick="openHabitModal()">+</button>
                         </div>
@@ -67,8 +64,8 @@
 
                     <div id="discipline-goals" class="subtab">
                         <div class="goals-header">
-                            <span class="goals-header-title">Мои области</span>
-                            <button class="btn-icon-add" onclick="openAddModal('area')">+</button>
+                            <span class="goals-header-title">Области</span>
+                            <button class="btn-icon-add" onclick="openAreaModal()">+</button>
                         </div>
                         <div id="areasList"></div>
                     </div>
@@ -77,7 +74,46 @@
             </div>
         </div>
 
-        <!-- CASH -->
+        <!-- ========== GYM ========== -->
+        <div class="screen" data-screen-name="Gym">
+            <div class="screen-inner">
+                <div class="screen-header">
+                    <h2>💪🏽 Gym</h2>
+                    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
+                    <button class="tab" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
+                </div>
+                <div class="screen-content">
+
+                    <div id="gym-programs" class="subtab active">
+                        <div class="goals-header">
+                            <span class="goals-header-title">Программы</span>
+                            <button class="btn-icon-add" onclick="openProgramModal()">+</button>
+                        </div>
+                        <div id="programsList"></div>
+                    </div>
+
+                    <div id="gym-metrics" class="subtab">
+                        <div class="goals-header metrics-header">
+                            <span class="goals-header-title">Биометрия</span>
+                            <button class="btn-icon-add" onclick="openMetricModal('bio')">+</button>
+                        </div>
+                        <div id="bioTable"></div>
+
+                        <div class="goals-header metrics-header section-top">
+                            <span class="goals-header-title">Сила</span>
+                            <button class="btn-icon-add" onclick="openMetricModal('strength')">+</button>
+                        </div>
+                        <div id="strengthTable"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== CASH ========== -->
         <div class="screen" data-screen-name="Cash">
             <div class="screen-inner">
                 <div class="screen-header">
@@ -91,7 +127,6 @@
                 </div>
                 <div class="screen-content">
 
-                    <!-- БЮДЖЕТ -->
                     <div id="cash-budget" class="subtab active">
                         <div class="budget-hero" onclick="openBudgetModal()">
                             <div class="budget-hero-label">Бюджет на месяц</div>
@@ -118,10 +153,8 @@
                         </div>
                     </div>
 
-                    <!-- КОПИЛКА -->
                     <div id="cash-piggy" class="subtab">
                         <div class="piggy-grid" id="piggyGrid"></div>
-
                         <div class="goals-header" style="margin-top:24px;">
                             <span class="goals-header-title">История</span>
                             <button class="btn-icon-add" onclick="openPiggyModal()">+</button>
@@ -129,10 +162,9 @@
                         <div id="piggyList"></div>
                     </div>
 
-                    <!-- WISHLIST -->
                     <div id="cash-wishlist" class="subtab">
                         <div class="goals-header">
-                            <span class="goals-header-title">Мои области</span>
+                            <span class="goals-header-title">Области</span>
                             <button class="btn-icon-add" onclick="openWishlistAreaModal()">+</button>
                         </div>
                         <div id="wishlistGrid"></div>
@@ -142,55 +174,51 @@
             </div>
         </div>
 
-        <!-- GYM -->
-        <div class="screen" data-screen-name="Gym">
+        <!-- ========== PLACES ========== -->
+        <div class="screen" data-screen-name="Places">
             <div class="screen-inner">
                 <div class="screen-header">
-                    <h2>🏋️ Gym</h2>
+                    <h2>📍 Places</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
+                <div class="places-filters">
+                    <select class="places-filter" id="placesFilterType" onchange="onPlacesFilterChange()">
+                        <option value="">Все типы</option>
+                    </select>
+                    <select class="places-filter" id="placesFilterCity" onchange="onPlacesFilterChange()">
+                        <option value="">Все города</option>
+                    </select>
+                    <select class="places-filter" id="placesFilterRating" onchange="onPlacesFilterChange()">
+                        <option value="">Оценка</option>
+                        <option value="9">9+</option>
+                        <option value="8">8+</option>
+                        <option value="7">7+</option>
+                        <option value="5">5+</option>
+                    </select>
+                </div>
                 <div class="tabs">
-                    <button class="tab active" onclick="switchSubTab('gym', 'programs', this)">Программы</button>
-                    <button class="tab" onclick="switchSubTab('gym', 'metrics', this)">Метрики</button>
+                    <button class="tab active" onclick="switchSubTab('places', 'want', this)">Хочу</button>
+                    <button class="tab" onclick="switchSubTab('places', 'visited', this)">Был</button>
                 </div>
                 <div class="screen-content">
 
-                    <div id="gym-programs" class="subtab active">
+                    <div id="places-want" class="subtab active">
                         <div class="goals-header">
-                            <span class="goals-header-title">Программы</span>
-                            <button class="btn-icon-add" onclick="openNewProgramModal()">+</button>
+                            <span class="goals-header-title">Типы</span>
+                            <button class="btn-icon-add" onclick="openPlaceTypeModal()">+</button>
                         </div>
-                        <div id="programsList"></div>
+                        <div id="placesWantList"></div>
                     </div>
 
-                    <div id="gym-metrics" class="subtab">
-                        <div class="goals-header metrics-header">
-                            <span class="goals-header-title">Биометрия</span>
-                            <button class="btn-icon-add" onclick="openAddMetric('bio')">+</button>
-                        </div>
-                        <div id="bioTable"></div>
-
-                        <div class="goals-header metrics-header section-top">
-                            <span class="goals-header-title">Сила</span>
-                            <button class="btn-icon-add" onclick="openAddMetric('strength')">+</button>
-                        </div>
-                        <div id="strengthTable"></div>
+                    <div id="places-visited" class="subtab">
+                        <div id="placesVisitedList"></div>
                     </div>
 
                 </div>
             </div>
         </div>
 
-        <!-- FOOD -->
-        <div class="screen" data-screen-name="Food">
-            <div class="screen-inner">
-                <div class="screen-header"><h2>🍽️ Food</h2><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
-                <div class="tabs"><button class="tab active">Дневник</button><button class="tab">Рецепты</button><button class="tab">Покупки</button></div>
-                <div class="screen-content"><p class="hint">Скоро.</p></div>
-            </div>
-        </div>
-
-        <!-- FILM -->
+        <!-- ========== FILM ========== -->
         <div class="screen" data-screen-name="Film">
             <div class="screen-inner">
                 <div class="screen-header">
@@ -206,7 +234,7 @@
                     <div id="film-list" class="subtab active">
                         <div class="film-actions">
                             <button class="film-random-btn" onclick="randomMovie('want')">Случайный</button>
-                            <button class="film-random-btn" onclick="randomMovie('rewatch')">Пересмотреть</button>
+                            <button class="film-random-btn" onclick="randomMovie('rewatch')">Пересмотр</button>
                             <button class="btn-icon-add" onclick="openFilmGenreModal()">+</button>
                         </div>
                         <div id="filmGenres"></div>
@@ -220,11 +248,11 @@
             </div>
         </div>
 
-        <!-- TEA -->
+        <!-- ========== TEA ========== -->
         <div class="screen" data-screen-name="Tea">
             <div class="screen-inner">
                 <div class="screen-header">
-                    <h2>🍵 Tea</h2>
+                    <h2>☕️ Tea</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
                 <div class="screen-content">
@@ -245,55 +273,26 @@
             </div>
         </div>
 
-        <!-- PLACES -->
-        <div class="screen" data-screen-name="Places">
+        <!-- ========== FOOD ========== -->
+        <div class="screen" data-screen-name="Food">
             <div class="screen-inner">
                 <div class="screen-header">
-                    <h2>📍 Places</h2>
+                    <h2>🍽️ Food</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                    <div class="places-filters">
-                        <select class="places-filter" id="placesFilterType" onchange="onPlacesFilterChange()">
-                            <option value="">Все типы</option>
-                        </select>
-                        <select class="places-filter" id="placesFilterCity" onchange="onPlacesFilterChange()">
-                            <option value="">Все города</option>
-                        </select>
-                        <select class="places-filter" id="placesFilterRating" onchange="onPlacesFilterChange()">
-                            <option value="">Оценка</option>
-                            <option value="9">9+</option>
-                            <option value="8">8+</option>
-                            <option value="7">7+</option>
-                            <option value="5">5+</option>
-                        </select>
-                    </div>
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchSubTab('places', 'want', this)">Хочу</button>
-                        <button class="tab" onclick="switchSubTab('places', 'visited', this)">Был</button>
-                    </div>
-                    <div class="screen-content">
-
-                        <div id="places-want" class="subtab active">
-                        <div class="film-actions">
-                            <div style="flex:1;"></div>
-                            <button class="btn-icon-add" onclick="openPlacesTypeModal()">+</button>
-                        </div>
-                        <div id="placesWantList"></div>
-                    </div>
-
-                    <div id="places-visited" class="subtab">
-                        <div id="placesVisitedList"></div>
-                    </div>
-
-                </div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
             </div>
         </div>
 
-        <!-- SETTINGS -->
+        <!-- ========== SETTINGS ========== -->
         <div class="screen" data-screen-name="Settings">
             <div class="screen-inner">
-                <div class="screen-header"><h2>⚙️ Настройки</h2><button class="settings-btn" onclick="closeSettings()">✕</button></div>
+                <div class="screen-header">
+                    <h2>⚙️ Настройки</h2>
+                    <button class="settings-btn" onclick="closeSettings()">✕</button>
+                </div>
                 <div class="screen-content">
+
                     <div class="user-info-card">
                         <div class="user-info-avatar" id="settingsAvatar">?</div>
                         <div class="user-info-text">
@@ -301,6 +300,7 @@
                             <div class="user-info-id" id="settingsUserId">ID: —</div>
                         </div>
                     </div>
+
                     <div class="settings-section">
                         <div class="settings-section-title">Оформление</div>
                         <div class="theme-switcher">
@@ -309,13 +309,55 @@
                             <button class="theme-option" data-theme-value="dark" onclick="setThemeMode('dark', this)">🌙 Тёмная</button>
                         </div>
                     </div>
+
                     <div class="settings-section">
-                        <div class="settings-section-title">Данные</div>
-                        <button class="settings-item" onclick="exportBackup()">
-                            <span class="settings-item-label"><span class="settings-item-icon">📥</span><span>Скачать бекап</span></span>
+                        <div class="settings-section-title">Бекап: скачать в файл</div>
+                        <button class="settings-item" onclick="backupDownload('discipline')">
+                            <span class="settings-item-label"><span class="settings-item-icon">🎯</span><span>Дисциплина</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                        <button class="settings-item" onclick="backupDownload('cash')">
+                            <span class="settings-item-label"><span class="settings-item-icon">💸</span><span>Cash</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                        <button class="settings-item" onclick="backupDownload('gym')">
+                            <span class="settings-item-label"><span class="settings-item-icon">💪🏽</span><span>Gym</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                        <button class="settings-item" onclick="backupDownload('film')">
+                            <span class="settings-item-label"><span class="settings-item-icon">🎬</span><span>Film</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                        <button class="settings-item" onclick="backupDownload('tea')">
+                            <span class="settings-item-label"><span class="settings-item-icon">☕️</span><span>Tea</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                        <button class="settings-item" onclick="backupDownload('places')">
+                            <span class="settings-item-label"><span class="settings-item-icon">📍</span><span>Places</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                        <button class="settings-item" onclick="backupDownload('all')">
+                            <span class="settings-item-label"><span class="settings-item-icon">📦</span><span>Всё сразу</span></span>
+                            <span class="settings-item-arrow">↓</span>
+                        </button>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Бекап: сохранить в GitHub</div>
+                        <button class="settings-item" onclick="backupGithub('all')">
+                            <span class="settings-item-label"><span class="settings-item-icon">☁️</span><span>Сохранить всё в GitHub</span></span>
+                            <span class="settings-item-arrow">↑</span>
+                        </button>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Бекап: отправить в Telegram</div>
+                        <button class="settings-item" onclick="backupToTelegram('all')">
+                            <span class="settings-item-label"><span class="settings-item-icon">📤</span><span>Отправить всё в чат с ботом</span></span>
                             <span class="settings-item-arrow">→</span>
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -323,31 +365,39 @@
     </div>
 </div>
 
+<!-- ========================================== -->
 <!-- НИЖНЕЕ МЕНЮ -->
+<!-- ========================================== -->
 <nav class="bottom-nav" id="bottomNav">
-    <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">🏠</span><span class="nav-label">Главная</span></button>
+    <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
     <button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
-    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
-    <button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">🏋️</span><span class="nav-label">Gym</span></button>
-    <button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">🍽️</span><span class="nav-label">Food</span></button>
+    <button class="nav-btn" data-index="2" onclick="goToScreen(2)"><span class="nav-icon">💪🏽</span><span class="nav-label">Gym</span></button>
+    <button class="nav-btn" data-index="3" onclick="goToScreen(3)"><span class="nav-icon">💸</span><span class="nav-label">Cash</span></button>
+    <button class="nav-btn" data-index="4" onclick="goToScreen(4)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
     <button class="nav-btn" data-index="5" onclick="goToScreen(5)"><span class="nav-icon">🎬</span><span class="nav-label">Film</span></button>
-    <button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">🍵</span><span class="nav-label">Tea</span></button>
-    <button class="nav-btn" data-index="7" onclick="goToScreen(7)"><span class="nav-icon">📍</span><span class="nav-label">Places</span></button>
+    <button class="nav-btn" data-index="6" onclick="goToScreen(6)"><span class="nav-icon">☕️</span><span class="nav-label">Tea</span></button>
+    <button class="nav-btn" data-index="7" onclick="goToScreen(7)"><span class="nav-icon">🍽️</span><span class="nav-label">Food</span></button>
 </nav>
 
-<!-- МОДАЛКИ -->
-<div class="modal-overlay" id="inputModal">
+<!-- ========================================== -->
+<!-- УНИВЕРСАЛЬНАЯ МОДАЛКА: ВВОД НАЗВАНИЯ -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="nameModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="inputModalTitle">Добавить</h3>
-        <input type="text" class="modal-input" id="inputModalField" placeholder="Название..." />
+        <h3 class="modal-title" id="nameModalTitle">Введите название</h3>
+        <input type="text" class="modal-input" id="nameModalField" placeholder="..." />
         <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeInputModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="submitInputModal()">Сохранить</button>
+            <button class="modal-btn danger" id="nameModalDelete" style="display:none;" onclick="nameModalDoDelete()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeNameModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveNameModal()">Сохранить</button>
         </div>
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- ПРИВЫЧКА -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="habitModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -379,13 +429,75 @@
             </div>
         </div>
         <div class="modal-actions" style="margin-top:20px;">
-            <button class="modal-btn secondary" id="habitDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteHabitFromModal()">Удалить</button>
+            <button class="modal-btn danger" id="habitDeleteBtn" style="display:none;" onclick="deleteHabit()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeHabitModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveHabit()">Сохранить</button>
         </div>
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- ДЕЛО -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="todoModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="todoModalTitle">Новое дело</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
+        <div class="field-label">Дата (необязательно)</div>
+        <input type="date" class="modal-input" id="todoDate" />
+        <div class="field-label">Время (необязательно)</div>
+        <div class="todo-time-row">
+            <input type="time" class="modal-input" id="todoTimeStart" />
+            <span class="todo-time-sep">—</span>
+            <input type="time" class="modal-input" id="todoTimeEnd" />
+        </div>
+        <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn danger" id="todoDeleteBtn" style="display:none;" onclick="deleteTodo()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeTodoModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveTodo()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ОБЛАСТЬ (цели) -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="areaModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="areaModalTitle">Новая область</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="areaName" placeholder="Например: Спорт" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="areaDeleteBtn" style="display:none;" onclick="deleteAreaFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeAreaModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveArea()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ЦЕЛЬ -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="goalModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="goalModalTitle">Новая цель</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="goalName" placeholder="Например: кмс" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="goalDeleteBtn" style="display:none;" onclick="deleteGoalFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeGoalModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveGoal()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- БЮДЖЕТ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="budgetModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -399,25 +511,13 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="cashAddModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="cashAddTitle">Добавить</h3>
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="cashAddName" placeholder="Название..." />
-        <div class="field-label">Сумма</div>
-        <input type="number" class="modal-input" id="cashAddAmount" placeholder="0" />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeCashAddModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveCashAdd()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
+<!-- ========================================== -->
+<!-- ДОП. ПАНЕЛЬ БЮДЖЕТА -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="customStatModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Новая панель</h3>
+        <h3 class="modal-title" id="customStatTitle">Новая панель</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="customStatName" placeholder="Например: Инвестиции" />
         <div class="field-label">Тип</div>
@@ -428,37 +528,82 @@
         <div class="field-label" style="margin-top:12px;">Значение</div>
         <input type="number" class="modal-input" id="customStatValue" placeholder="0" />
         <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn danger" id="customStatDeleteBtn" style="display:none;" onclick="deleteCustomStatFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeCustomStatModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveCustomStat()">Сохранить</button>
         </div>
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- РАЗОВАЯ / НЕДЕЛЬНАЯ ТРАТА -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="cashAddModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="cashAddTitle">Добавить</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="cashAddName" placeholder="Название..." />
+        <div class="field-label">Сумма</div>
+        <input type="number" class="modal-input" id="cashAddAmount" placeholder="0" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="cashAddDeleteBtn" style="display:none;" onclick="deleteCashAddFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeCashAddModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveCashAdd()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ОБЛАСТЬ ВИШЛИСТА -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="wishlistAreaModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="wishlistAreaTitle">Новая область</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="wishlistAreaName" placeholder="Например: Техника" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="wishlistAreaDeleteBtn" style="display:none;" onclick="deleteWishlistAreaFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeWishlistAreaModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveWishlistArea()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ТОВАР ВИШЛИСТА -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="wishlistModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Добавить покупку</h3>
+        <h3 class="modal-title" id="wishlistTitle">Новый товар</h3>
         <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="wishName" placeholder="Что хочу" />
+        <input type="text" class="modal-input" id="wishlistName" placeholder="Что хочу" />
         <div class="field-label">Цена</div>
-        <input type="number" class="modal-input" id="wishPrice" placeholder="0" />
+        <input type="number" class="modal-input" id="wishlistPrice" placeholder="0" />
         <div class="field-label">Область</div>
-        <input type="text" class="modal-input" id="wishArea" placeholder="Например: Техника" />
+        <select class="modal-input modal-select" id="wishlistAreaSelect"></select>
         <div class="field-label">Ссылка (опционально)</div>
-        <input type="text" class="modal-input" id="wishUrl" placeholder="https://..." />
-        <div class="modal-actions" style="margin-top:20px;">
+        <input type="text" class="modal-input" id="wishlistUrl" placeholder="https://..." />
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn danger" id="wishlistDeleteBtn" style="display:none;" onclick="deleteWishlistFromModal()">Удалить</button>
+            <button class="modal-btn secondary" id="wishlistOpenLinkBtn" style="display:none;" onclick="openWishlistLink()">Ссылка</button>
             <button class="modal-btn secondary" onclick="closeWishlistModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveWishlist()">Сохранить</button>
         </div>
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- ЗАПИСЬ В КОПИЛКЕ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="piggyModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Добавить в историю</h3>
-        <div class="field-label">Название / на что</div>
-        <input type="text" class="modal-input" id="piggyDesc" placeholder="Описание" />
+        <h3 class="modal-title" id="piggyTitle">Новая запись</h3>
+        <div class="field-label">Описание</div>
+        <input type="text" class="modal-input" id="piggyDesc" placeholder="На что / откуда" />
         <div class="field-label">Сумма</div>
         <input type="number" class="modal-input" id="piggyAmount" placeholder="0" />
         <div class="field-label">Тип</div>
@@ -466,13 +611,19 @@
             <button class="freq-tab active" data-ptype="withdraw" onclick="pickPiggyType('withdraw', this)">↑ Трата</button>
             <button class="freq-tab" data-ptype="deposit" onclick="pickPiggyType('deposit', this)">↓ Пополнение</button>
         </div>
+        <div class="field-label" style="margin-top:12px;">Дата</div>
+        <input type="date" class="modal-input" id="piggyDate" />
         <div class="modal-actions" style="margin-top:20px;">
+            <button class="modal-btn danger" id="piggyDeleteBtn" style="display:none;" onclick="deletePiggyFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closePiggyModal()">Отмена</button>
             <button class="modal-btn primary" onclick="savePiggy()">Сохранить</button>
         </div>
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- ЕСТЬ ПО ФАКТУ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="factModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -486,29 +637,85 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="wishlistAreaModal">
+<!-- ========================================== -->
+<!-- ПРОГРАММА -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="programModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Новая область</h3>
-        <input type="text" class="modal-input" id="wishAreaName" placeholder="Например: Техника" />
+        <h3 class="modal-title" id="programTitle">Новая программа</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="programName" placeholder="Например: Фул бади" />
         <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeWishlistAreaModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveWishlistArea()">Сохранить</button>
+            <button class="modal-btn danger" id="programDeleteBtn" style="display:none;" onclick="deleteProgramFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeProgramModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveProgram()">Сохранить</button>
         </div>
     </div>
 </div>
 
 <!-- ========================================== -->
-<!-- МОДАЛКА: НОВАЯ МЕТРИКА -->
+<!-- ТРЕНИРОВКА (день) -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="dayModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="dayTitle">Новая тренировка</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="dayName" placeholder="Например: Грудь бицепс" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="dayDeleteBtn" style="display:none;" onclick="deleteDayFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeDayModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveDay()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- УПРАЖНЕНИЕ -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="exerciseModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="exerciseTitle">Новое упражнение</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="exerciseName" placeholder="Например: Жим лёжа" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="exerciseDeleteBtn" style="display:none;" onclick="deleteExerciseFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeExerciseModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveExercise()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ПОДХОД -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="setModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="setTitle">Новый подход</h3>
+        <div class="field-label">Повторения</div>
+        <input type="number" class="modal-input" id="setReps" placeholder="10" />
+        <div class="field-label">Вес (кг)</div>
+        <input type="number" class="modal-input" id="setWeight" placeholder="20" step="0.5" />
+        <div class="modal-actions">
+            <button class="modal-btn danger" id="setDeleteBtn" style="display:none;" onclick="deleteSetFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeSetModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveSet()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- МЕТРИКА -->
 <!-- ========================================== -->
 <div class="modal-overlay" id="metricModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="metricModalTitle">Новая метрика</h3>
-
+        <h3 class="modal-title" id="metricTitle">Новая метрика</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="metricName" placeholder="Например: Вес" />
-
         <div class="field-label">Единица</div>
         <select class="modal-input modal-select" id="metricUnit">
             <option value="кг">кг</option>
@@ -519,11 +726,10 @@
             <option value="км">км</option>
             <option value="шт">шт</option>
         </select>
-
         <div class="field-label">Цель (опционально)</div>
         <input type="number" class="modal-input" id="metricTarget" placeholder="Необязательно" step="0.1" />
-
         <div class="modal-actions">
+            <button class="modal-btn danger" id="metricDeleteBtn" style="display:none;" onclick="deleteMetricFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeMetricModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveMetric()">Сохранить</button>
         </div>
@@ -531,21 +737,18 @@
 </div>
 
 <!-- ========================================== -->
-<!-- МОДАЛКА: ДОБАВИТЬ ЗАМЕР -->
+<!-- ЗАМЕР -->
 <!-- ========================================== -->
 <div class="modal-overlay" id="metricLogModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
         <h3 class="modal-title" id="metricLogTitle">Замер</h3>
-
         <div class="field-label">Значение</div>
         <input type="number" class="modal-input" id="logValue" placeholder="0" step="0.1" />
-
         <div class="field-label">Дата</div>
         <input type="date" class="modal-input" id="logDate" />
-
         <div class="modal-actions">
-            <button class="modal-btn secondary" id="logDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteCurrentLog()">Удалить</button>
+            <button class="modal-btn danger" id="logDeleteBtn" style="display:none;" onclick="deleteLogFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeMetricLogModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveMetricLog()">Сохранить</button>
         </div>
@@ -553,160 +756,64 @@
 </div>
 
 <!-- ========================================== -->
-<!-- МОДАЛКА: ГРАФИК МЕТРИКИ -->
+<!-- ЖАНР ФИЛЬМОВ -->
 <!-- ========================================== -->
-<div class="modal-overlay" id="metricChartModal">
-    <div class="modal-sheet" style="max-height:85vh;">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="metricChartTitle">Метрика</h3>
-
-        <div class="metric-chart-wrap">
-            <canvas id="metricChartCanvas"></canvas>
-        </div>
-
-        <div class="goals-header" style="margin-top:20px;">
-            <span class="goals-header-title">История</span>
-            <button class="btn-icon-add" onclick="openMetricLogFromChart()">+</button>
-        </div>
-        <div id="metricHistory"></div>
-
-        <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" onclick="deleteCurrentMetric()">Удалить метрику</button>
-            <button class="modal-btn primary" onclick="closeMetricChartModal()">Готово</button>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<!-- МОДАЛКА: НОВАЯ ПРОГРАММА -->
-<div class="modal-overlay" id="newProgramModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title">Новая программа</h3>
-        <input type="text" class="modal-input" id="programName" placeholder="Например: Фул бади" />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeNewProgramModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveNewProgram()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: НАЗВАНИЕ (день/упражнение) -->
-<div class="modal-overlay" id="namePromptModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="namePromptTitle">Введите название</h3>
-        <input type="text" class="modal-input" id="namePromptField" placeholder="..." />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeNamePrompt()">Отмена</button>
-            <button class="modal-btn primary" onclick="submitNamePrompt()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: НОВЫЙ ПОДХОД -->
-<div class="modal-overlay" id="newSetModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="newSetTitle">Новый подход</h3>
-        <div class="field-label">Повторения</div>
-        <input type="number" class="modal-input" id="setReps" placeholder="10" />
-        <div class="field-label">Вес (кг)</div>
-        <input type="number" class="modal-input" id="setWeight" placeholder="20" step="0.5" />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeNewSetModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveNewSet()">Добавить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: НОВЫЙ ЖАНР -->
 <div class="modal-overlay" id="filmGenreModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Новый жанр</h3>
+        <h3 class="modal-title" id="filmGenreTitle">Новый жанр</h3>
+        <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="filmGenreName" placeholder="Например: Комедии" />
         <div class="modal-actions">
+            <button class="modal-btn danger" id="filmGenreDeleteBtn" style="display:none;" onclick="deleteFilmGenreFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeFilmGenreModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveFilmGenre()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- МОДАЛКА: НОВЫЙ ФИЛЬМ -->
+<!-- ========================================== -->
+<!-- ФИЛЬМ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="filmModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="filmModalTitle">Новый фильм</h3>
-
+        <h3 class="modal-title" id="filmTitle">Новый фильм</h3>
         <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="filmTitle" placeholder="Например: Криминальное чтиво" />
-
+        <input type="text" class="modal-input" id="filmName" placeholder="Например: Криминальное чтиво" />
         <div class="field-label">Год</div>
         <input type="number" class="modal-input" id="filmYear" placeholder="1994" />
-
         <div class="field-label">Жанр</div>
         <select class="modal-input modal-select" id="filmGenreSelect"></select>
-
         <div class="field-label">Приоритет (1-5)</div>
         <div class="priority-picker" id="filmPriority">
-            <button data-p="1" onclick="pickPriority(1,this)">1</button>
-            <button data-p="2" onclick="pickPriority(2,this)">2</button>
-            <button data-p="3" onclick="pickPriority(3,this)">3</button>
-            <button data-p="4" onclick="pickPriority(4,this)">4</button>
-            <button data-p="5" onclick="pickPriority(5,this)">5</button>
+            <button data-p="1" onclick="pickFilmPriority(1,this)">1</button>
+            <button data-p="2" onclick="pickFilmPriority(2,this)">2</button>
+            <button data-p="3" onclick="pickFilmPriority(3,this)">3</button>
+            <button data-p="4" onclick="pickFilmPriority(4,this)">4</button>
+            <button data-p="5" onclick="pickFilmPriority(5,this)">5</button>
         </div>
-
-        <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" onclick="closeFilmModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveFilm()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: КАРТОЧКА ФИЛЬМА -->
-<div class="modal-overlay" id="filmCardModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="filmCardTitle">Фильм</h3>
-
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="filmCardName" />
-
-        <div class="field-label">Год</div>
-        <input type="number" class="modal-input" id="filmCardYear" placeholder="Необязательно" />
-
-        <div class="field-label">Приоритет (1-5)</div>
-        <div class="priority-picker" id="filmCardPriority">
-            <button data-p="1" onclick="pickCardPriority(1,this)">1</button>
-            <button data-p="2" onclick="pickCardPriority(2,this)">2</button>
-            <button data-p="3" onclick="pickCardPriority(3,this)">3</button>
-            <button data-p="4" onclick="pickCardPriority(4,this)">4</button>
-            <button data-p="5" onclick="pickCardPriority(5,this)">5</button>
-        </div>
-
         <div class="field-label" style="margin-top:12px;">Статус</div>
         <div class="freq-tabs" id="filmStatusTabs">
             <button class="freq-tab" data-st="want" onclick="pickFilmStatus('want', this)">Хочу</button>
             <button class="freq-tab" data-st="watching" onclick="pickFilmStatus('watching', this)">Смотрю</button>
             <button class="freq-tab" data-st="watched" onclick="pickFilmStatus('watched', this)">Посмотрел</button>
         </div>
-
         <div class="field-label" style="margin-top:12px;">Оценка (1-10)</div>
         <input type="number" class="modal-input" id="filmRating" min="1" max="10" placeholder="Необязательно" />
-
         <div class="field-label">Отзыв</div>
         <input type="text" class="modal-input" id="filmReview" placeholder="Коротко о впечатлении..." />
-
         <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" style="color:var(--danger);" onclick="deleteCurrentFilm()">Удалить</button>
-            <button class="modal-btn primary" onclick="saveFilmCard()">Сохранить</button>
+            <button class="modal-btn danger" id="filmDeleteBtn" style="display:none;" onclick="deleteFilmFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeFilmModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveFilm()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- МОДАЛКА: РАНДОМ -->
+<!-- ========================================== -->
+<!-- РАНДОМ ФИЛЬМА -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="randomFilmModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -719,159 +826,113 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="filmGenreEditModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title">Изменить жанр</h3>
-        <input type="text" class="modal-input" id="filmGenreEditName" />
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeFilmGenreEdit()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveFilmGenreEdit()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: НОВАЯ ГРУППА ЧАЯ -->
+<!-- ========================================== -->
+<!-- ГРУППА ЧАЯ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="teaGroupModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="teaGroupModalTitle">Новая группа</h3>
+        <h3 class="modal-title" id="teaGroupTitle">Новая группа</h3>
+        <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="teaGroupName" placeholder="Например: Бодрящий" />
         <div class="modal-actions">
+            <button class="modal-btn danger" id="teaGroupDeleteBtn" style="display:none;" onclick="deleteTeaGroupFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeTeaGroupModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveTeaGroup()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- МОДАЛКА: НОВЫЙ ЧАЙ -->
+<!-- ========================================== -->
+<!-- ЧАЙ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="teaModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Новый чай</h3>
-
+        <h3 class="modal-title" id="teaTitle">Новый чай</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="teaName" placeholder="Например: Да Хун Пао" />
-
         <div class="field-label">Группа</div>
         <select class="modal-input modal-select" id="teaGroupSelect"></select>
-
         <div class="field-label">Температура (°C)</div>
         <input type="number" class="modal-input" id="teaTemp" placeholder="90" />
-
-        <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" onclick="closeTeaModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveTea()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: КАРТОЧКА ЧАЯ -->
-<div class="modal-overlay" id="teaCardModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="teaCardTitle">Чай</h3>
-
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="teaCardName" />
-
-        <div class="field-label">Группа</div>
-        <select class="modal-input modal-select" id="teaCardGroup"></select>
-
-        <div class="field-label">Температура (°C)</div>
-        <input type="number" class="modal-input" id="teaCardTemp" placeholder="—" />
-
         <div class="field-label">Отзыв</div>
-        <input type="text" class="modal-input" id="teaCardReview" placeholder="Впечатления..." />
-
+        <input type="text" class="modal-input" id="teaReview" placeholder="Впечатления..." />
         <div class="field-label">Оценка (1-5)</div>
-        <div class="priority-picker" id="teaRatingPicker">
+        <div class="priority-picker" id="teaRating">
             <button data-r="1" onclick="pickTeaRating(1,this)">1</button>
             <button data-r="2" onclick="pickTeaRating(2,this)">2</button>
             <button data-r="3" onclick="pickTeaRating(3,this)">3</button>
             <button data-r="4" onclick="pickTeaRating(4,this)">4</button>
             <button data-r="5" onclick="pickTeaRating(5,this)">5</button>
         </div>
-
         <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" style="color:var(--danger);" onclick="deleteCurrentTea()">Удалить</button>
-            <button class="modal-btn primary" onclick="saveTeaCard()">Сохранить</button>
+            <button class="modal-btn danger" id="teaDeleteBtn" style="display:none;" onclick="deleteTeaFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closeTeaModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveTea()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- МОДАЛКА: ССЫЛКА -->
+<!-- ========================================== -->
+<!-- МАГАЗИН ЧАЯ -->
+<!-- ========================================== -->
 <div class="modal-overlay" id="teaShopModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title">Новый магазин</h3>
-        <div class="field-label">Название магазина</div>
+        <h3 class="modal-title" id="teaShopTitle">Новый магазин</h3>
+        <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="teaShopName" placeholder="Например: Мойчай.ру" />
         <div class="field-label">Ссылка</div>
         <input type="text" class="modal-input" id="teaShopUrl" placeholder="https://..." />
         <div class="modal-actions">
+            <button class="modal-btn danger" id="teaShopDeleteBtn" style="display:none;" onclick="deleteTeaShopFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeTeaShopModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveTeaShop()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="todoModal">
+<!-- ========================================== -->
+<!-- ТИП МЕСТ -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="placeTypeModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="todoModalTitle">Новое дело</h3>
-        <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
-
-        <div class="field-label">Время (необязательно)</div>
-        <div class="todo-time-row">
-            <input type="time" class="modal-input" id="todoTimeStart" />
-            <span class="todo-time-sep">—</span>
-            <input type="time" class="modal-input" id="todoTimeEnd" />
-        </div>
-
-        <div class="modal-actions" style="margin-top:20px;">
-            <button class="modal-btn secondary" id="todoDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteTodoFromModal()">Удалить</button>
-            <button class="modal-btn secondary" onclick="closeTodoModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="saveTodo()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: НОВЫЙ ТИП МЕСТА -->
-<div class="modal-overlay" id="placesTypeModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="placesTypeModalTitle">Новый тип</h3>
-        <input type="text" class="modal-input" id="placesTypeName" placeholder="Например: Кафе" />
+        <h3 class="modal-title" id="placeTypeTitle">Новый тип</h3>
+        <div class="field-label">Название</div>
+        <input type="text" class="modal-input" id="placeTypeName" placeholder="Например: Кафе" />
         <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closePlacesTypeModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="savePlacesType()">Сохранить</button>
+            <button class="modal-btn danger" id="placeTypeDeleteBtn" style="display:none;" onclick="deletePlaceTypeFromModal()">Удалить</button>
+            <button class="modal-btn secondary" onclick="closePlaceTypeModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="savePlaceType()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- МОДАЛКА: НОВОЕ МЕСТО -->
-<div class="modal-overlay" id="placesItemModal">
+<!-- ========================================== -->
+<!-- МЕСТО -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="placeModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <h3 class="modal-title" id="placesItemTitle">Новое место</h3>
-
+        <h3 class="modal-title" id="placeTitle">Новое место</h3>
         <div class="field-label">Название</div>
         <input type="text" class="modal-input" id="placeName" placeholder="Например: Кафе Пушкин" />
-
         <div class="field-label">Тип</div>
         <select class="modal-input modal-select" id="placeTypeSelect"></select>
-
         <div class="field-label">Город</div>
         <input type="text" class="modal-input" id="placeCity" placeholder="Например: Москва" />
-
         <div class="field-label">Страна</div>
         <input type="text" class="modal-input" id="placeCountry" placeholder="Например: Россия" />
-
         <div class="field-label">Ссылка на карту</div>
         <input type="text" class="modal-input" id="placeMapUrl" placeholder="https://maps..." />
-
-        <div class="field-label">Приоритет (1-5)</div>
+        <div class="field-label">Статус</div>
+        <div class="freq-tabs" id="placeStatusTabs">
+            <button class="freq-tab" data-st="want" onclick="pickPlaceStatus('want', this)">Хочу</button>
+            <button class="freq-tab" data-st="visited" onclick="pickPlaceStatus('visited', this)">Был</button>
+        </div>
+        <div class="field-label" style="margin-top:12px;">Приоритет (1-5)</div>
         <div class="priority-picker" id="placePriority">
             <button data-p="1" onclick="pickPlacePriority(1,this)">1</button>
             <button data-p="2" onclick="pickPlacePriority(2,this)">2</button>
@@ -879,55 +940,15 @@
             <button data-p="4" onclick="pickPlacePriority(4,this)">4</button>
             <button data-p="5" onclick="pickPlacePriority(5,this)">5</button>
         </div>
-
-        <div class="modal-actions" style="margin-top:16px;">
-            <button class="modal-btn secondary" onclick="closePlacesItemModal()">Отмена</button>
-            <button class="modal-btn primary" onclick="savePlacesItem()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: КАРТОЧКА МЕСТА -->
-<div class="modal-overlay" id="placesCardModal">
-    <div class="modal-sheet">
-        <div class="modal-handle"></div>
-        <h3 class="modal-title" id="placesCardTitle">Место</h3>
-
-        <div class="field-label">Название</div>
-        <input type="text" class="modal-input" id="placeCardName" />
-
-        <div class="field-label">Город / Страна</div>
-        <input type="text" class="modal-input" id="placeCardCity" placeholder="Город" />
-        <input type="text" class="modal-input" id="placeCardCountry" placeholder="Страна" />
-
-        <div class="field-label">Ссылка на карту</div>
-        <input type="text" class="modal-input" id="placeCardMap" placeholder="https://maps..." />
-
-        <div class="field-label">Статус</div>
-        <div class="freq-tabs" id="placeStatusTabs">
-            <button class="freq-tab" data-st="want" onclick="pickPlaceStatus('want', this)">Хочу</button>
-            <button class="freq-tab" data-st="visited" onclick="pickPlaceStatus('visited', this)">Был</button>
-        </div>
-
-        <div class="field-label" style="margin-top:12px;">Приоритет (1-5)</div>
-        <div class="priority-picker" id="placeCardPriority">
-            <button data-p="1" onclick="pickPlaceCardPriority(1,this)">1</button>
-            <button data-p="2" onclick="pickPlaceCardPriority(2,this)">2</button>
-            <button data-p="3" onclick="pickPlaceCardPriority(3,this)">3</button>
-            <button data-p="4" onclick="pickPlaceCardPriority(4,this)">4</button>
-            <button data-p="5" onclick="pickPlaceCardPriority(5,this)">5</button>
-        </div>
-
         <div class="field-label" style="margin-top:12px;">Оценка (1-10)</div>
         <input type="number" class="modal-input" id="placeRating" min="1" max="10" placeholder="Необязательно" />
-
         <div class="field-label">Отзыв</div>
         <input type="text" class="modal-input" id="placeReview" placeholder="Впечатления..." />
-
         <div class="modal-actions" style="margin-top:16px;">
+            <button class="modal-btn danger" id="placeDeleteBtn" style="display:none;" onclick="deletePlaceFromModal()">Удалить</button>
             <button class="modal-btn secondary" id="placeOpenMapBtn" style="display:none;" onclick="openPlaceMap()">Карта</button>
-            <button class="modal-btn secondary" style="color:var(--danger);" onclick="deleteCurrentPlace()">Удалить</button>
-            <button class="modal-btn primary" onclick="savePlaceCard()">Сохранить</button>
+            <button class="modal-btn secondary" onclick="closePlaceModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="savePlace()">Сохранить</button>
         </div>
     </div>
 </div>
