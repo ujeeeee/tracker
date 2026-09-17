@@ -99,7 +99,7 @@ function goToScreen(index, animate = true) {
     window.scrollTo(0, 0);
 
     if (index === 0) loadHome();
-    if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadMonthChart(); loadTodos(); }
+    if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadTodos(); }
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
     if (index === 3) { loadPrograms(); loadMetrics(); }
     if (index === 5) loadFilm();
@@ -257,27 +257,9 @@ function renderWeek(data) {
 async function toggleWeekCell(habitId, date) {
     await api(`/api/disc/habits/${habitId}/toggle`, 'POST', { date });
     await loadWeek();
-    await loadMonthChart();
 }
 function weekPrev() { weekStart.setDate(weekStart.getDate() - 7); loadWeek(); }
 function weekNext() { weekStart.setDate(weekStart.getDate() + 7); loadWeek(); }
-
-// Chart
-async function loadMonthChart() {
-    try {
-        const { year, month, days } = await api('/api/disc/habits/month-stats');
-        const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-        document.getElementById('chartTitle').textContent = `Активность — ${months[month - 1]}`;
-        const max = Math.max(1, ...days.map(d => d.count));
-        const today = new Date().toISOString().slice(0,10);
-        document.getElementById('habitsChart').innerHTML = days.map(d => {
-            const h = Math.max(4, (d.count / max) * 100);
-            const cls = ['chart-bar', d.count === 0 ? 'zero' : '', d.date === today ? 'today' : ''].filter(Boolean).join(' ');
-            return `<div class="${cls}" style="height:${h}%"></div>`;
-        }).join('');
-        document.getElementById('chartLegend').innerHTML = `<span>1</span><span>${Math.ceil(days.length/2)}</span><span>${days.length}</span>`;
-    } catch (e) { console.error(e); }
-}
 
 // Habit modal
 let habitCtx = { id: null, freq: 'daily', days: [1,2,3,4,5,6,7], interval: 2 };
@@ -334,7 +316,6 @@ async function saveHabit() {
         closeHabitModal();
         await loadHabits();
         await loadWeek();
-        await loadMonthChart();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
@@ -1730,7 +1711,6 @@ async function deleteHabitFromModal() {
         closeHabitModal();
         await loadHabits();
         await loadWeek();
-        await loadMonthChart();
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
@@ -1825,7 +1805,7 @@ async function deleteTodoFromModal() {
     goToScreen(0, false);
     const ok = await auth();
     if (ok) {
-        await Promise.all([loadHome(), loadHabits(), loadWeek(), loadMonthChart(), loadAreas(), loadTodos(),
+        await Promise.all([loadHome(), loadHabits(), loadWeek(), loadAreas(), loadTodos(),
                            loadBudget(), loadWishlist(), loadPiggy(),
                            loadMetrics(), loadPrograms(), loadFilm()]);
     }
