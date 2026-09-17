@@ -308,15 +308,22 @@ body {
     text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;
 }
 .btn-icon-add {
-    background: var(--card); border: 1px solid var(--glass-border);
-    color: var(--text-secondary); width: 30px; height: 30px; border-radius: 10px;
-    font-size: 18px; font-weight: 500; cursor: pointer;
+    background: none; border: none;
+    color: var(--text-tertiary); width: 28px; height: 28px;
+    font-size: 20px; font-weight: 500; cursor: pointer;
     font-family: inherit; display: flex; align-items: center; justify-content: center;
-    transition: 0.15s; line-height: 1; padding: 0 0 2px 0;
+    transition: 0.15s; line-height: 1; padding: 0;
+    opacity: 0.7;
 }
-.btn-icon-add:active {
-    background: var(--card-hover); color: var(--accent); transform: scale(0.9);
+.btn-icon-add:active { opacity: 1; color: var(--accent); transform: scale(0.9); }
+
+.area-delete {
+    background: none; border: none;
+    color: var(--text-tertiary); font-size: 14px;
+    cursor: pointer; padding: 2px 6px;
+    font-family: inherit; opacity: 0.7;
 }
+.area-delete:active { color: var(--danger); opacity: 1; }
 
 /* Общий шаблон карточки группы */
 .group-card,

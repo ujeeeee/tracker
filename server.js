@@ -1140,6 +1140,8 @@ const BACKUP_SECTIONS = {
     film: ['film_genres','film_movies'],
     tea: ['tea_groups','tea_items','tea_shops'],
     places: ['places_types','places_items'],
+    food: ['food_recipes','food_recipe_ingredients','food_recipe_steps','food_recipe_links',
+           'food_products','food_diary','food_goals','food_shopping'],
 };
 
 async function collectBackup(tgId, sections) {

@@ -265,11 +265,10 @@ function renderMainMoney(money) {
         <div class="main-widget-square">
             <div class="main-widget-label">Копилка</div>
             <div class="main-widget-value">${fmt(money.balance)}</div>
-        </div>
-        <div class="main-widget-square">
-            <div class="main-widget-label">Долг</div>
+            <div class="main-widget-label" style="margin-top:14px;">Долг</div>
             <div class="main-widget-value ${money.debt > 0 ? 'debt' : ''}">${fmt(money.debt)}</div>
         </div>
+        <div style="flex:1;"></div>
     </div>`;
 }
 
@@ -1268,11 +1267,10 @@ function renderPrograms() {
 function renderDay(d, di) {
     const isOpen = openDayIds.has(d.id);
     return `<div class="day-block ${isOpen ? 'open' : ''}">
-        <div class="day-header" onclick="toggleDay(${d.id})">
-            <span class="day-arrow">▶</span>
-            <span class="day-num">${di + 1}.</span>
-            <span class="day-name">${escapeHtml(d.name)}</span>
-            <button class="area-delete" onclick="event.stopPropagation(); openDayModal(${d.id}, ${d.program_id})">✎</button>
+        <div class="day-header">
+            <span class="day-arrow" onclick="toggleDay(${d.id})">▶</span>
+            <span class="day-num" onclick="toggleDay(${d.id})">${di + 1}.</span>
+            <span class="day-name" onclick="openDayModal(${d.id}, ${d.program_id})">${escapeHtml(d.name)}</span>
         </div>
         <div class="day-body">
             ${d.exercises.map((e, ei) => renderExercise(e, ei)).join('')}
@@ -2399,32 +2397,19 @@ function openPlaceMap() {
 // ==========================================
 // ===== BACKUP =====
 // ==========================================
-async function backupDownload(section) {
+async function backupAll(section) {
     try {
-        const endpoint = section === 'all' ? '/api/backup/all' : `/api/backup/section/${section}`;
-        const data = await api(endpoint);
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `tracker-${section}-${localDate(new Date())}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    } catch (e) { alert('Ошибка: ' + e.message); }
-}
-
-async function backupGithub(section = 'all') {
-    try {
+        // 1. Сохраняем в GitHub
         const { file } = await api('/api/backup/save-github', 'POST', { section });
-        alert('✅ Сохранено: ' + file);
-    } catch (e) { alert('Ошибка: ' + e.message); }
-}
 
-async function backupToTelegram(section = 'all') {
-    try {
-        await api('/api/backup/send-tg', 'POST', { section });
-        alert('✅ Отправлено в чат с ботом');
-    } catch (e) { alert('Ошибка: ' + e.message); }
+        // 2. Спрашиваем, отправлять ли в Telegram
+        if (confirm(`✅ Сохранено в GitHub:\n${file}\n\nОтправить также в чат с ботом?`)) {
+            await api('/api/backup/send-tg', 'POST', { section });
+            alert('✅ Отправлено в чат');
+        }
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
 }
 
 // ==========================================
