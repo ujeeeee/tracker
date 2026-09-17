@@ -218,17 +218,19 @@ app.get('/api/disc/todos', authMiddleware, async (req, res) => {
     const d = req.query.date || new Date().toISOString().slice(0,10);
     const { data } = await supabase.from('disc_todos').select('*')
         .eq('tg_id', req.tg_id).eq('date', d)
-        .order('done').order('created_at');
+        .order('created_at');
     res.json({ todos: data || [], date: d });
 });
 
 app.post('/api/disc/todos', authMiddleware, async (req, res) => {
-    const { name, date } = req.body;
+    const { name, date, time_start, time_end } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
     const { data, error } = await supabase.from('disc_todos').insert({
         tg_id: req.tg_id,
         name: name.trim(),
         date: date || new Date().toISOString().slice(0,10),
+        time_start: time_start || null,
+        time_end: time_end || null,
     }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.json({ todo: data });
@@ -238,6 +240,8 @@ app.patch('/api/disc/todos/:id', authMiddleware, async (req, res) => {
     const updates = {};
     if (req.body.name !== undefined) updates.name = req.body.name.trim();
     if (req.body.done !== undefined) updates.done = !!req.body.done;
+    if (req.body.time_start !== undefined) updates.time_start = req.body.time_start || null;
+    if (req.body.time_end !== undefined) updates.time_end = req.body.time_end || null;
     const { data, error } = await supabase.from('disc_todos').update(updates)
         .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
     if (error) return res.status(500).json({ error: error.message });

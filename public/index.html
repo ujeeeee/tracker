@@ -42,8 +42,13 @@
                     <div id="discipline-habits" class="subtab active">
                         <div class="todos-block">
                             <div class="goals-header">
-                                <span class="goals-header-title" id="todosTitle">Дела на сегодня</span>
+                                <span class="goals-header-title">Дела</span>
                                 <button class="btn-icon-add" onclick="openTodoModal()">+</button>
+                            </div>
+                            <div class="todos-day-nav">
+                                <button class="week-nav-btn" onclick="todosPrevDay()">‹</button>
+                                <div class="todos-day-label" id="todosDayLabel" onclick="todosToday()">Сегодня</div>
+                                <button class="week-nav-btn" onclick="todosNextDay()">›</button>
                             </div>
                             <div id="todosList"></div>
                         </div>
@@ -780,7 +785,15 @@
         <div class="modal-handle"></div>
         <h3 class="modal-title" id="todoModalTitle">Новое дело</h3>
         <input type="text" class="modal-input" id="todoName" placeholder="Что нужно сделать?" />
-        <div class="modal-actions">
+
+        <div class="field-label">Время (необязательно)</div>
+        <div class="todo-time-row">
+            <input type="time" class="modal-input" id="todoTimeStart" />
+            <span class="todo-time-sep">—</span>
+            <input type="time" class="modal-input" id="todoTimeEnd" />
+        </div>
+
+        <div class="modal-actions" style="margin-top:20px;">
             <button class="modal-btn secondary" id="todoDeleteBtn" style="display:none;color:var(--danger);" onclick="deleteTodoFromModal()">Удалить</button>
             <button class="modal-btn secondary" onclick="closeTodoModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveTodo()">Сохранить</button>
