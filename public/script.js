@@ -79,9 +79,11 @@ const track = document.getElementById('screensTrack');
 function goToScreen(index, animate = true) {
     if (index < 0 || index >= TOTAL_MAIN_SCREENS) return;
     currentScreenIndex = index;
-    if (!animate) track.style.transition = 'none';
-    track.style.transform = `translateX(-${index * 100}vw)`;
-    if (!animate) setTimeout(() => track.style.transition = '', 20);
+
+    const screens = document.querySelectorAll('.screen');
+    screens.forEach((s, i) => {
+        s.classList.toggle('active', i === index);
+    });
 
     document.querySelectorAll('.nav-btn').forEach(b => {
         const idx = b.dataset.index;
@@ -92,7 +94,7 @@ function goToScreen(index, animate = true) {
     const btn = nav.querySelector(`.nav-btn[data-index="${index}"]`);
     if (nav && btn) {
         const t = btn.offsetLeft - nav.clientWidth / 2 + btn.clientWidth / 2;
-        nav.scrollTo({ left: t, behavior: animate ? 'smooth' : 'auto' });
+        nav.scrollTo({ left: t, behavior: 'smooth' });
     }
     window.scrollTo(0, 0);
 
@@ -100,10 +102,9 @@ function goToScreen(index, animate = true) {
     if (index === 1) { loadAreas(); loadHabits(); loadWeek(); loadMonthChart(); }
     if (index === 2) { loadBudget(); loadWishlist(); loadPiggy(); }
     if (index === 3) { loadPrograms(); loadMetrics(); }
-    if (index === 5) { loadFilm(); }
-    if (index === 6) { loadTea(); }
+    if (index === 5) loadFilm();
+    if (index === 6) loadTea();
 }
-
 // ===== SUBTABS =====
 function switchSubTab(parent, tab, btn) {
     btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -117,9 +118,12 @@ function switchSubTab(parent, tab, btn) {
 // ===== SETTINGS =====
 function openSettings() {
     updateSettingsUI();
-    track.style.transform = `translateX(-${TOTAL_MAIN_SCREENS * 100}vw)`;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelector('[data-screen-name="Settings"]').classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    window.scrollTo(0, 0);
 }
+function closeSettings() { goToScreen(currentScreenIndex); }
 function closeSettings() { goToScreen(currentScreenIndex); }
 function updateSettingsUI() {
     const name = currentUser?.name || tgUser.name || 'Друг';
