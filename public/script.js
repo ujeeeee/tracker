@@ -1717,19 +1717,23 @@ async function deleteHabitFromModal() {
 // ==========================================
 // ===== DISCIPLINE: ДЕЛА НА ДЕНЬ =====
 // ==========================================
-// ==========================================
-// ===== DISCIPLINE: ДЕЛА НА ДЕНЬ =====
-// ==========================================
 let todos = [];
 let todoCtx = { id: null };
-let todosDate = new Date().toISOString().slice(0,10);
+let todosDate = localDateStr(new Date());
+
+function localDateStr(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+}
 
 function getDayLabel(dateStr) {
     const now = new Date();
-    const today = now.toISOString().slice(0,10);
-    const tomorrow = new Date(now.getTime() + 86400000).toISOString().slice(0,10);
-    const dayAfter = new Date(now.getTime() + 172800000).toISOString().slice(0,10);
-    const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0,10);
+    const today = localDateStr(now);
+    const tomorrow = localDateStr(new Date(now.getTime() + 86400000));
+    const dayAfter = localDateStr(new Date(now.getTime() + 172800000));
+    const yesterday = localDateStr(new Date(now.getTime() - 86400000));
 
     if (dateStr === today) return 'Сегодня';
     if (dateStr === tomorrow) return 'Завтра';
@@ -1776,21 +1780,21 @@ function renderTodos() {
 }
 
 function todosPrevDay() {
-    const d = new Date(todosDate + 'T00:00:00');
+    const d = new Date(todosDate + 'T12:00:00');
     d.setDate(d.getDate() - 1);
-    todosDate = d.toISOString().slice(0,10);
+    todosDate = localDateStr(d);
     loadTodos();
 }
 
 function todosNextDay() {
-    const d = new Date(todosDate + 'T00:00:00');
+    const d = new Date(todosDate + 'T12:00:00');
     d.setDate(d.getDate() + 1);
-    todosDate = d.toISOString().slice(0,10);
+    todosDate = localDateStr(d);
     loadTodos();
 }
 
 function todosToday() {
-    todosDate = new Date().toISOString().slice(0,10);
+    todosDate = localDateStr(new Date());
     loadTodos();
 }
 
