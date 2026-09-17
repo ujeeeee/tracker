@@ -1341,8 +1341,21 @@ body {
 
 /* ===== PLACES ===== */
 .places-filters {
+    position: fixed;
+    bottom: 132px;
+    left: 10px;
+    right: 10px;
+    max-width: 460px;
+    margin: 0 auto;
+    z-index: 86;
     display: flex; gap: 6px;
-    margin-bottom: 14px;
+    padding: 4px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 var(--glass-highlight);
 }
 .places-filter {
     flex: 1;
@@ -1417,4 +1430,8 @@ body {
 .place-rating {
     font-size: 13px; font-weight: 700;
     color: #ff9f0a; flex-shrink: 0;
+}
+
+.screen[data-screen-name="Places"] .screen-content {
+    padding-bottom: 70px;
 }

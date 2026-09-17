@@ -252,12 +252,6 @@
                     <h2>📍 Places</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="tabs">
-                    <button class="tab active" onclick="switchSubTab('places', 'want', this)">Хочу</button>
-                    <button class="tab" onclick="switchSubTab('places', 'visited', this)">Был</button>
-                </div>
-                <div class="screen-content">
-
                     <div class="places-filters">
                         <select class="places-filter" id="placesFilterType" onchange="onPlacesFilterChange()">
                             <option value="">Все типы</option>
@@ -273,8 +267,13 @@
                             <option value="5">5+</option>
                         </select>
                     </div>
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchSubTab('places', 'want', this)">Хочу</button>
+                        <button class="tab" onclick="switchSubTab('places', 'visited', this)">Был</button>
+                    </div>
+                    <div class="screen-content">
 
-                    <div id="places-want" class="subtab active">
+                        <div id="places-want" class="subtab active">
                         <div class="film-actions">
                             <div style="flex:1;"></div>
                             <button class="btn-icon-add" onclick="openPlacesTypeModal()">+</button>
