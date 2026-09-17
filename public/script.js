@@ -1717,12 +1717,30 @@ async function deleteHabitFromModal() {
 // ==========================================
 // ===== DISCIPLINE: ДЕЛА НА ДЕНЬ =====
 // ==========================================
+// ==========================================
+// ===== DISCIPLINE: ДЕЛА НА ДЕНЬ =====
+// ==========================================
 let todos = [];
 let todoCtx = { id: null };
+let todosDate = new Date().toISOString().slice(0,10);
+
+function getDayLabel(dateStr) {
+    const now = new Date();
+    const today = now.toISOString().slice(0,10);
+    const tomorrow = new Date(now.getTime() + 86400000).toISOString().slice(0,10);
+    const dayAfter = new Date(now.getTime() + 172800000).toISOString().slice(0,10);
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0,10);
+
+    if (dateStr === today) return 'Сегодня';
+    if (dateStr === tomorrow) return 'Завтра';
+    if (dateStr === dayAfter) return 'Послезавтра';
+    if (dateStr === yesterday) return 'Вчера';
+    return formatDate(dateStr);
+}
 
 async function loadTodos() {
     try {
-        const { todos: data } = await api('/api/disc/todos');
+        const { todos: data } = await api(`/api/disc/todos?date=${todosDate}`);
         todos = data;
         renderTodos();
     } catch (e) { console.error(e); }
@@ -1732,24 +1750,48 @@ function renderTodos() {
     const c = document.getElementById('todosList');
     if (!c) return;
 
-    const titleEl = document.getElementById('todosTitle');
-    if (titleEl) {
-        const d = new Date();
-        const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-        titleEl.textContent = `Дела на сегодня · ${d.getDate()} ${months[d.getMonth()]}`;
-    }
+    const label = document.getElementById('todosDayLabel');
+    if (label) label.textContent = getDayLabel(todosDate);
 
     if (!todos.length) {
         c.innerHTML = `<div class="widget-empty">Пусто. Нажми + чтобы добавить</div>`;
         return;
     }
 
-    c.innerHTML = todos.map(t => `
-        <div class="todo-item ${t.done ? 'done' : ''}" onclick="openTodoModal(${t.id})">
+    c.innerHTML = todos.map(t => {
+        let timeHtml = '';
+        if (t.time_start || t.time_end) {
+            const s = t.time_start || '?';
+            const e = t.time_end || '?';
+            timeHtml = `<div class="todo-time">${s} — ${e}</div>`;
+        }
+        return `<div class="todo-item ${t.done ? 'done' : ''}" onclick="openTodoModal(${t.id})">
             <div class="todo-check" onclick="event.stopPropagation(); toggleTodo(${t.id}, ${t.done})">✓</div>
-            <div class="todo-name">${escapeHtml(t.name)}</div>
-        </div>
-    `).join('');
+            <div style="flex:1;min-width:0;">
+                <div class="todo-name">${escapeHtml(t.name)}</div>
+                ${timeHtml}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function todosPrevDay() {
+    const d = new Date(todosDate + 'T00:00:00');
+    d.setDate(d.getDate() - 1);
+    todosDate = d.toISOString().slice(0,10);
+    loadTodos();
+}
+
+function todosNextDay() {
+    const d = new Date(todosDate + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    todosDate = d.toISOString().slice(0,10);
+    loadTodos();
+}
+
+function todosToday() {
+    todosDate = new Date().toISOString().slice(0,10);
+    loadTodos();
 }
 
 function openTodoModal(id = null) {
@@ -1757,14 +1799,23 @@ function openTodoModal(id = null) {
     const title = document.getElementById('todoModalTitle');
     const nameEl = document.getElementById('todoName');
     const delBtn = document.getElementById('todoDeleteBtn');
+    const timeStart = document.getElementById('todoTimeStart');
+    const timeEnd = document.getElementById('todoTimeEnd');
 
     if (id) {
         const t = todos.find(x => x.id === id);
-        if (t) { title.textContent = 'Редактировать'; nameEl.value = t.name; }
+        if (t) {
+            title.textContent = 'Редактировать';
+            nameEl.value = t.name;
+            timeStart.value = t.time_start || '';
+            timeEnd.value = t.time_end || '';
+        }
         delBtn.style.display = 'block';
     } else {
         title.textContent = 'Новое дело';
         nameEl.value = '';
+        timeStart.value = '';
+        timeEnd.value = '';
         delBtn.style.display = 'none';
     }
 
@@ -1776,11 +1827,16 @@ function closeTodoModal() { document.getElementById('todoModal').classList.remov
 async function saveTodo() {
     const name = document.getElementById('todoName').value.trim();
     if (!name) return alert('Введи название');
+    const payload = {
+        name,
+        time_start: document.getElementById('todoTimeStart').value || null,
+        time_end: document.getElementById('todoTimeEnd').value || null,
+    };
     try {
         if (todoCtx.id) {
-            await api(`/api/disc/todos/${todoCtx.id}`, 'PATCH', { name });
+            await api(`/api/disc/todos/${todoCtx.id}`, 'PATCH', payload);
         } else {
-            await api('/api/disc/todos', 'POST', { name });
+            await api('/api/disc/todos', 'POST', { ...payload, date: todosDate });
         }
         closeTodoModal();
         await loadTodos();
