@@ -291,7 +291,12 @@ function openHabitModal(id = null) {
             habitCtx.days = h.days_of_week?.length ? h.days_of_week : [1,2,3,4,5,6,7];
             habitCtx.interval = h.interval_days || 2;
         }
-    } else { titleEl.textContent = 'Новая привычка'; nameEl.value = ''; }
+        document.getElementById('habitDeleteBtn').style.display = 'block';
+    } else {
+        titleEl.textContent = 'Новая привычка';
+        nameEl.value = '';
+        document.getElementById('habitDeleteBtn').style.display = 'none';
+    }
     document.getElementById('intervalInput').value = habitCtx.interval;
     document.querySelectorAll('#habitModal [data-freq]').forEach(b => b.classList.toggle('active', b.dataset.freq === habitCtx.freq));
     document.querySelectorAll('#habitModal .day-opt').forEach(b => b.classList.toggle('active', habitCtx.days.includes(parseInt(b.dataset.dow))));
@@ -1707,6 +1712,19 @@ async function deleteTeaShop(id) {
     if (!confirm('Удалить магазин?')) return;
     await api(`/api/tea/shops/${id}`, 'DELETE');
     await loadTea();
+}
+
+// Удаление привычки из модалки настроек
+async function deleteHabitFromModal() {
+    if (!habitCtx.id) return;
+    if (!confirm('Удалить привычку и все отметки?')) return;
+    try {
+        await api(`/api/disc/habits/${habitCtx.id}`, 'DELETE');
+        closeHabitModal();
+        await loadHabits();
+        await loadWeek();
+        await loadMonthChart();
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 // ===== СТАРТ =====
