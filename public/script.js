@@ -295,7 +295,6 @@ function renderMainGreeting() {
 function renderMainTodos(todos) {
     const c = document.getElementById('mainTodosWidget');
 
-    // Сортировка: сначала без даты, потом сегодня, потом завтра
     const sorted = [...todos].sort((a, b) => {
         if (!a.date && !b.date) return 0;
         if (!a.date) return -1;
@@ -311,14 +310,13 @@ function renderMainTodos(todos) {
             const time = t.time_start ? `${t.time_start}${t.time_end ? '—' + t.time_end : ''}` : '';
             let label = '';
             let cls = '';
-            if (!t.date) { label = ''; cls = ''; }
-            else if (t.isToday) { label = 'Сегодня'; cls = ''; }
+            if (t.isToday) { label = 'Сегодня'; cls = ''; }
             else if (t.isTomorrow) { label = 'Завтра'; cls = 'tomorrow'; }
 
             html += `<div class="main-todo-item">
-                ${label ? `<span class="main-todo-date ${cls}">${label}</span>` : '<span class="main-todo-date" style="opacity:0;">—</span>'}
                 <span class="main-todo-name">${escapeHtml(t.name)}</span>
                 ${time ? `<span class="main-todo-time">${time}</span>` : ''}
+                ${label ? `<span class="main-todo-date ${cls}">${label}</span>` : ''}
             </div>`;
         });
     }
@@ -408,7 +406,7 @@ function renderWeek(data) {
     html += `</div>`;
 
     data.forEach(h => {
-        html += `<div class="week-row"><div class="week-habit-name" onclick="openHabitModal(${h.id})">${escapeHtml(h.name)}</div>`;
+        html += `<div class="week-row" data-id="${h.id}"><div class="week-habit-name" onclick="openHabitModal(${h.id})">${escapeHtml(h.name)}</div>`;
         h.week.forEach(day => {
             if (!day.scheduled) { html += `<div class="week-cell not-scheduled"></div>`; return; }
             const isFuture = day.date > today;
@@ -420,6 +418,18 @@ function renderWeek(data) {
     });
     html += `</div>`;
     grid.innerHTML = html;
+    if (!grid._sortable && window.Sortable) {
+        grid._sortable = new Sortable(grid, {
+            animation: 150, delay: 300, delayOnTouchOnly: true,
+            draggable: '.week-row[data-id]',
+            filter: '.week-cell',
+            onEnd: async () => {
+                const ids = [...grid.querySelectorAll('.week-row[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_habits', ids });
+            }
+        });
+    }
 }
 
 async function toggleWeekCell(habitId, date) {
@@ -530,7 +540,6 @@ function renderTodos() {
         return;
     }
 
-    // Сортировка: сначала без даты, потом с датой по возрастанию, потом закрытые
     const sorted = [...todos].sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1;
         if (!a.date && !b.date) return 0;
@@ -558,7 +567,7 @@ function renderTodos() {
             metaHtml = `<div class="todo-meta">${t.time_start || '?'}—${t.time_end || '?'}</div>`;
         }
 
-        return `<div class="todo-item ${t.done ? 'done' : ''}" onclick="openTodoModal(${t.id})">
+        return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}" onclick="openTodoModal(${t.id})">
             <div class="item-check ${t.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleTodo(${t.id}, ${t.done})">✓</div>
             <div class="todo-body">
                 <div class="todo-name">${escapeHtml(t.name)}</div>
@@ -566,6 +575,18 @@ function renderTodos() {
             </div>
         </div>`;
     }).join('');
+
+    if (!c._sortable && window.Sortable) {
+        c._sortable = new Sortable(c, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '[data-id]',
+            onEnd: async () => {
+                const ids = [...c.querySelectorAll('[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_todos', ids });
+            }
+        });
+    }
 }
 
 function openTodoModal(id = null) {
@@ -658,32 +679,50 @@ function renderAreas(orphans = []) {
         return;
     }
 
-    let html = areas.map(a => {
+    c.innerHTML = areas.map(a => {
+        const isOpen = !isCollapsed('discAreas', a.id);
         const done = a.goals.filter(g => g.status === 'done').length;
         const prog = a.goals.length ? `${done}/${a.goals.length}` : '';
-        return `<div class="area-card">
+        return `<div class="area-card ${isOpen ? 'open' : ''}" data-id="${a.id}">
             <div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('discAreas', ${a.id}); renderAreas();">▶</span>
                 <div class="group-name clickable" onclick="openAreaModal(${a.id})">${escapeHtml(a.name)}</div>
                 ${prog ? `<div class="group-progress">${prog}</div>` : ''}
                 <button class="btn-icon-add" onclick="openGoalModal(null, ${a.id})">+</button>
             </div>
-            ${a.goals.map(g => goalHTML(g)).join('')}
-        </div>`;
-    }).join('');
-
-    if (orphans.length) {
-        html += `<div class="area-card">
-            <div class="group-header"><div class="group-name">Без области</div>
-                <button class="btn-icon-add" onclick="openGoalModal(null, null)">+</button>
+            <div class="group-body">
+                ${a.goals.map(g => goalHTML(g)).join('')}
             </div>
-            ${orphans.map(g => goalHTML(g)).join('')}
         </div>`;
+    }).join('') + (orphans.length ? `<div class="area-card">
+        <div class="group-header"><div class="group-name">Без области</div>
+            <button class="btn-icon-add" onclick="openGoalModal(null, null)">+</button>
+        </div>
+        <div class="group-body">${orphans.map(g => goalHTML(g)).join('')}</div>
+    </div>` : '');
+
+    // Sortable: области
+    if (!c._sortable && window.Sortable) {
+        c._sortable = new Sortable(c, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '.area-card[data-id]',
+            onEnd: async () => {
+                const ids = [...c.querySelectorAll('.area-card[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'disc_areas', ids });
+            }
+        });
     }
-    c.innerHTML = html;
+
+    // Sortable: цели внутри областей
+    c.querySelectorAll('.group-body').forEach(body => {
+        if (!body.children.length) return;
+        makeSortable(body, 'disc_goals', { draggable: '[data-id]' });
+    });
 }
 
 function goalHTML(g) {
-    return `<div class="list-item" onclick="openGoalModal(${g.id}, ${g.area_id || 'null'})">
+    return `<div class="list-item" data-id="${g.id}" onclick="openGoalModal(${g.id}, ${g.area_id || 'null'})">
         <div class="item-check ${g.status === 'done' ? 'done' : ''}" onclick="event.stopPropagation(); toggleGoal(${g.id}, '${g.status}')">✓</div>
         <div class="item-info"><div class="item-title ${g.status === 'done' ? 'done' : ''}">${escapeHtml(g.name)}</div></div>
         <button class="area-delete" onclick="event.stopPropagation(); deleteGoal(${g.id})">✕</button>
@@ -809,14 +848,16 @@ function renderBudget(d) {
         <div class="budget-row-value">${fmt(t.planned)}</div>
     </div>`;
 
+    html += `<div id="customStatsList">`;
     d.customStats.forEach(s => {
         const val = s.type === 'percent' ? (t.budget * Number(s.value) / 100) : Number(s.value);
         const label = s.type === 'percent' ? `${s.name} (${s.value}%)` : s.name;
-        html += `<div class="budget-row" onclick="openCustomStatModal(${s.id})">
+        html += `<div class="budget-row" data-id="${s.id}" onclick="openCustomStatModal(${s.id})">
             <div class="budget-row-label">${escapeHtml(label)}</div>
             <div class="budget-row-value">${fmt(val)}</div>
         </div>`;
     });
+    html += `</div>`;
 
     html += `<div class="budget-row">
         <div class="budget-row-label">Остаток</div>
@@ -826,25 +867,58 @@ function renderBudget(d) {
     html += `<button class="budget-row-add" onclick="openCustomStatModal()">+ Добавить панель</button>`;
     list.innerHTML = html;
 
+    // Sortable: панели
+    const cs = document.getElementById('customStatsList');
+    if (cs && cs.children.length && window.Sortable && !cs._sortable) {
+        cs._sortable = new Sortable(cs, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '[data-id]',
+            onEnd: async () => {
+                const ids = [...cs.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'cash_custom_stats', ids });
+            }
+        });
+    }
+
     // Subs
     const subsEl = document.getElementById('subsList');
     subsEl.innerHTML = d.subs.length === 0
         ? `<div class="widget-empty">Нет трат</div>`
-        : d.subs.map(s => `<div class="cash-item ${s.paid ? 'paid' : ''}" onclick="openCashAddModal('sub', ${s.id})">
+        : d.subs.map(s => `<div class="cash-item ${s.paid ? 'paid' : ''}" data-id="${s.id}" onclick="openCashAddModal('sub', ${s.id})">
             <div class="cash-item-check ${s.paid ? 'done' : ''}" onclick="event.stopPropagation(); toggleSubPaid(${s.id}, ${s.paid})">✓</div>
             <div class="cash-item-name">${escapeHtml(s.name)}</div>
             <div class="cash-item-amount">${fmt(s.amount)}</div>
         </div>`).join('');
+    if (subsEl.children.length && window.Sortable && !subsEl._sortable) {
+        subsEl._sortable = new Sortable(subsEl, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '[data-id]',
+            onEnd: async () => {
+                const ids = [...subsEl.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'cash_subs', ids });
+            }
+        });
+    }
     document.getElementById('subsTotal').innerHTML = `Итого: <b>${fmt(t.subs)}</b>`;
 
     // Weekly
     const weekEl = document.getElementById('weeklyList');
     weekEl.innerHTML = d.weekly.length === 0
         ? `<div class="widget-empty">Нет позиций</div>`
-        : d.weekly.map(w => `<div class="cash-item" onclick="openCashAddModal('weekly', ${w.id})">
+        : d.weekly.map(w => `<div class="cash-item" data-id="${w.id}" onclick="openCashAddModal('weekly', ${w.id})">
             <div class="cash-item-name">${escapeHtml(w.name)}</div>
             <div class="cash-item-amount">${fmt(w.amount)}</div>
         </div>`).join('');
+    if (weekEl.children.length && window.Sortable && !weekEl._sortable) {
+        weekEl._sortable = new Sortable(weekEl, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '[data-id]',
+            onEnd: async () => {
+                const ids = [...weekEl.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'cash_weekly', ids });
+            }
+        });
+    }
     document.getElementById('weeklyTotal').innerHTML = `× ${d.weeksInMonth} нед. = <b>${fmt(t.weekly)}</b>`;
 }
 
@@ -1010,29 +1084,51 @@ function renderWishlist() {
     let html = '';
     wishlistAreas.forEach(area => {
         const items = wishlistItems.filter(i => (i.area || '') === area.name);
+        const isOpen = !isCollapsed('wishlistAreas', area.id);
         const safeName = escapeHtml(area.name).replace(/'/g, "\\'");
 
-        html += `<div class="wishlist-area-card">
+        html += `<div class="wishlist-area-card ${isOpen ? 'open' : ''}" data-id="${area.id}">
             <div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('wishlistAreas', ${area.id}); renderWishlist();">▶</span>
                 <div class="group-name clickable" onclick="openWishlistAreaModal(${area.id})">${escapeHtml(area.name)}</div>
                 <div class="group-count">${items.length}</div>
                 <button class="btn-icon-add" onclick="openWishlistModal(null, '${safeName}')">+</button>
-            </div>`;
+            </div>
+            <div class="group-body">`;
 
         if (!items.length) {
             html += `<div class="widget-empty" style="padding:8px 4px;">Пусто</div>`;
         } else {
             items.forEach(it => {
-                html += `<div class="list-item" onclick="openWishlistModal(${it.id})">
+                html += `<div class="list-item" data-id="${it.id}" onclick="openWishlistModal(${it.id})">
                     <div class="item-check ${it.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleWish(${it.id}, ${it.done})">✓</div>
                     <div class="item-info"><div class="item-title ${it.done ? 'done' : ''}">${escapeHtml(it.name)}</div></div>
                     ${it.price ? `<div class="item-rating" style="color:var(--text-secondary);">${fmt(it.price)}</div>` : ''}
                 </div>`;
             });
         }
-        html += `</div>`;
+        html += `</div></div>`;
     });
     c.innerHTML = html;
+
+    // Sortable: области
+    if (!c._sortable && window.Sortable) {
+        c._sortable = new Sortable(c, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '.wishlist-area-card[data-id]',
+            onEnd: async () => {
+                const ids = [...c.querySelectorAll('.wishlist-area-card[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'cash_wishlist_areas', ids });
+            }
+        });
+    }
+
+    // Sortable: товары внутри областей
+    c.querySelectorAll('.group-body').forEach(body => {
+        if (!body.children.length) return;
+        makeSortable(body, 'cash_wishlist', { draggable: '[data-id]' });
+    });
 }
 
 async function toggleWish(id, done) {
@@ -1201,19 +1297,20 @@ function renderPiggy() {
         return true;
     });
 
+    const list = document.getElementById('piggyList');
     const filterHtml = `<div class="piggy-filter">
         <button class="piggy-filter-btn ${piggyFilter === 'all' ? 'active' : ''}" onclick="setPiggyFilter('all')">Все</button>
         <button class="piggy-filter-btn ${piggyFilter === 'deposit' ? 'active' : ''}" onclick="setPiggyFilter('deposit')">↓ Пополнения</button>
         <button class="piggy-filter-btn ${piggyFilter === 'withdraw' ? 'active' : ''}" onclick="setPiggyFilter('withdraw')">↑ Списания</button>
-    </div>`;
+    </div>
+    <div id="piggyItemsBox">`;
 
-    const list = document.getElementById('piggyList');
     if (!filtered.length) {
-        list.innerHTML = filterHtml + `<div class="widget-empty">Пусто</div>`;
+        list.innerHTML = filterHtml + `<div class="widget-empty">Пусто</div></div>`;
         return;
     }
     list.innerHTML = filterHtml + filtered.map(x => `
-        <div class="cash-item" onclick="openPiggyModal(${x.id})">
+        <div class="cash-item" data-id="${x.id}" onclick="openPiggyModal(${x.id})">
             <div style="flex:1;min-width:0;">
                 <div class="cash-item-name">${escapeHtml(x.description || (x.type === 'deposit' ? 'Пополнение' : 'Трата'))}</div>
                 <div class="cash-item-date">${formatDate(x.date)}</div>
@@ -1222,7 +1319,19 @@ function renderPiggy() {
                 ${x.type === 'withdraw' ? '−' : '+'}${fmt(x.amount)}
             </div>
         </div>
-    `).join('');
+    `).join('') + `</div>`;
+
+    const box = document.getElementById('piggyItemsBox');
+    if (box && box.children.length && window.Sortable && !box._sortable) {
+        box._sortable = new Sortable(box, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '[data-id]',
+            onEnd: async () => {
+                const ids = [...box.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'cash_piggy', ids });
+            }
+        });
+    }
 }
 
 function setPiggyFilter(f) { piggyFilter = f; renderPiggy(); }
@@ -1332,9 +1441,9 @@ function renderPrograms() {
 
     c.innerHTML = programs.map(p => {
         const isOpen = openProgramIds.has(p.id);
-        return `<div class="program-card ${isOpen ? 'open' : ''}">
+        return `<div class="program-card ${isOpen ? 'open' : ''}" data-id="${p.id}">
             <div class="program-header">
-                <span class="program-arrow" onclick="toggleProgram(${p.id})">▶</span>
+                <span class="program-arrow" onclick="event.stopPropagation(); toggleProgram(${p.id})">▶</span>
                 <div class="program-name" onclick="openProgramModal(${p.id})">${escapeHtml(p.name)}</div>
             </div>
             <div class="program-body">
@@ -1343,14 +1452,41 @@ function renderPrograms() {
             </div>
         </div>`;
     }).join('');
+
+    // Sortable: программы
+    if (!c._sortable && window.Sortable) {
+        c._sortable = new Sortable(c, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '.program-card[data-id]',
+            onEnd: async () => {
+                const ids = [...c.querySelectorAll('.program-card[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'gym_programs', ids });
+            }
+        });
+    }
+
+    // Sortable: тренировки внутри программы
+    c.querySelectorAll('.program-body').forEach(body => {
+        const days = [...body.querySelectorAll('.day-block[data-id]')];
+        if (!days.length) return;
+        makeSortable(body, 'gym_program_days', { draggable: '.day-block[data-id]', handle: '.day-header' });
+    });
+
+    // Sortable: упражнения внутри дня
+    c.querySelectorAll('.day-body').forEach(body => {
+        const ex = [...body.querySelectorAll('.exercise-block[data-id]')];
+        if (!ex.length) return;
+        makeSortable(body, 'gym_exercises', { draggable: '.exercise-block[data-id]', handle: '.exercise-header' });
+    });
 }
 
 function renderDay(d, di) {
     const isOpen = openDayIds.has(d.id);
-    return `<div class="day-block ${isOpen ? 'open' : ''}">
+    return `<div class="day-block ${isOpen ? 'open' : ''}" data-id="${d.id}">
         <div class="day-header">
-            <span class="day-arrow" onclick="toggleDay(${d.id})">▶</span>
-            <span class="day-num" onclick="toggleDay(${d.id})">${di + 1}.</span>
+            <span class="day-arrow" onclick="event.stopPropagation(); toggleDay(${d.id})">▶</span>
+            <span class="day-num">${di + 1}.</span>
             <span class="day-name" onclick="openDayModal(${d.id}, ${d.program_id})">${escapeHtml(d.name)}</span>
         </div>
         <div class="day-body">
@@ -1372,9 +1508,9 @@ function renderExercise(e, ei) {
         </div>
     `).join('');
 
-    return `<div class="exercise-block ${isOpen ? 'open' : ''}">
+    return `<div class="exercise-block ${isOpen ? 'open' : ''}" data-id="${e.id}">
         <div class="exercise-header">
-            <span class="ex-arrow" onclick="toggleExercise(${e.id})">▶</span>
+            <span class="ex-arrow" onclick="event.stopPropagation(); toggleExercise(${e.id})">▶</span>
             <span class="set-num">${ei + 1}.</span>
             <span class="exercise-name" onclick="openExerciseModal(${e.id}, ${e.day_id})">${escapeHtml(e.name)}</span>
             <span class="exercise-summary">${summary}</span>
@@ -1620,7 +1756,7 @@ function renderTable(containerId, list) {
         const unit = m.unit || '';
         const target = m.target ? `${m.target}${unit}` : '—';
 
-        html += `<tr>`;
+        html += `<tr data-id="${m.id}">`;
         html += `<td class="col-name" onclick="openMetricModal('${m.category}', ${m.id})">${escapeHtml(m.name)}</td>`;
         html += `<td class="col-target">${target}</td>`;
         dates.forEach(d => {
@@ -1637,6 +1773,20 @@ function renderTable(containerId, list) {
 
     html += `</tbody></table></div>`;
     c.innerHTML = html;
+
+    // Sortable для строк таблицы
+    const tbody = c.querySelector('tbody');
+    if (tbody && tbody.children.length && window.Sortable && !tbody._sortable) {
+        tbody._sortable = new Sortable(tbody, {
+            animation: 150, delay: 300, delayOnTouchOnly: true,
+            draggable: 'tr[data-id]',
+            onEnd: async () => {
+                const ids = [...tbody.querySelectorAll('tr[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'gym_metrics', ids });
+            }
+        });
+    }
 
     requestAnimationFrame(() => {
         c.querySelectorAll('.metrics-table-wrap').forEach(wrap => {
