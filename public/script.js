@@ -8,6 +8,72 @@ let tg = null;
 const TOTAL_MAIN_SCREENS = 8;
 let currentScreenIndex = 0;
 
+// ===== Collapse state =====
+const collapsed = {
+    filmGenres: new Set(),
+    filmWatched: new Set(),
+    teaGroups: new Set(),
+    placesWant: new Set(),
+    placesVisited: new Set(),
+    discAreas: new Set(),
+    wishlistAreas: new Set(),
+};
+
+function isCollapsed(key, id) {
+    return collapsed[key].has(id);
+}
+function toggleCollapse(key, id) {
+    if (collapsed[key].has(id)) collapsed[key].delete(id);
+    else collapsed[key].add(id);
+}
+
+// ===== Sortable helper =====
+function makeSortable(containerEl, tableName, opts = {}) {
+    if (!containerEl || !window.Sortable) return;
+    if (containerEl._sortable) containerEl._sortable.destroy();
+    containerEl._sortable = new Sortable(containerEl, {
+        animation: 150,
+        delay: 250,
+        delayOnTouchOnly: true,
+        handle: opts.handle || null,
+        draggable: opts.draggable || '> *[data-id]',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        onEnd: async () => {
+            const ids = [...containerEl.children]
+                .filter(c => c.dataset.id)
+                .map(c => parseInt(c.dataset.id))
+                .filter(Boolean);
+            if (!ids.length) return;
+            try {
+                await api('/api/reorder', 'POST', { table: tableName, ids });
+            } catch (e) { console.error('Reorder error:', e); }
+        }
+    });
+}
+
+function getCollapsedHeaderHTML(key, id, name, count, extra = '') {
+    const isOpen = !isCollapsed(key, id);
+    return `<div class="group-header">
+        <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('${key}', ${id}); rerenderCurrent();">▶</span>
+        <div class="group-name clickable" onclick="event.stopPropagation(); toggleCollapse('${key}', ${id}); rerenderCurrent();">${escapeHtml(name)}</div>
+        ${count !== null ? `<div class="group-count">${count}</div>` : ''}
+        ${extra}
+    </div>`;
+}
+
+function rerenderCurrent() {
+    const i = currentScreenIndex;
+    if (i === 0) return;
+    if (i === 1) { renderAreas(); renderTodos(); renderWeek(habits); }
+    if (i === 2) renderPrograms();
+    if (i === 3) { renderBudget(cashBudget); renderWishlist(); renderPiggy(); }
+    if (i === 4) { renderPlacesWant(); renderPlacesVisited(); }
+    if (i === 5) { renderFilmGenres(); renderFilmWatched(); }
+    if (i === 6) { renderTea(); renderTeaShops(); }
+}
+
 // ==========================================
 // ===== TELEGRAM INIT =====
 // ==========================================
@@ -1692,24 +1758,62 @@ function renderFilmGenres() {
     c.innerHTML = all.map(g => {
         const isOrphan = !g.id;
         const movies = (g.movies || []).filter(m => m.status !== 'watched');
+        const isOpen = isOrphan ? true : !isCollapsed('filmGenres', g.id);
         const nameClick = isOrphan ? '' : `onclick="openFilmGenreModal(${g.id})"`;
-        return `<div class="film-genre-card">
-            <div class="group-header">
-                <div class="group-name ${isOrphan ? '' : 'clickable'}" ${nameClick}>${escapeHtml(g.name)}</div>
+
+        const header = isOrphan
+            ? `<div class="group-header">
+                <div class="group-name">Без жанра</div>
                 <div class="group-count">${movies.length}</div>
-                <button class="btn-icon-add" onclick="openFilmModal(null, ${isOrphan ? 'null' : g.id})">+</button>
-            </div>
-            ${movies.length === 0 ? `<div class="widget-empty">Пусто</div>`
-                : movies.map(m => filmItemHTML(m)).join('')}
+                <button class="btn-icon-add" onclick="openFilmModal(null, null)">+</button>
+            </div>`
+            : `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('filmGenres', ${g.id}); renderFilmGenres();">▶</span>
+                <div class="group-name clickable" ${nameClick}>${escapeHtml(g.name)}</div>
+                <div class="group-count">${movies.length}</div>
+                <button class="btn-icon-add" onclick="openFilmModal(null, ${g.id})">+</button>
+            </div>`;
+
+        const itemsHtml = isOpen
+            ? (movies.length === 0 ? `<div class="widget-empty">Пусто</div>` : movies.map(m => filmItemHTML(m)).join(''))
+            : '';
+
+        return `<div class="film-genre-card ${isOpen ? 'open' : ''}" ${g.id ? `data-id="${g.id}"` : ''}>
+            ${header}
+            <div class="group-body">${itemsHtml}</div>
         </div>`;
     }).join('');
+
+    // Sortable для жанров (только для тех, у которых есть id)
+    const genresOnly = c.querySelectorAll('.film-genre-card[data-id]');
+    if (genresOnly.length && window.Sortable) {
+        if (!c._sortableGenres) {
+            c._sortableGenres = new Sortable(c, {
+                animation: 150,
+                delay: 250,
+                delayOnTouchOnly: true,
+                draggable: '.film-genre-card[data-id]',
+                onEnd: async () => {
+                    const ids = [...c.querySelectorAll('.film-genre-card[data-id]')]
+                        .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                    if (ids.length) await api('/api/reorder', 'POST', { table: 'film_genres', ids });
+                }
+            });
+        }
+    }
+
+    // Sortable для фильмов внутри каждого жанра
+    c.querySelectorAll('.group-body').forEach(body => {
+        if (!body.children.length) return;
+        makeSortable(body, 'film_movies', { draggable: '[data-id]' });
+    });
 }
 
 function filmItemHTML(m) {
     const p = m.priority || 0;
     const pClass = p >= 5 ? 'p5' : p >= 4 ? 'p4' : p >= 3 ? 'p3' : '';
     const statusLabels = { want: 'Хочу', watching: 'Смотрю', watched: 'Видел' };
-    return `<div class="list-item" onclick="openFilmModal(${m.id})">
+    return `<div class="list-item" data-id="${m.id}" onclick="openFilmModal(${m.id})">
         ${p ? `<div class="item-priority ${pClass}">${p}</div>` : ''}
         <div class="item-info">
             <div class="item-title">${escapeHtml(m.title)}</div>
@@ -1939,24 +2043,55 @@ function renderTea() {
 
     c.innerHTML = all.map(g => {
         const isOrphan = !g.id;
+        const isOpen = isOrphan ? true : !isCollapsed('teaGroups', g.id);
         const nameClick = isOrphan ? '' : `onclick="openTeaGroupModal(${g.id})"`;
-        return `<div class="tea-group-card">
-            <div class="group-header">
-                <div class="group-name ${isOrphan ? '' : 'clickable'}" ${nameClick}>${escapeHtml(g.name)}</div>
+        const header = isOrphan
+            ? `<div class="group-header">
+                <div class="group-name">Без группы</div>
                 <div class="group-count">${g.items.length}</div>
-                ${isOrphan ? '' : `<button class="btn-icon-add" onclick="openTeaModal(null, ${g.id})">+</button>`}
-            </div>
-            ${g.items.length === 0 ? `<div class="widget-empty">Пусто</div>`
-                : g.items.map(i => teaItemHTML(i)).join('')}
+            </div>`
+            : `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', ${g.id}); renderTea();">▶</span>
+                <div class="group-name clickable" ${nameClick}>${escapeHtml(g.name)}</div>
+                <div class="group-count">${g.items.length}</div>
+                <button class="btn-icon-add" onclick="openTeaModal(null, ${g.id})">+</button>
+            </div>`;
+
+        const bodyHtml = isOpen
+            ? (g.items.length === 0 ? `<div class="widget-empty">Пусто</div>` : g.items.map(i => teaItemHTML(i)).join(''))
+            : '';
+
+        return `<div class="tea-group-card ${isOpen ? 'open' : ''}" ${g.id ? `data-id="${g.id}"` : ''}>
+            ${header}
+            <div class="group-body">${bodyHtml}</div>
         </div>`;
     }).join('');
+
+    // Sortable для групп
+    if (!c._sortable && window.Sortable) {
+        c._sortable = new Sortable(c, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '.tea-group-card[data-id]',
+            onEnd: async () => {
+                const ids = [...c.querySelectorAll('.tea-group-card[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'tea_groups', ids });
+            }
+        });
+    }
+
+    // Sortable для чая внутри групп
+    c.querySelectorAll('.group-body').forEach(body => {
+        if (!body.children.length) return;
+        makeSortable(body, 'tea_items', { draggable: '[data-id]' });
+    });
 }
 
 function teaItemHTML(i) {
     const parts = [];
     if (i.temp_c) parts.push(`${i.temp_c}°C`);
     if (i.review) parts.push(escapeHtml(i.review.slice(0, 40)));
-    return `<div class="list-item" onclick="openTeaModal(${i.id})">
+    return `<div class="list-item" data-id="${i.id}" onclick="openTeaModal(${i.id})">
         <div class="item-info">
             <div class="item-title">${escapeHtml(i.name)}</div>
             <div class="item-sub">${parts.join(' · ') || '—'}</div>
@@ -2202,18 +2337,48 @@ function renderPlacesWant() {
 
     c.innerHTML = all.map(t => {
         const isOrphan = !t.id;
+        const isOpen = isOrphan ? true : !isCollapsed('placesWant', t.id);
         const items = (t.items || []).filter(i => i.status !== 'visited' && placeMatchesFilter(i));
         const nameClick = isOrphan ? '' : `onclick="openPlaceTypeModal(${t.id})"`;
-        return `<div class="place-card">
-            <div class="group-header">
-                <div class="group-name ${isOrphan ? '' : 'clickable'}" ${nameClick}>${escapeHtml(t.name)}</div>
+        const header = isOrphan
+            ? `<div class="group-header">
+                <div class="group-name">Без типа</div>
                 <div class="group-count">${items.length}</div>
-                <button class="btn-icon-add" onclick="openPlaceModal(null, ${isOrphan ? 'null' : t.id})">+</button>
-            </div>
-            ${items.length === 0 ? `<div class="widget-empty">Пусто</div>`
-                : items.map(p => placeItemHTML(p)).join('')}
+                <button class="btn-icon-add" onclick="openPlaceModal(null, null)">+</button>
+            </div>`
+            : `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', ${t.id}); renderPlacesWant();">▶</span>
+                <div class="group-name clickable" ${nameClick}>${escapeHtml(t.name)}</div>
+                <div class="group-count">${items.length}</div>
+                <button class="btn-icon-add" onclick="openPlaceModal(null, ${t.id})">+</button>
+            </div>`;
+
+        const bodyHtml = isOpen
+            ? (items.length === 0 ? `<div class="widget-empty">Пусто</div>` : items.map(p => placeItemHTML(p)).join(''))
+            : '';
+
+        return `<div class="place-card ${isOpen ? 'open' : ''}" ${t.id ? `data-id="${t.id}"` : ''}>
+            ${header}
+            <div class="group-body">${bodyHtml}</div>
         </div>`;
     }).join('');
+
+    if (!c._sortable && window.Sortable) {
+        c._sortable = new Sortable(c, {
+            animation: 150, delay: 250, delayOnTouchOnly: true,
+            draggable: '.place-card[data-id]',
+            onEnd: async () => {
+                const ids = [...c.querySelectorAll('.place-card[data-id]')]
+                    .map(el => parseInt(el.dataset.id)).filter(Boolean);
+                if (ids.length) await api('/api/reorder', 'POST', { table: 'places_types', ids });
+            }
+        });
+    }
+
+    c.querySelectorAll('.group-body').forEach(body => {
+        if (!body.children.length) return;
+        makeSortable(body, 'places_items', { draggable: '[data-id]' });
+    });
 }
 
 function renderPlacesVisited() {
@@ -2249,7 +2414,7 @@ function placeItemHTML(p) {
     const parts = [];
     if (p.city) parts.push(p.city);
     if (p.country) parts.push(p.country);
-    return `<div class="list-item" onclick="openPlaceModal(${p.id})">
+    return `<div class="list-item" data-id="${p.id}" onclick="openPlaceModal(${p.id})">
         ${pr ? `<div class="item-priority ${pClass}">${pr}</div>` : ''}
         <div class="item-info">
             <div class="item-title">${escapeHtml(p.name)}</div>

@@ -255,7 +255,10 @@ app.get('/api/disc/habits/week', authMiddleware, async (req, res) => {
 app.get('/api/disc/todos', authMiddleware, async (req, res) => {
     const { data } = await supabase.from('disc_todos').select('*')
         .eq('tg_id', req.tg_id)
-        .order('done').order('date', { ascending: true, nullsFirst: true }).order('created_at');
+        .order('sort_order', { ascending: true, nullsFirst: false })
+        .order('done')
+        .order('date', { ascending: true, nullsFirst: true })
+        .order('created_at');
     res.json({ todos: data || [] });
 });
 
@@ -295,8 +298,8 @@ app.delete('/api/disc/todos/:id', authMiddleware, async (req, res) => {
 // ===== DISCIPLINE: ЦЕЛИ =====
 // ==========================================
 app.get('/api/disc/areas', authMiddleware, async (req, res) => {
-    const { data: areas } = await supabase.from('disc_areas').select('*').eq('tg_id', req.tg_id).order('created_at');
-    const { data: goals } = await supabase.from('disc_goals').select('*').eq('tg_id', req.tg_id).order('created_at');
+    const { data: areas } = await supabase.from('disc_areas').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at');
+    const { data: goals } = await supabase.from('disc_goals').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at');
     const result = (areas || []).map(a => ({
         ...a,
         goals: (goals || []).filter(g => g.area_id === a.id),
@@ -364,8 +367,8 @@ app.get('/api/cash/budget', authMiddleware, async (req, res) => {
 
     const [budgetR, subsR, weeklyR, customR] = await Promise.all([
         supabase.from('cash_budget').select('*').eq('tg_id', req.tg_id).eq('year', year).eq('month', month).maybeSingle(),
-        supabase.from('cash_subs').select('*').eq('tg_id', req.tg_id).eq('active', true),
-        supabase.from('cash_weekly').select('*').eq('tg_id', req.tg_id),
+        supabase.from('cash_subs').select('*').eq('tg_id', req.tg_id).eq('active', true).order('sort_order'),
+        supabase.from('cash_weekly').select('*').eq('tg_id', req.tg_id).order('sort_order'),
         supabase.from('cash_custom_stats').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at'),
     ]);
 
@@ -494,7 +497,7 @@ app.delete('/api/cash/weekly/:id', authMiddleware, async (req, res) => {
 // ==========================================
 app.get('/api/cash/wishlist', authMiddleware, async (req, res) => {
     const { data: items } = await supabase.from('cash_wishlist').select('*')
-        .eq('tg_id', req.tg_id).order('created_at');
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
     const { data: areas } = await supabase.from('cash_wishlist_areas').select('*')
         .eq('tg_id', req.tg_id).order('created_at');
     res.json({ items: items || [], areas: areas || [] });
@@ -701,7 +704,7 @@ app.delete('/api/gym/metrics/logs/:logId', authMiddleware, async (req, res) => {
 // ==========================================
 app.get('/api/gym/programs', authMiddleware, async (req, res) => {
     const { data: programs } = await supabase.from('gym_programs').select('*')
-        .eq('tg_id', req.tg_id).order('created_at');
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
     if (!programs) return res.json({ programs: [] });
 
     const programIds = programs.map(p => p.id);
@@ -842,9 +845,9 @@ app.delete('/api/gym/sets/:id', authMiddleware, async (req, res) => {
 // ===== FILM =====
 // ==========================================
 app.get('/api/film', authMiddleware, async (req, res) => {
-    const { data: genres } = await supabase.from('film_genres').select('*').eq('tg_id', req.tg_id).order('created_at');
+    const { data: genres } = await supabase.from('film_genres').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at');
     const { data: movies } = await supabase.from('film_movies').select('*')
-        .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
+        .eq('tg_id', req.tg_id).order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false });
 
     const result = (genres || []).map(g => ({
         ...g,
@@ -945,11 +948,11 @@ app.get('/api/film/random', authMiddleware, async (req, res) => {
 // ===== TEA =====
 // ==========================================
 app.get('/api/tea', authMiddleware, async (req, res) => {
-    const { data: groups } = await supabase.from('tea_groups').select('*').eq('tg_id', req.tg_id).order('created_at');
+    const { data: groups } = await supabase.from('tea_groups').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at');
     const { data: items } = await supabase.from('tea_items').select('*')
-        .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
+        .eq('tg_id', req.tg_id).order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false });
     const { data: shops } = await supabase.from('tea_shops').select('*')
-        .eq('tg_id', req.tg_id).order('created_at');
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
 
     const result = (groups || []).map(g => ({
         ...g,
@@ -1049,9 +1052,9 @@ app.delete('/api/tea/shops/:id', authMiddleware, async (req, res) => {
 // ==========================================
 app.get('/api/places', authMiddleware, async (req, res) => {
     const { data: types } = await supabase.from('places_types').select('*')
-        .eq('tg_id', req.tg_id).order('created_at');
+        .eq('tg_id', req.tg_id).order('sort_order').order('created_at');
     const { data: items } = await supabase.from('places_items').select('*')
-        .eq('tg_id', req.tg_id).order('created_at', { ascending: false });
+        .eq('tg_id', req.tg_id).order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false });
 
     const result = (types || []).map(t => ({
         ...t,

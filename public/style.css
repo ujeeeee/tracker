@@ -1017,3 +1017,48 @@ textarea.modal-input {
     resize: vertical;
     min-height: 200px;
 }
+
+/* ===== SWIPE / DRAG ===== */
+.sortable-ghost { opacity: 0.4; }
+.sortable-chosen { background: var(--card-hover) !important; }
+.sortable-drag { opacity: 0.9; }
+
+/* Иконка «ручки» для drag — не обязательна, но помогает */
+.drag-handle {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    opacity: 0.3;
+    cursor: grab;
+    padding: 0 4px;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Свёрнутая группа */
+.group-body {
+    display: none;
+}
+.group-card.open .group-body,
+.area-card.open .group-body,
+.film-genre-card.open .group-body,
+.tea-group-card.open .group-body,
+.place-card.open .group-body {
+    display: block;
+}
+
+/* Стрелка сворачивания */
+.group-arrow {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.group-card.open .group-arrow,
+.area-card.open .group-arrow,
+.film-genre-card.open .group-arrow,
+.tea-group-card.open .group-arrow,
+.place-card.open .group-arrow {
+    transform: rotate(90deg);
+}
