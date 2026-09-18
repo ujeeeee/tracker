@@ -341,7 +341,7 @@ function renderMainHabits(habits) {
 function renderMainMoney(money) {
     const c = document.getElementById('mainMoneyWidget');
     c.innerHTML = `<div class="main-widget-row">
-        <div class="main-widget-square" id="mainMoneyBox" onclick="toggleMoneyBlur(this)">
+        <div class="main-widget-square money-blur" id="mainMoneyBox" onclick="toggleMoneyBlur(this)">
             <div class="main-widget-label">Копилка</div>
             <div class="main-widget-value">${fmt(money.balance)}</div>
             <div class="main-widget-label" style="margin-top:14px;">Долг</div>
