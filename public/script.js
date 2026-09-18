@@ -2413,6 +2413,78 @@ async function backupAll(section) {
 }
 
 // ==========================================
+// ===== IMPORT =====
+// ==========================================
+const IMPORT_CONFIG = {
+    film: {
+        title: 'Импорт фильмов',
+        hint: 'Жанры — строки с <b>#</b>.<br>Формат: <code>Название | год | приоритет</code>',
+        placeholder: '# Комедии\nМальчишник в Вегасе | 2009 | 5\nПолтора шпиона\n\n# Триллеры\nДжокер | 2019 | 4',
+    },
+    tea: {
+        title: 'Импорт чая',
+        hint: 'Группы — строки с <b>#</b>.<br>Формат: <code>Название | температура | оценка</code>',
+        placeholder: '# Бодрящий\nДа Хун Пао | 95 | 5\n\n# Расслабляющий\nРомашка | 80',
+    },
+    places: {
+        title: 'Импорт мест',
+        hint: 'Типы — строки с <b>#</b>.<br>Формат: <code>Название | город | страна | приоритет</code>',
+        placeholder: '# Кафе\nКафе Пушкин | Москва | Россия | 5\n\n# Города\nБарселона | | Испания',
+    },
+    wishlist: {
+        title: 'Импорт вишлиста',
+        hint: 'Области — строки с <b>#</b>.<br>Формат: <code>Название | цена | ссылка</code>',
+        placeholder: '# Техника\nКроссовки Nike | 12000\n\n# Одежда\nКуртка | 15000',
+    },
+    todos: {
+        title: 'Импорт дел',
+        hint: 'Без групп. Формат: <code>Название | дата | время_с | время_до</code><br>Дата: 19.09.26 или 2026-09-19',
+        placeholder: 'Позвонить маме | 19.09.26\nКупить хлеб\nЗал | 20.09.26 | 10:00 | 12:00',
+    },
+    discipline: {
+        title: 'Импорт целей',
+        hint: 'Области — строки с <b>#</b>.<br>Формат: <code>Название цели</code>',
+        placeholder: '# Спорт\nКМС по жиму\nСет по приседу\n\n# Саморазвитие\nВыучить английский',
+    },
+};
+
+let importSection = null;
+
+function openImport(section) {
+    const cfg = IMPORT_CONFIG[section];
+    if (!cfg) return;
+    importSection = section;
+    document.getElementById('importTitle').textContent = cfg.title;
+    document.getElementById('importHint').innerHTML = cfg.hint;
+    const ta = document.getElementById('importText');
+    ta.value = '';
+    ta.placeholder = cfg.placeholder || '';
+    openModal('importModal');
+    setTimeout(() => ta.focus(), 200);
+}
+
+function closeImportModal() { closeModal('importModal'); }
+
+async function saveImport() {
+    const text = document.getElementById('importText').value;
+    if (!text.trim()) return alert('Вставь список');
+    try {
+        const res = await api(`/api/import/${importSection}`, 'POST', { text });
+        closeImportModal();
+        let msg = `✅ Добавлено: ${res.added}`;
+        if (res.groupsAdded) msg += `, новых групп: ${res.groupsAdded}`;
+        alert(msg);
+
+        if (importSection === 'film') await loadFilm();
+        else if (importSection === 'tea') await loadTea();
+        else if (importSection === 'places') await loadPlaces();
+        else if (importSection === 'wishlist') await loadWishlist();
+        else if (importSection === 'todos') await loadTodos();
+        else if (importSection === 'discipline') await loadAreas();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// ==========================================
 // ===== СТАРТ =====
 // ==========================================
 (async function start() {

@@ -1257,6 +1257,279 @@ function isHabitScheduled(h, dateStr) {
 }
 
 // ==========================================
+// ===== REORDER (для drag & drop) =====
+// ==========================================
+const REORDER_WHITELIST = [
+    'disc_areas','disc_goals','disc_habits','disc_todos',
+    'cash_custom_stats','cash_subs','cash_weekly','cash_wishlist','cash_wishlist_areas','cash_piggy',
+    'gym_programs','gym_program_days','gym_exercises','gym_metrics',
+    'film_genres','film_movies',
+    'tea_groups','tea_items','tea_shops',
+    'places_types','places_items',
+];
+
+app.post('/api/reorder', authMiddleware, async (req, res) => {
+    const { table, ids } = req.body;
+    if (!REORDER_WHITELIST.includes(table)) return res.status(400).json({ error: 'Table not allowed' });
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids array required' });
+    try {
+        for (let i = 0; i < ids.length; i++) {
+            await supabase.from(table).update({ sort_order: i + 1 }).eq('id', ids[i]);
+        }
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
+// ===== IMPORT =====
+// ==========================================
+app.post('/api/import/film', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentGenreId = null, added = 0, genresAdded = 0;
+
+    const { data: existingGenres } = await supabase.from('film_genres').select('id, name').eq('tg_id', req.tg_id);
+    const genreMap = {};
+    (existingGenres || []).forEach(g => { genreMap[g.name.toLowerCase()] = g.id; });
+
+    const { data: maxG } = await supabase.from('film_genres').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let genreOrder = (maxG?.sort_order || 0) + 1;
+
+    const { data: maxM } = await supabase.from('film_movies').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let movieOrder = (maxM?.sort_order || 0) + 1;
+
+    for (const line of lines) {
+        if (line.startsWith('#')) {
+            const name = line.replace(/^#\s*/, '').trim();
+            if (!name) continue;
+            const key = name.toLowerCase();
+            if (genreMap[key]) currentGenreId = genreMap[key];
+            else {
+                const { data: g } = await supabase.from('film_genres').insert({
+                    tg_id: req.tg_id, name, sort_order: genreOrder++,
+                }).select().single();
+                if (g) { currentGenreId = g.id; genreMap[key] = g.id; genresAdded++; }
+            }
+            continue;
+        }
+        const parts = line.split('|').map(p => p.trim());
+        const title = parts[0];
+        if (!title) continue;
+        const year = parts[1] ? parseInt(parts[1]) : null;
+        const prio = parts[2] ? parseInt(parts[2]) : null;
+        const { error } = await supabase.from('film_movies').insert({
+            tg_id: req.tg_id, genre_id: currentGenreId, title,
+            year: isNaN(year) ? null : year,
+            priority: (prio >= 1 && prio <= 5) ? prio : null,
+            status: 'want', sort_order: movieOrder++,
+        });
+        if (!error) added++;
+    }
+    res.json({ added, groupsAdded: genresAdded });
+});
+
+app.post('/api/import/tea', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentGroupId = null, added = 0, groupsAdded = 0;
+
+    const { data: existing } = await supabase.from('tea_groups').select('id, name').eq('tg_id', req.tg_id);
+    const groupMap = {};
+    (existing || []).forEach(g => { groupMap[g.name.toLowerCase()] = g.id; });
+
+    const { data: maxG } = await supabase.from('tea_groups').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let groupOrder = (maxG?.sort_order || 0) + 1;
+
+    const { data: maxI } = await supabase.from('tea_items').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let itemOrder = (maxI?.sort_order || 0) + 1;
+
+    for (const line of lines) {
+        if (line.startsWith('#')) {
+            const name = line.replace(/^#\s*/, '').trim();
+            if (!name) continue;
+            const key = name.toLowerCase();
+            if (groupMap[key]) currentGroupId = groupMap[key];
+            else {
+                const { data: g } = await supabase.from('tea_groups').insert({
+                    tg_id: req.tg_id, name, sort_order: groupOrder++,
+                }).select().single();
+                if (g) { currentGroupId = g.id; groupMap[key] = g.id; groupsAdded++; }
+            }
+            continue;
+        }
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) continue;
+        const temp = parts[1] ? parseInt(parts[1]) : null;
+        const rating = parts[2] ? parseInt(parts[2]) : null;
+        const { error } = await supabase.from('tea_items').insert({
+            tg_id: req.tg_id, group_id: currentGroupId, name,
+            temp_c: isNaN(temp) ? null : temp,
+            rating: (rating >= 1 && rating <= 5) ? rating : null,
+            sort_order: itemOrder++,
+        });
+        if (!error) added++;
+    }
+    res.json({ added, groupsAdded });
+});
+
+app.post('/api/import/places', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentTypeId = null, added = 0, typesAdded = 0;
+
+    const { data: existing } = await supabase.from('places_types').select('id, name').eq('tg_id', req.tg_id);
+    const typeMap = {};
+    (existing || []).forEach(t => { typeMap[t.name.toLowerCase()] = t.id; });
+
+    const { data: maxT } = await supabase.from('places_types').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let typeOrder = (maxT?.sort_order || 0) + 1;
+
+    const { data: maxI } = await supabase.from('places_items').select('sort_order').eq('tg_id', req.tg_id)
+        .order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    let itemOrder = (maxI?.sort_order || 0) + 1;
+
+    for (const line of lines) {
+        if (line.startsWith('#')) {
+            const name = line.replace(/^#\s*/, '').trim();
+            if (!name) continue;
+            const key = name.toLowerCase();
+            if (typeMap[key]) currentTypeId = typeMap[key];
+            else {
+                const { data: t } = await supabase.from('places_types').insert({
+                    tg_id: req.tg_id, name, sort_order: typeOrder++,
+                }).select().single();
+                if (t) { currentTypeId = t.id; typeMap[key] = t.id; typesAdded++; }
+            }
+            continue;
+        }
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) continue;
+        const prio = parts[3] ? parseInt(parts[3]) : null;
+        const { error } = await supabase.from('places_items').insert({
+            tg_id: req.tg_id, type_id: currentTypeId, name,
+            city: parts[1] || null,
+            country: parts[2] || null,
+            priority: (prio >= 1 && prio <= 5) ? prio : null,
+            status: 'want', sort_order: itemOrder++,
+        });
+        if (!error) added++;
+    }
+    res.json({ added, groupsAdded: typesAdded });
+});
+
+app.post('/api/import/wishlist', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentArea = null, added = 0, areasAdded = 0;
+
+    const { data: existing } = await supabase.from('cash_wishlist_areas').select('id, name').eq('tg_id', req.tg_id);
+    const areaMap = {};
+    (existing || []).forEach(a => { areaMap[a.name.toLowerCase()] = a.name; });
+
+    for (const line of lines) {
+        if (line.startsWith('#')) {
+            const name = line.replace(/^#\s*/, '').trim();
+            if (!name) continue;
+            const key = name.toLowerCase();
+            if (areaMap[key]) currentArea = areaMap[key];
+            else {
+                await supabase.from('cash_wishlist_areas').insert({ tg_id: req.tg_id, name });
+                areaMap[key] = name;
+                currentArea = name;
+                areasAdded++;
+            }
+            continue;
+        }
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) continue;
+        const price = parts[1] ? parseFloat(parts[1]) : null;
+        const { error } = await supabase.from('cash_wishlist').insert({
+            tg_id: req.tg_id, name, area: currentArea || 'Общее',
+            price: isNaN(price) ? 0 : price,
+            url: parts[2] || null,
+        });
+        if (!error) added++;
+    }
+    res.json({ added, groupsAdded: areasAdded });
+});
+
+app.post('/api/import/todos', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let added = 0;
+
+    for (const line of lines) {
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0];
+        if (!name) continue;
+        const dateStr = parts[1] || null;
+        let dateVal = null;
+        if (dateStr) {
+            const m1 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+            const m2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m1) dateVal = `20${m1[3]}-${m1[2]}-${m1[1]}`;
+            else if (m2) dateVal = dateStr;
+        }
+        const { error } = await supabase.from('disc_todos').insert({
+            tg_id: req.tg_id, name, date: dateVal,
+            time_start: parts[2] || null,
+            time_end: parts[3] || null,
+        });
+        if (!error) added++;
+    }
+    res.json({ added });
+});
+
+app.post('/api/import/discipline', authMiddleware, async (req, res) => {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentAreaId = null, added = 0, areasAdded = 0;
+
+    const { data: existing } = await supabase.from('disc_areas').select('id, name').eq('tg_id', req.tg_id);
+    const areaMap = {};
+    (existing || []).forEach(a => { areaMap[a.name.toLowerCase()] = a.id; });
+
+    for (const line of lines) {
+        if (line.startsWith('#')) {
+            const name = line.replace(/^#\s*/, '').trim();
+            if (!name) continue;
+            const key = name.toLowerCase();
+            if (areaMap[key]) currentAreaId = areaMap[key];
+            else {
+                const { data: a } = await supabase.from('disc_areas').insert({
+                    tg_id: req.tg_id, name,
+                }).select().single();
+                if (a) { currentAreaId = a.id; areaMap[key] = a.id; areasAdded++; }
+            }
+            continue;
+        }
+        const name = line.split('|')[0].trim();
+        if (!name) continue;
+        const { error } = await supabase.from('disc_goals').insert({
+            tg_id: req.tg_id, name, area_id: currentAreaId, status: 'plan',
+        });
+        if (!error) added++;
+    }
+    res.json({ added, groupsAdded: areasAdded });
+});
+
+// ==========================================
 // ===== ЗАПУСК =====
 // ==========================================
 app.listen(PORT, () => {

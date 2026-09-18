@@ -345,7 +345,33 @@
                             <span class="settings-item-arrow">→</span>
                         </button>
                     </div>
-
+                    <div class="settings-section">
+                        <div class="settings-section-title">Импорт</div>
+                        <button class="settings-item" onclick="openImport('discipline')">
+                            <span class="settings-item-label"><span class="settings-item-icon">🎯</span><span>Discipline — цели</span></span>
+                            <span class="settings-item-arrow">⬆</span>
+                        </button>
+                        <button class="settings-item" onclick="openImport('todos')">
+                            <span class="settings-item-label"><span class="settings-item-icon">📝</span><span>Discipline — дела</span></span>
+                            <span class="settings-item-arrow">⬆</span>
+                        </button>
+                        <button class="settings-item" onclick="openImport('wishlist')">
+                            <span class="settings-item-label"><span class="settings-item-icon">🛒</span><span>Cash — вишлист</span></span>
+                            <span class="settings-item-arrow">⬆</span>
+                        </button>
+                        <button class="settings-item" onclick="openImport('film')">
+                            <span class="settings-item-label"><span class="settings-item-icon">🎬</span><span>Film</span></span>
+                            <span class="settings-item-arrow">⬆</span>
+                        </button>
+                        <button class="settings-item" onclick="openImport('tea')">
+                            <span class="settings-item-label"><span class="settings-item-icon">☕️</span><span>Tea</span></span>
+                            <span class="settings-item-arrow">⬆</span>
+                        </button>
+                        <button class="settings-item" onclick="openImport('places')">
+                            <span class="settings-item-label"><span class="settings-item-icon">📍</span><span>Places</span></span>
+                            <span class="settings-item-arrow">⬆</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -941,6 +967,21 @@
     </div>
 </div>
 
+<!-- ИМПОРТ -->
+<div class="modal-overlay" id="importModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="importTitle">Импорт</h3>
+        <div class="hint" id="importHint" style="margin-bottom:12px;font-size:12px;line-height:1.5;"></div>
+        <textarea class="modal-input" id="importText" rows="12"></textarea>
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeImportModal()">Отмена</button>
+            <button class="modal-btn primary" onclick="saveImport()">Импортировать</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

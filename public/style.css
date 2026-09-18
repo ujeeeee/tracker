@@ -1009,3 +1009,11 @@ body {
     .tabs { bottom: 76px; }
     .places-filters { bottom: 126px; }
 }
+
+textarea.modal-input {
+    font-family: ui-monospace, Menlo, Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 200px;
+}
