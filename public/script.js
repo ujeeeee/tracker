@@ -228,14 +228,29 @@ function renderMainGreeting() {
 
 function renderMainTodos(todos) {
     const c = document.getElementById('mainTodosWidget');
-    let html = `<div class="widget"><div class="widget-title"><span>Дела</span>${todos.length > 0 ? `<span class="widget-title-count">${todos.length}</span>` : ''}</div>`;
-    if (!todos.length) {
-        html += `<div class="widget-empty">Пусто на сегодня и завтра</div>`;
+
+    // Сортировка: сначала без даты, потом сегодня, потом завтра
+    const sorted = [...todos].sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return -1;
+        if (!b.date) return 1;
+        return a.date.localeCompare(b.date);
+    });
+
+    let html = `<div class="widget"><div class="widget-title"><span>Дела</span>${sorted.length > 0 ? `<span class="widget-title-count">${sorted.length}</span>` : ''}</div>`;
+    if (!sorted.length) {
+        html += `<div class="widget-empty">Пусто</div>`;
     } else {
-        todos.forEach(t => {
+        sorted.forEach(t => {
             const time = t.time_start ? `${t.time_start}${t.time_end ? '—' + t.time_end : ''}` : '';
+            let label = '';
+            let cls = '';
+            if (!t.date) { label = ''; cls = ''; }
+            else if (t.isToday) { label = 'Сегодня'; cls = ''; }
+            else if (t.isTomorrow) { label = 'Завтра'; cls = 'tomorrow'; }
+
             html += `<div class="main-todo-item">
-                <span class="main-todo-date ${t.isTomorrow ? 'tomorrow' : ''}">${t.isToday ? 'Сегодня' : 'Завтра'}</span>
+                ${label ? `<span class="main-todo-date ${cls}">${label}</span>` : '<span class="main-todo-date" style="opacity:0;">—</span>'}
                 <span class="main-todo-name">${escapeHtml(t.name)}</span>
                 ${time ? `<span class="main-todo-time">${time}</span>` : ''}
             </div>`;

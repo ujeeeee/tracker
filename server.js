@@ -97,7 +97,7 @@ app.get('/api/main', authMiddleware, async (req, res) => {
     // --- Дела (сегодня + завтра, не закрытые) ---
     const { data: todos } = await supabase.from('disc_todos').select('*')
         .eq('tg_id', req.tg_id).eq('done', false)
-        .in('date', [todayStr, tomorrowStr]);
+        .or(`date.is.null,date.eq.${todayStr},date.eq.${tomorrowStr}`);
 
     const todosList = (todos || []).map(t => ({
         name: t.name,
