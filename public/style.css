@@ -1062,3 +1062,15 @@ textarea.modal-input {
 .place-card.open .group-arrow {
     transform: rotate(90deg);
 }
+
+.money-blur .main-widget-value {
+    filter: blur(8px);
+    transition: filter 0.25s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.main-widget-square {
+    transition: filter 0.25s ease;
+    cursor: pointer;
+}
