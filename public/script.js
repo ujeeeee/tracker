@@ -8,16 +8,27 @@ let tg = null;
 const TOTAL_MAIN_SCREENS = 8;
 let currentScreenIndex = 0;
 
-// ===== Collapse state =====
-const collapsed = {
-    filmGenres: new Set(),
-    filmWatched: new Set(),
-    teaGroups: new Set(),
-    placesWant: new Set(),
-    placesVisited: new Set(),
-    discAreas: new Set(),
-    wishlistAreas: new Set(),
-};
+// ===== Collapse state (сохраняется в localStorage) =====
+const COLLAPSE_KEYS = [
+    'filmGenres', 'filmWatched', 'teaGroups',
+    'placesWant', 'placesVisited', 'discAreas', 'wishlistAreas',
+];
+
+const collapsed = {};
+COLLAPSE_KEYS.forEach(k => {
+    try {
+        const saved = JSON.parse(localStorage.getItem('collapse_' + k) || '[]');
+        collapsed[k] = new Set(saved);
+    } catch (e) {
+        collapsed[k] = new Set();
+    }
+});
+
+function saveCollapsed(key) {
+    try {
+        localStorage.setItem('collapse_' + key, JSON.stringify([...collapsed[key]]));
+    } catch (e) {}
+}
 
 function isCollapsed(key, id) {
     return collapsed[key].has(id);
@@ -25,6 +36,21 @@ function isCollapsed(key, id) {
 function toggleCollapse(key, id) {
     if (collapsed[key].has(id)) collapsed[key].delete(id);
     else collapsed[key].add(id);
+    saveCollapsed(key);
+}
+
+// ===== Состояние Gym: программы, тренировки, упражнения =====
+function loadSet(key) {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+    } catch (e) {
+        return new Set();
+    }
+}
+function saveSet(key, set) {
+    try {
+        localStorage.setItem(key, JSON.stringify([...set]));
+    } catch (e) {}
 }
 
 // ===== Sortable helper =====
@@ -1416,9 +1442,9 @@ async function saveFact() {
 // ===== GYM: ПРОГРАММЫ =====
 // ==========================================
 let programs = [];
-let openProgramIds = new Set();
-let openDayIds = new Set();
-let openExerciseIds = new Set();
+let openProgramIds = loadSet('openPrograms');
+let openDayIds = loadSet('openDays');
+let openExerciseIds = loadSet('openExercises');
 let programCtx = { id: null };
 let dayCtx = { id: null, programId: null };
 let exerciseCtx = { id: null, dayId: null };
@@ -1524,14 +1550,17 @@ function renderExercise(e, ei) {
 
 function toggleProgram(id) {
     if (openProgramIds.has(id)) openProgramIds.delete(id); else openProgramIds.add(id);
+    saveSet('openPrograms', openProgramIds);
     renderPrograms();
 }
 function toggleDay(id) {
     if (openDayIds.has(id)) openDayIds.delete(id); else openDayIds.add(id);
+    saveSet('openDays', openDayIds);
     renderPrograms();
 }
 function toggleExercise(id) {
     if (openExerciseIds.has(id)) openExerciseIds.delete(id); else openExerciseIds.add(id);
+    saveSet('openExercises', openExerciseIds);
     renderPrograms();
 }
 
@@ -1573,6 +1602,7 @@ async function deleteProgramFromModal() {
     await api(`/api/gym/programs/${programCtx.id}`, 'DELETE');
     closeProgramModal();
     openProgramIds.delete(programCtx.id);
+    saveSet('openPrograms', openProgramIds);
     await loadPrograms();
 }
 
@@ -1608,6 +1638,7 @@ async function saveDay() {
         } else {
             await api(`/api/gym/programs/${dayCtx.programId}/days`, 'POST', { name });
             openProgramIds.add(dayCtx.programId);
+            saveSet('openPrograms', openProgramIds);
         }
         closeDayModal();
         await loadPrograms();
@@ -1620,6 +1651,7 @@ async function deleteDayFromModal() {
     await api(`/api/gym/days/${dayCtx.id}`, 'DELETE');
     closeDayModal();
     openDayIds.delete(dayCtx.id);
+        saveSet('openDays', openDayIds);
     await loadPrograms();
 }
 
@@ -1657,6 +1689,7 @@ async function saveExercise() {
         } else {
             await api(`/api/gym/days/${exerciseCtx.dayId}/exercises`, 'POST', { name });
             openDayIds.add(exerciseCtx.dayId);
+            saveSet('openDays', openDayIds);
         }
         closeExerciseModal();
         await loadPrograms();
@@ -1669,6 +1702,7 @@ async function deleteExerciseFromModal() {
     await api(`/api/gym/exercises/${exerciseCtx.id}`, 'DELETE');
     closeExerciseModal();
     openExerciseIds.delete(exerciseCtx.id);
+    saveSet('openExercises', openExerciseIds);
     await loadPrograms();
 }
 
@@ -1701,6 +1735,7 @@ async function saveSet() {
         }
         await api(`/api/gym/exercises/${setCtx.exerciseId}/sets`, 'POST', { reps, weight });
         openExerciseIds.add(setCtx.exerciseId);
+        saveSet('openExercises', openExerciseIds);
         closeSetModal();
         await loadPrograms();
     } catch (e) { alert('Ошибка: ' + e.message); }
