@@ -994,7 +994,7 @@ app.post('/api/tea/items', authMiddleware, async (req, res) => {
     const { data, error } = await supabase.from('tea_items').insert({
         tg_id: req.tg_id, name: name.trim(),
         group_id: group_id || null,
-        temp_c: temp_c ? parseInt(temp_c) : null,
+        temp_c: temp_c ? String(temp_c).trim() : null,
         review: review || null,
         rating: rating ? parseInt(rating) : null,
     }).select().single();
@@ -1008,9 +1008,8 @@ app.patch('/api/tea/items/:id', authMiddleware, async (req, res) => {
         if (req.body[k] !== undefined) updates[k] = req.body[k];
     });
     if (updates.name) updates.name = updates.name.trim();
-    ['temp_c','rating'].forEach(k => {
-        if (req.body[k] !== undefined) updates[k] = req.body[k] ? parseInt(req.body[k]) : null;
-    });
+    if (req.body.temp_c !== undefined) updates.temp_c = req.body.temp_c ? String(req.body.temp_c).trim() : null;
+    if (req.body.rating !== undefined) updates.rating = req.body.rating ? parseInt(req.body.rating) : null;
     const { data, error } = await supabase.from('tea_items').update(updates)
         .eq('id', req.params.id).eq('tg_id', req.tg_id).select().single();
     if (error) return res.status(500).json({ error: error.message });
@@ -1371,12 +1370,12 @@ app.post('/api/import/tea', authMiddleware, async (req, res) => {
         const parts = line.split('|').map(p => p.trim());
         const name = parts[0];
         if (!name) continue;
-        const temp = parts[1] ? parseInt(parts[1]) : null;
+        const temp = parts[1] || null;
         const rating = parts[2] ? parseInt(parts[2]) : null;
         const { error } = await supabase.from('tea_items').insert({
             tg_id: req.tg_id, group_id: currentGroupId, name,
-            temp_c: isNaN(temp) ? null : temp,
-            rating: (rating >= 1 && rating <= 5) ? rating : null,
+            temp_c: temp,
+            rating: (rating >= 1 && rating <= 10) ? rating : null,
             sort_order: itemOrder++,
         });
         if (!error) added++;

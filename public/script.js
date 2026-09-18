@@ -1926,7 +1926,7 @@ async function deleteLogFromModal() {
 let filmGenres = [];
 let filmOrphans = [];
 let filmGenreCtx = { id: null };
-let filmCtx = { id: null, genreId: null, priority: null, status: 'want' };
+let filmCtx = { id: null, genreId: null, priority: null, rating: null, status: 'want' };
 let filmRandomType = 'want';
 
 async function loadFilm() {
@@ -2079,11 +2079,10 @@ async function deleteFilmGenreFromModal() {
 }
 
 function openFilmModal(id = null, genreId = null) {
-    filmCtx = { id, genreId, priority: null, status: 'want' };
+    filmCtx = { id, genreId, priority: null, rating: null, status: 'want' };
     const titleEl = document.getElementById('filmTitle');
     const nameEl = document.getElementById('filmName');
     const yearEl = document.getElementById('filmYear');
-    const ratingEl = document.getElementById('filmRating');
     const reviewEl = document.getElementById('filmReview');
     const delBtn = document.getElementById('filmDeleteBtn');
     const sel = document.getElementById('filmGenreSelect');
@@ -2101,9 +2100,9 @@ function openFilmModal(id = null, genreId = null) {
             nameEl.value = movie.title;
             yearEl.value = movie.year || '';
             sel.value = movie.genre_id || '';
-            ratingEl.value = movie.rating || '';
             reviewEl.value = movie.review || '';
             filmCtx.priority = movie.priority || null;
+            filmCtx.rating = movie.rating || null;
             filmCtx.status = movie.status || 'want';
         }
         delBtn.style.display = 'block';
@@ -2111,7 +2110,6 @@ function openFilmModal(id = null, genreId = null) {
         titleEl.textContent = 'Новый фильм';
         nameEl.value = '';
         yearEl.value = '';
-        ratingEl.value = '';
         reviewEl.value = '';
         if (genreId) sel.value = genreId;
         delBtn.style.display = 'none';
@@ -2119,6 +2117,8 @@ function openFilmModal(id = null, genreId = null) {
 
     document.querySelectorAll('#filmPriority button').forEach(b =>
         b.classList.toggle('active', filmCtx.priority === parseInt(b.dataset.p)));
+    document.querySelectorAll('#filmRatingPicker button').forEach(b =>
+        b.classList.toggle('active', filmCtx.rating === parseInt(b.dataset.r)));
     document.querySelectorAll('#filmStatusTabs [data-st]').forEach(b =>
         b.classList.toggle('active', b.dataset.st === filmCtx.status));
 
@@ -2134,6 +2134,17 @@ function pickFilmPriority(p, btn) {
     } else {
         filmCtx.priority = p;
         document.querySelectorAll('#filmPriority button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
+
+function pickFilmRating(r, btn) {
+    if (filmCtx.rating === r) {
+        filmCtx.rating = null;
+        btn.classList.remove('active');
+    } else {
+        filmCtx.rating = r;
+        document.querySelectorAll('#filmRatingPicker button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     }
 }
@@ -2154,7 +2165,7 @@ async function saveFilm() {
         genre_id: genreVal ? parseInt(genreVal) : null,
         priority: filmCtx.priority,
         status: filmCtx.status,
-        rating: document.getElementById('filmRating').value || null,
+        rating: filmCtx.rating,
         review: document.getElementById('filmReview').value || null,
     };
     try {
@@ -2295,11 +2306,12 @@ function renderTeaShops() {
         return;
     }
     c.innerHTML = teaShops.map(s => `
-        <div class="tea-shop-item" onclick="openTeaShopModal(${s.id})">
-            <div class="tea-shop-info">
+        <div class="tea-shop-item">
+            <div class="tea-shop-info" onclick="openTeaShopModal(${s.id})">
                 ${s.name ? `<div class="tea-shop-name">${escapeHtml(s.name)}</div>` : ''}
                 <div class="tea-shop-url">${escapeHtml(s.url)}</div>
             </div>
+            <button class="tea-shop-go" onclick="window.open('${escapeHtml(s.url)}', '_blank')">↗</button>
         </div>
     `).join('');
 }
@@ -2378,7 +2390,7 @@ function openTeaModal(id = null, groupId = null) {
         delBtn.style.display = 'none';
     }
 
-    document.querySelectorAll('#teaRating button').forEach(b =>
+    document.querySelectorAll('#teaRatingPicker button').forEach(b =>
         b.classList.toggle('active', teaCtx.rating === parseInt(b.dataset.r)));
     openModal('teaModal');
     setTimeout(() => nameEl.focus(), 200);
@@ -2391,7 +2403,7 @@ function pickTeaRating(r, btn) {
         btn.classList.remove('active');
     } else {
         teaCtx.rating = r;
-        document.querySelectorAll('#teaRating button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#teaRatingPicker button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     }
 }

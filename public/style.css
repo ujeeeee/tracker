@@ -1076,3 +1076,34 @@ textarea.modal-input {
     transition: filter 0.25s ease;
     cursor: pointer;
 }
+
+.rating-picker {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+.rating-picker button {
+    aspect-ratio: 1.5;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.15s;
+}
+.rating-picker button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+.rating-picker button:active { transform: scale(0.92); }
+
+.tea-shop-go {
+    background: none; border: none;
+    color: var(--accent); font-size: 18px;
+    padding: 4px 8px; cursor: pointer;
+    font-family: inherit; flex-shrink: 0;
+}
