@@ -1043,7 +1043,8 @@ textarea.modal-input {
 .area-card.open .group-body,
 .film-genre-card.open .group-body,
 .tea-group-card.open .group-body,
-.place-card.open .group-body {
+.place-card.open .group-body,
+.wishlist-area-card.open .group-body {
     display: block;
 }
 
@@ -1059,7 +1060,8 @@ textarea.modal-input {
 .area-card.open .group-arrow,
 .film-genre-card.open .group-arrow,
 .tea-group-card.open .group-arrow,
-.place-card.open .group-arrow {
+.place-card.open .group-arrow,
+.wishlist-area-card.open .group-arrow {
     transform: rotate(90deg);
 }
 

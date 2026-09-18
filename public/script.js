@@ -1728,13 +1728,12 @@ function openSetModal(id = null, exerciseId = null, reps = null, weight = null) 
 }
 function closeSetModal() { closeModal('setModal'); }
 
-async function saveSet() {
+async function saveExerciseSet() {
     const reps = document.getElementById('setReps').value;
     const weight = document.getElementById('setWeight').value;
     if (reps === '' && weight === '') return alert('Заполни повторения или вес');
     try {
         if (setCtx.id) {
-            // PATCH подход не реализован — удалим и создадим заново (упрощение)
             await api(`/api/gym/sets/${setCtx.id}`, 'DELETE');
         }
         await api(`/api/gym/exercises/${setCtx.exerciseId}/sets`, 'POST', { reps, weight });
