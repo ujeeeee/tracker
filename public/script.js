@@ -1946,13 +1946,15 @@ function renderFilmGenres() {
     c.innerHTML = all.map(g => {
         const isOrphan = !g.id;
         const movies = (g.movies || []).filter(m => m.status !== 'watched');
-        const isOpen = isOrphan ? true : !isCollapsed('filmGenres', g.id);
+        const isOpen = !isCollapsed('filmGenres', isOrphan ? 0 : g.id);
         const nameClick = isOrphan ? '' : `onclick="openFilmGenreModal(${g.id})"`;
 
         const header = isOrphan
             ? `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('filmGenres', 0); renderFilmGenres();">▶</span>
                 <div class="group-name">Без жанра</div>
                 <div class="group-count">${movies.length}</div>
+                ${movies.length > 0 ? `<button class="clear-btn" onclick="clearFilmOrphans()" title="Очистить">🗑</button>` : ''}
                 <button class="btn-icon-add" onclick="openFilmModal(null, null)">+</button>
             </div>`
             : `<div class="group-header">
@@ -1995,6 +1997,12 @@ function renderFilmGenres() {
         if (!body.children.length) return;
         makeSortable(body, 'film_movies', { draggable: '[data-id]' });
     });
+}
+
+async function clearFilmOrphans() {
+    if (!confirm('Удалить все фильмы из «Без жанра»?')) return;
+    await api('/api/film/orphans', 'DELETE');
+    await loadFilm();
 }
 
 function filmItemHTML(m) {
@@ -2242,12 +2250,14 @@ function renderTea() {
 
     c.innerHTML = all.map(g => {
         const isOrphan = !g.id;
-        const isOpen = isOrphan ? true : !isCollapsed('teaGroups', g.id);
+        const isOpen = !isCollapsed('teaGroups', isOrphan ? 0 : g.id);
         const nameClick = isOrphan ? '' : `onclick="openTeaGroupModal(${g.id})"`;
         const header = isOrphan
             ? `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', 0); renderTea();">▶</span>
                 <div class="group-name">Без группы</div>
                 <div class="group-count">${g.items.length}</div>
+                ${g.items.length > 0 ? `<button class="clear-btn" onclick="clearTeaOrphans()" title="Очистить">🗑</button>` : ''}
             </div>`
             : `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', ${g.id}); renderTea();">▶</span>
@@ -2284,6 +2294,12 @@ function renderTea() {
         if (!body.children.length) return;
         makeSortable(body, 'tea_items', { draggable: '[data-id]' });
     });
+}
+
+async function clearTeaOrphans() {
+    if (!confirm('Удалить весь чай из «Без группы»?')) return;
+    await api('/api/tea/orphans', 'DELETE');
+    await loadTea();
 }
 
 function teaItemHTML(i) {
@@ -2531,19 +2547,27 @@ function placeMatchesFilter(p) {
     return true;
 }
 
+async function clearPlaceOrphans() {
+    if (!confirm('Удалить все места из «Без типа»?')) return;
+    await api('/api/places/orphans', 'DELETE');
+    await loadPlaces();
+}
+
 function renderPlacesWant() {
     const c = document.getElementById('placesWantList');
     const all = [...placesTypes, { id: null, name: 'Без типа', items: placesOrphans }];
 
     c.innerHTML = all.map(t => {
         const isOrphan = !t.id;
-        const isOpen = isOrphan ? true : !isCollapsed('placesWant', t.id);
+        const isOpen = !isCollapsed('placesWant', isOrphan ? 0 : t.id);
         const items = (t.items || []).filter(i => i.status !== 'visited' && placeMatchesFilter(i));
         const nameClick = isOrphan ? '' : `onclick="openPlaceTypeModal(${t.id})"`;
         const header = isOrphan
             ? `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', 0); renderPlacesWant();">▶</span>
                 <div class="group-name">Без типа</div>
                 <div class="group-count">${items.length}</div>
+                ${items.length > 0 ? `<button class="clear-btn" onclick="clearPlaceOrphans()" title="Очистить">🗑</button>` : ''}
                 <button class="btn-icon-add" onclick="openPlaceModal(null, null)">+</button>
             </div>`
             : `<div class="group-header">

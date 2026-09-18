@@ -1046,6 +1046,11 @@ app.delete('/api/tea/shops/:id', authMiddleware, async (req, res) => {
     res.json({ ok: true });
 });
 
+app.delete('/api/tea/orphans', authMiddleware, async (req, res) => {
+    await supabase.from('tea_items').delete().eq('tg_id', req.tg_id).is('group_id', null);
+    res.json({ ok: true });
+});
+
 // ==========================================
 // ===== PLACES =====
 // ==========================================
