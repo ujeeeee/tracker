@@ -1952,9 +1952,8 @@ function renderFilmGenres() {
         const header = isOrphan
             ? `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('filmGenres', 0); renderFilmGenres();">▶</span>
-                <div class="group-name">Без жанра</div>
+                <div class="group-name clickable" onclick="clearFilmOrphans()">Без жанра</div>
                 <div class="group-count">${movies.length}</div>
-                ${movies.length > 0 ? `<button class="clear-btn" onclick="clearFilmOrphans()" title="Очистить">🗑</button>` : ''}
                 <button class="btn-icon-add" onclick="openFilmModal(null, null)">+</button>
             </div>`
             : `<div class="group-header">
@@ -2000,7 +1999,9 @@ function renderFilmGenres() {
 }
 
 async function clearFilmOrphans() {
-    if (!confirm('Удалить все фильмы из «Без жанра»?')) return;
+    const count = filmOrphans.filter(m => m.status !== 'watched').length;
+    if (count === 0) return;
+    if (!confirm(`Очистить все фильмы из «Без жанра» (${count})?`)) return;
     await api('/api/film/orphans', 'DELETE');
     await loadFilm();
 }
@@ -2254,10 +2255,10 @@ function renderTea() {
         const nameClick = isOrphan ? '' : `onclick="openTeaGroupModal(${g.id})"`;
         const header = isOrphan
             ? `<div class="group-header">
-                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', 0); renderTea();">▶</span>
-                <div class="group-name">Без группы</div>
-                <div class="group-count">${g.items.length}</div>
-                ${g.items.length > 0 ? `<button class="clear-btn" onclick="clearTeaOrphans()" title="Очистить">🗑</button>` : ''}
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', 0); renderPlacesWant();">▶</span>
+                <div class="group-name clickable" onclick="clearPlaceOrphans()">Без типа</div>
+                <div class="group-count">${items.length}</div>
+                <button class="btn-icon-add" onclick="openPlaceModal(null, null)">+</button>
             </div>`
             : `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', ${g.id}); renderTea();">▶</span>
@@ -2297,7 +2298,8 @@ function renderTea() {
 }
 
 async function clearTeaOrphans() {
-    if (!confirm('Удалить весь чай из «Без группы»?')) return;
+    if (teaOrphans.length === 0) return;
+    if (!confirm(`Очистить весь чай из «Без группы» (${teaOrphans.length})?`)) return;
     await api('/api/tea/orphans', 'DELETE');
     await loadTea();
 }
@@ -2548,7 +2550,9 @@ function placeMatchesFilter(p) {
 }
 
 async function clearPlaceOrphans() {
-    if (!confirm('Удалить все места из «Без типа»?')) return;
+    const count = placesOrphans.filter(p => p.status !== 'visited').length;
+    if (count === 0) return;
+    if (!confirm(`Очистить все места из «Без типа» (${count})?`)) return;
     await api('/api/places/orphans', 'DELETE');
     await loadPlaces();
 }
@@ -2564,11 +2568,9 @@ function renderPlacesWant() {
         const nameClick = isOrphan ? '' : `onclick="openPlaceTypeModal(${t.id})"`;
         const header = isOrphan
             ? `<div class="group-header">
-                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', 0); renderPlacesWant();">▶</span>
-                <div class="group-name">Без типа</div>
-                <div class="group-count">${items.length}</div>
-                ${items.length > 0 ? `<button class="clear-btn" onclick="clearPlaceOrphans()" title="Очистить">🗑</button>` : ''}
-                <button class="btn-icon-add" onclick="openPlaceModal(null, null)">+</button>
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', 0); renderTea();">▶</span>
+                <div class="group-name clickable" onclick="clearTeaOrphans()">Без группы</div>
+                <div class="group-count">${g.items.length}</div>
             </div>`
             : `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', ${t.id}); renderPlacesWant();">▶</span>
