@@ -1107,3 +1107,67 @@ textarea.modal-input {
     padding: 4px 8px; cursor: pointer;
     font-family: inherit; flex-shrink: 0;
 }
+
+/* ===== TABS С ПОИСКОМ ===== */
+.tabs.has-search {
+    right: 70px;
+    max-width: none;
+    margin: 0;
+}
+
+.tab-search-btn {
+    position: fixed;
+    bottom: 82px;
+    right: 10px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--glass-strong);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 86;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
+    transition: 0.15s;
+    font-family: inherit;
+    padding: 0;
+}
+.tab-search-btn:active { transform: scale(0.92); background: var(--card-hover); }
+
+.search-results {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+.search-result-item {
+    padding: 12px 14px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    transition: 0.15s;
+}
+.search-result-item:active { background: var(--card-hover); }
+.search-result-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+.search-empty {
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: 20px 0;
+    font-size: 13px;
+}
+
+@media (max-height: 700px) {
+    .tab-search-btn { bottom: 76px; }
+}

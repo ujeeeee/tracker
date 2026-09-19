@@ -2891,6 +2891,100 @@ async function saveImport() {
 }
 
 // ==========================================
+// ===== ПОИСК =====
+// ==========================================
+function openSearch() {
+    const i = currentScreenIndex;
+    const titles = { 4: 'Поиск мест', 5: 'Поиск фильмов', 6: 'Поиск чая' };
+    const placeholders = {
+        4: 'Название, город, страна, отзыв...',
+        5: 'Название, год, отзыв...',
+        6: 'Название или отзыв...',
+    };
+    document.getElementById('searchTitle').textContent = titles[i] || 'Поиск';
+    const input = document.getElementById('searchInput');
+    input.value = '';
+    input.placeholder = placeholders[i] || 'Введите запрос...';
+    document.getElementById('searchResults').innerHTML = '';
+    openModal('searchModal');
+    setTimeout(() => input.focus(), 200);
+}
+
+function closeSearch() { closeModal('searchModal'); }
+
+let searchTimeout = null;
+function onSearchInput() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(runSearch, 180);
+}
+
+function runSearch() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const c = document.getElementById('searchResults');
+    if (!q) { c.innerHTML = ''; return; }
+
+    let results = [];
+
+    if (currentScreenIndex === 4) {
+        // Places: имя, город, страна, отзыв, тип
+        const all = [];
+        placesTypes.forEach(t => (t.items || []).forEach(i => all.push({ ...i, _type: t.name })));
+        placesOrphans.forEach(i => all.push({ ...i, _type: 'Без типа' }));
+        results = all.filter(p =>
+            (p.name || '').toLowerCase().includes(q) ||
+            (p.city || '').toLowerCase().includes(q) ||
+            (p.country || '').toLowerCase().includes(q) ||
+            (p.review || '').toLowerCase().includes(q) ||
+            (p._type || '').toLowerCase().includes(q)
+        ).map(p => ({
+            title: p.name,
+            sub: [p.country, p.city, p._type].filter(Boolean).join(' · '),
+            onclick: `closeSearch(); openPlaceModal(${p.id})`
+        }));
+    } else if (currentScreenIndex === 5) {
+        // Film: title, year, review
+        const all = [];
+        filmGenres.forEach(g => (g.movies || []).forEach(m => all.push({ ...m, _genre: g.name })));
+        filmOrphans.forEach(m => all.push({ ...m, _genre: 'Без жанра' }));
+        results = all.filter(m =>
+            (m.title || '').toLowerCase().includes(q) ||
+            (m.year && String(m.year).includes(q)) ||
+            (m.review || '').toLowerCase().includes(q)
+        ).map(m => ({
+            title: m.title,
+            sub: [m.year, m._genre].filter(Boolean).join(' · '),
+            onclick: `closeSearch(); openFilmModal(${m.id})`
+        }));
+    } else if (currentScreenIndex === 6) {
+        // Tea: name, review, temp
+        const all = [];
+        teaGroups.forEach(g => (g.items || []).forEach(i => all.push({ ...i, _group: g.name })));
+        teaOrphans.forEach(i => all.push({ ...i, _group: 'Без группы' }));
+        results = all.filter(i =>
+            (i.name || '').toLowerCase().includes(q) ||
+            (i.review || '').toLowerCase().includes(q) ||
+            (i.temp_c && String(i.temp_c).toLowerCase().includes(q))
+        ).map(i => ({
+            title: i.name,
+            sub: [i._group, i.temp_c].filter(Boolean).join(' · '),
+            onclick: `closeSearch(); openTeaModal(${i.id})`
+        }));
+    }
+
+    if (!results.length) {
+        c.innerHTML = `<div class="search-empty">Ничего не найдено</div>`;
+        return;
+    }
+
+    c.innerHTML = results.map(r => `
+        <div class="search-result-item" onclick="${r.onclick}">
+            <div>${escapeHtml(r.title)}</div>
+            ${r.sub ? `<div class="search-result-sub">${escapeHtml(r.sub)}</div>` : ''}
+        </div>
+    `).join('');
+}
+
+// ==========================================
 // ===== СТАРТ =====
 // ==========================================
 (async function start() {

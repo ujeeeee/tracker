@@ -196,10 +196,11 @@
                         <option value="5">5+</option>
                     </select>
                 </div>
-                <div class="tabs">
+                <div class="tabs has-search">
                     <button class="tab active" onclick="switchSubTab('places', 'want', this)">Хочу</button>
                     <button class="tab" onclick="switchSubTab('places', 'visited', this)">Был</button>
                 </div>
+                <button class="tab-search-btn" onclick="openSearch()">🔍</button>
                 <div class="screen-content">
 
                     <div id="places-want" class="subtab active">
@@ -225,10 +226,11 @@
                     <h2>🎬 Film</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="tabs">
+                <div class="tabs has-search">
                     <button class="tab active" onclick="switchSubTab('film', 'list', this)">Список</button>
                     <button class="tab" onclick="switchSubTab('film', 'watched', this)">Просмотрено</button>
                 </div>
+                <button class="tab-search-btn" onclick="openSearch()">🔍</button>
                 <div class="screen-content">
 
                     <div id="film-list" class="subtab active">
@@ -270,6 +272,7 @@
                     <div id="teaShops"></div>
 
                 </div>
+                <button class="tab-search-btn" onclick="openSearch()">🔍</button>
             </div>
         </div>
 
@@ -994,6 +997,16 @@
             <button class="modal-btn secondary" onclick="closeImportModal()">Отмена</button>
             <button class="modal-btn primary" onclick="saveImport()">Импортировать</button>
         </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА ПОИСКА -->
+<div class="modal-overlay" id="searchModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <h3 class="modal-title" id="searchTitle">Поиск</h3>
+        <input type="text" class="modal-input" id="searchInput" placeholder="Введите название..." oninput="onSearchInput()" />
+        <div id="searchResults" class="search-results"></div>
     </div>
 </div>
 
