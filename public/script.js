@@ -2642,13 +2642,13 @@ function placeItemHTML(p) {
     if (p.city) parts.push(p.city);
     if (p.country) parts.push(p.country);
     return `<div class="list-item" data-id="${p.id}" onclick="openPlaceModal(${p.id})">
-        ${p.map_url ? `<button class="place-go" onclick="event.stopPropagation(); window.open('${escapeHtml(p.map_url)}', '_blank')">↗</button>` : ''}
         ${pr ? `<div class="item-priority ${pClass}">${pr}</div>` : ''}
         <div class="item-info">
             <div class="item-title">${escapeHtml(p.name)}</div>
             <div class="item-sub">${parts.join(', ') || '—'}</div>
         </div>
         ${p.rating ? `<div class="item-rating">★ ${p.rating}</div>` : ''}
+        ${p.map_url ? `<button class="place-go" onclick="event.stopPropagation(); window.open('${escapeHtml(p.map_url)}', '_blank')">↗</button>` : ''}
     </div>`;
 }
 
