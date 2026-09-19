@@ -119,14 +119,22 @@ app.get('/api/main', authMiddleware, async (req, res) => {
 
     const dow = today.getDay() === 0 ? 7 : today.getDay();
     const habitsToday = (habits || []).filter(h => {
-        if (h.frequency === 'daily') return true;
-        if (h.frequency === 'days') return (h.days_of_week || []).includes(dow);
-        if (h.frequency === 'interval') {
-            const c = new Date(h.created_at); c.setHours(0,0,0,0);
-            const t = new Date(today); t.setHours(0,0,0,0);
-            const diff = Math.round((t - c) / (1000 * 60 * 60 * 24));
-            return diff >= 0 && diff % (h.interval_days || 2) === 0;
+        if (h.frequency === 'days') {
+            const arr = Array.isArray(h.days_of_week)
+                ? h.days_of_week.map(Number)
+                : [];
+            return arr.includes(dow);
         }
+        if (h.frequency === 'interval') {
+            const c = new Date(h.created_at);
+            c.setHours(0, 0, 0, 0);
+            const t = new Date(today);
+            t.setHours(0, 0, 0, 0);
+            const diff = Math.round((t - c) / (1000 * 60 * 60 * 24));
+            const n = h.interval_days || 2;
+            return diff >= 0 && diff % n === 0;
+        }
+        // 'daily' и всё остальное
         return true;
     });
 
@@ -372,7 +380,7 @@ app.get('/api/cash/budget', authMiddleware, async (req, res) => {
         supabase.from('cash_custom_stats').select('*').eq('tg_id', req.tg_id).order('sort_order').order('created_at'),
     ]);
 
-    const subsTotal = (subsR.data || []).reduce((s, x) => s + Number(x.amount || 0), 0);
+    const subsTotal = (subsR.data || []).filter(s => !s.paid).reduce((s, x) => s + Number(x.amount || 0), 0);
     const weeklyTotal = (weeklyR.data || []).reduce((s, x) => s + Number(x.amount || 0), 0) * weeksInMonth;
     const budget = budgetR.data || { year, month, budget_amount: 0 };
     const budgetAmount = Number(budget.budget_amount || 0);
