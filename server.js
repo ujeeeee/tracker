@@ -118,14 +118,33 @@ app.get('/api/main', authMiddleware, async (req, res) => {
     const doneToday = new Set((logs || []).filter(l => l.done).map(l => l.habit_id));
 
     const dow = today.getDay() === 0 ? 7 : today.getDay();
-    const habitsToday = (habits || []).filter(h => {
-        if (h.frequency === 'days') {
-            const arr = Array.isArray(h.days_of_week)
-                ? h.days_of_week.map(Number)
-                : [];
-            return arr.includes(dow);
+
+    function parseDow(raw) {
+        if (Array.isArray(raw)) return raw.map(Number);
+        if (typeof raw === 'string') {
+            // Postgres array как строка: "{1,3,5,6}"
+            return raw.replace(/[{}]/g, '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
         }
-        if (h.frequency === 'interval') {
+        return [];
+    }
+
+    const habitsToday = (habits || []).filter(h => {
+        const freq = (h.frequency || 'daily').toLowerCase();
+        const dowArr = parseDow(h.days_of_week);
+
+        // Если frequency неизвестна или пустая — определяем по days_of_week
+        if (!h.frequency || (freq !== 'daily' && freq !== 'days' && freq !== 'interval')) {
+            // Если массив дней не полный (7 элементов) — значит выбраны конкретные дни
+            if (dowArr.length > 0 && dowArr.length < 7) {
+                return dowArr.includes(dow);
+            }
+            return true;
+        }
+
+        if (freq === 'days') {
+            return dowArr.length > 0 && dowArr.includes(dow);
+        }
+        if (freq === 'interval') {
             const c = new Date(h.created_at);
             c.setHours(0, 0, 0, 0);
             const t = new Date(today);
@@ -134,8 +153,7 @@ app.get('/api/main', authMiddleware, async (req, res) => {
             const n = h.interval_days || 2;
             return diff >= 0 && diff % n === 0;
         }
-        // 'daily' и всё остальное
-        return true;
+        return true; // daily
     });
 
     const habitsList = habitsToday
