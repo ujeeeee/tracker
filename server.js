@@ -1325,15 +1325,17 @@ app.post('/api/import/film', authMiddleware, async (req, res) => {
             continue;
         }
         const parts = line.split('|').map(p => p.trim());
-        const title = parts[0];
-        if (!title) continue;
-        const year = parts[1] ? parseInt(parts[1]) : null;
-        const prio = parts[2] ? parseInt(parts[2]) : null;
-        const { error } = await supabase.from('film_movies').insert({
-            tg_id: req.tg_id, genre_id: currentGenreId, title,
-            year: isNaN(year) ? null : year,
-            priority: (prio >= 1 && prio <= 5) ? prio : null,
-            status: 'want', sort_order: movieOrder++,
+        const name = parts[0];
+        if (!name) continue;
+        const temp = parts[1] || null;
+        const review = parts[2] || null;
+        const rating = parts[3] ? parseInt(parts[3]) : null;
+        const { error } = await supabase.from('tea_items').insert({
+            tg_id: req.tg_id, group_id: currentGroupId, name,
+            temp_c: temp,
+            review: review,
+            rating: (rating >= 1 && rating <= 10) ? rating : null,
+            sort_order: itemOrder++,
         });
         if (!error) added++;
     }
