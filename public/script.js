@@ -2026,10 +2026,10 @@ function renderFilmWatched() {
     const byGenre = [];
     filmGenres.forEach(g => {
         const watched = (g.movies || []).filter(m => m.status === 'watched');
-        if (watched.length) byGenre.push({ name: g.name, movies: watched });
+        if (watched.length) byGenre.push({ id: g.id, name: g.name, movies: watched });
     });
     const orphans = filmOrphans.filter(m => m.status === 'watched');
-    if (orphans.length) byGenre.push({ name: 'Без жанра', movies: orphans });
+    if (orphans.length) byGenre.push({ id: null, name: 'Без жанра', movies: orphans });
 
     if (!byGenre.length) {
         c.innerHTML = `<div class="empty-state">Пока ничего не посмотрел</div>`;
@@ -2037,13 +2037,25 @@ function renderFilmWatched() {
     }
 
     c.innerHTML = byGenre.map(g => {
+        const isOrphan = !g.id;
+        const isOpen = !isCollapsed('filmWatched', isOrphan ? 0 : g.id);
         const sorted = [...g.movies].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        return `<div class="film-genre-card">
-            <div class="group-header">
+
+        const header = isOrphan
+            ? `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('filmWatched', 0); renderFilmWatched();">▶</span>
+                <div class="group-name">Без жанра</div>
+                <div class="group-count">${sorted.length}</div>
+            </div>`
+            : `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('filmWatched', ${g.id}); renderFilmWatched();">▶</span>
                 <div class="group-name">${escapeHtml(g.name)}</div>
                 <div class="group-count">${sorted.length}</div>
-            </div>
-            ${sorted.map(m => filmItemHTML(m)).join('')}
+            </div>`;
+
+        return `<div class="film-genre-card ${isOpen ? 'open' : ''}">
+            ${header}
+            <div class="group-body">${isOpen ? sorted.map(m => filmItemHTML(m)).join('') : ''}</div>
         </div>`;
     }).join('');
 }
@@ -2501,7 +2513,7 @@ async function deleteTeaShopFromModal() {
 let placesTypes = [];
 let placesOrphans = [];
 let placeTypeCtx = { id: null };
-let placeCtx = { id: null, typeId: null, priority: null, status: 'want' };
+let placeCtx = { id: null, typeId: null, priority: null, rating: null, status: 'want' };
 let placesFilter = { type: '', city: '', rating: '' };
 
 async function loadPlaces() {
@@ -2613,10 +2625,10 @@ function renderPlacesVisited() {
     const byType = [];
     placesTypes.forEach(t => {
         const visited = (t.items || []).filter(i => i.status === 'visited' && placeMatchesFilter(i));
-        if (visited.length) byType.push({ name: t.name, items: visited });
+        if (visited.length) byType.push({ id: t.id, name: t.name, items: visited });
     });
     const orphans = placesOrphans.filter(i => i.status === 'visited' && placeMatchesFilter(i));
-    if (orphans.length) byType.push({ name: 'Без типа', items: orphans });
+    if (orphans.length) byType.push({ id: null, name: 'Без типа', items: orphans });
 
     if (!byType.length) {
         c.innerHTML = `<div class="empty-state">Пока ничего не посетил</div>`;
@@ -2624,13 +2636,25 @@ function renderPlacesVisited() {
     }
 
     c.innerHTML = byType.map(t => {
+        const isOrphan = !t.id;
+        const isOpen = !isCollapsed('placesVisited', isOrphan ? 0 : t.id);
         const sorted = [...t.items].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        return `<div class="place-card">
-            <div class="group-header">
+
+        const header = isOrphan
+            ? `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesVisited', 0); renderPlacesVisited();">▶</span>
+                <div class="group-name">Без типа</div>
+                <div class="group-count">${sorted.length}</div>
+            </div>`
+            : `<div class="group-header">
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesVisited', ${t.id}); renderPlacesVisited();">▶</span>
                 <div class="group-name">${escapeHtml(t.name)}</div>
                 <div class="group-count">${sorted.length}</div>
-            </div>
-            ${sorted.map(p => placeItemHTML(p)).join('')}
+            </div>`;
+
+        return `<div class="place-card ${isOpen ? 'open' : ''}">
+            ${header}
+            <div class="group-body">${isOpen ? sorted.map(p => placeItemHTML(p)).join('') : ''}</div>
         </div>`;
     }).join('');
 }
@@ -2692,13 +2716,12 @@ async function deletePlaceTypeFromModal() {
 }
 
 function openPlaceModal(id = null, typeId = null) {
-    placeCtx = { id, typeId, priority: null, status: 'want' };
+    placeCtx = { id, typeId, priority: null, rating: null, status: 'want' };
     const titleEl = document.getElementById('placeTitle');
     const nameEl = document.getElementById('placeName');
     const cityEl = document.getElementById('placeCity');
     const countryEl = document.getElementById('placeCountry');
     const mapEl = document.getElementById('placeMapUrl');
-    const ratingEl = document.getElementById('placeRating');
     const reviewEl = document.getElementById('placeReview');
     const delBtn = document.getElementById('placeDeleteBtn');
     const mapBtn = document.getElementById('placeOpenMapBtn');
@@ -2718,8 +2741,8 @@ function openPlaceModal(id = null, typeId = null) {
             cityEl.value = item.city || '';
             countryEl.value = item.country || '';
             mapEl.value = item.map_url || '';
-            ratingEl.value = item.rating || '';
             reviewEl.value = item.review || '';
+            placeCtx.rating = item.rating || null;
             sel.value = item.type_id || '';
             placeCtx.priority = item.priority || null;
             placeCtx.status = item.status || 'want';
@@ -2732,7 +2755,6 @@ function openPlaceModal(id = null, typeId = null) {
         cityEl.value = '';
         countryEl.value = '';
         mapEl.value = '';
-        ratingEl.value = '';
         reviewEl.value = '';
         if (typeId) sel.value = typeId;
         delBtn.style.display = 'none';
@@ -2741,6 +2763,8 @@ function openPlaceModal(id = null, typeId = null) {
 
     document.querySelectorAll('#placePriority button').forEach(b =>
         b.classList.toggle('active', placeCtx.priority === parseInt(b.dataset.p)));
+    document.querySelectorAll('#placeRatingPicker button').forEach(b =>
+        b.classList.toggle('active', placeCtx.rating === parseInt(b.dataset.r)));
     document.querySelectorAll('#placeStatusTabs [data-st]').forEach(b =>
         b.classList.toggle('active', b.dataset.st === placeCtx.status));
 
@@ -2756,6 +2780,17 @@ function pickPlacePriority(p, btn) {
     } else {
         placeCtx.priority = p;
         document.querySelectorAll('#placePriority button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
+
+function pickPlaceRating(r, btn) {
+    if (placeCtx.rating === r) {
+        placeCtx.rating = null;
+        btn.classList.remove('active');
+    } else {
+        placeCtx.rating = r;
+        document.querySelectorAll('#placeRatingPicker button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     }
 }
@@ -2778,7 +2813,7 @@ async function savePlace() {
         map_url: document.getElementById('placeMapUrl').value,
         status: placeCtx.status,
         priority: placeCtx.priority,
-        rating: document.getElementById('placeRating').value || null,
+        rating: placeCtx.rating,
         review: document.getElementById('placeReview').value || null,
     };
     try {

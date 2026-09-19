@@ -974,7 +974,18 @@
             <button data-p="5" onclick="pickPlacePriority(5,this)">5</button>
         </div>
         <div class="field-label" style="margin-top:12px;">Оценка (1-10)</div>
-        <input type="number" class="modal-input" id="placeRating" min="1" max="10" placeholder="Необязательно" />
+        <div class="rating-picker" id="placeRatingPicker">
+            <button data-r="1" onclick="pickPlaceRating(1,this)">1</button>
+            <button data-r="2" onclick="pickPlaceRating(2,this)">2</button>
+            <button data-r="3" onclick="pickPlaceRating(3,this)">3</button>
+            <button data-r="4" onclick="pickPlaceRating(4,this)">4</button>
+            <button data-r="5" onclick="pickPlaceRating(5,this)">5</button>
+            <button data-r="6" onclick="pickPlaceRating(6,this)">6</button>
+            <button data-r="7" onclick="pickPlaceRating(7,this)">7</button>
+            <button data-r="8" onclick="pickPlaceRating(8,this)">8</button>
+            <button data-r="9" onclick="pickPlaceRating(9,this)">9</button>
+            <button data-r="10" onclick="pickPlaceRating(10,this)">10</button>
+        </div>
         <div class="field-label">Отзыв</div>
         <input type="text" class="modal-input" id="placeReview" placeholder="Впечатления..." />
         <div class="modal-actions" style="margin-top:16px;">
