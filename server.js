@@ -1377,12 +1377,10 @@ app.post('/api/import/tea', authMiddleware, async (req, res) => {
         if (!name) continue;
         const temp_c = parts[1] || null;
         const review = parts[2] || null;
-        const rating = parts[3] ? parseInt(parts[3]) : null;
         const { error } = await supabase.from('tea_items').insert({
             tg_id: req.tg_id, group_id: currentGroupId, name,
             temp_c: temp_c,
             review: review,
-            rating: (rating >= 1 && rating <= 10) ? rating : null,
             sort_order: itemOrder++,
         });
         if (!error) added++;
@@ -1425,10 +1423,14 @@ app.post('/api/import/places', authMiddleware, async (req, res) => {
         const parts = line.split('|').map(p => p.trim());
         const name = parts[0];
         if (!name) continue;
-        const map_url = parts[1] || null;
-        const review = parts[2] || null;
+        const country = parts[1] || null;
+        const city = parts[2] || null;
+        const map_url = parts[3] || null;
+        const review = parts[4] || null;
         const { error } = await supabase.from('places_items').insert({
             tg_id: req.tg_id, type_id: currentTypeId, name,
+            country: country,
+            city: city,
             map_url: map_url,
             review: review,
             status: 'want', sort_order: itemOrder++,
@@ -1463,13 +1465,13 @@ app.post('/api/import/wishlist', authMiddleware, async (req, res) => {
             continue;
         }
         const parts = line.split('|').map(p => p.trim());
-        const name = parts[0];
-        if (!name) continue;
-        const price = parts[1] ? parseFloat(parts[1]) : null;
-        const { error } = await supabase.from('cash_wishlist').insert({
-            tg_id: req.tg_id, name, area: currentArea || 'Общее',
-            price: isNaN(price) ? 0 : price,
-            url: parts[2] || null,
+        const title = parts[0];
+        if (!title) continue;
+        const year = parts[1] ? parseInt(parts[1]) : null;
+        const { error } = await supabase.from('film_movies').insert({
+            tg_id: req.tg_id, genre_id: currentGenreId, title,
+            year: isNaN(year) ? null : year,
+            status: 'want', sort_order: movieOrder++,
         });
         if (!error) added++;
     }
