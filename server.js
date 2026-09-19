@@ -1120,7 +1120,7 @@ app.patch('/api/places/items/:id', authMiddleware, async (req, res) => {
     ['name','city','country','map_url','status','review'].forEach(k => {
         if (req.body[k] !== undefined) updates[k] = req.body[k] || null;
     });
-    if (updates.name) updates.name = updates.name.trim();
+    if (req.body.type_id !== undefined) updates.type_id = req.body.type_id ? parseInt(req.body.type_id) : null;
     ['priority','rating'].forEach(k => {
         if (req.body[k] !== undefined) updates[k] = req.body[k] ? parseInt(req.body[k]) : null;
     });
@@ -1327,15 +1327,13 @@ app.post('/api/import/film', authMiddleware, async (req, res) => {
         const parts = line.split('|').map(p => p.trim());
         const name = parts[0];
         if (!name) continue;
-        const temp = parts[1] || null;
+        const map_url = parts[1] || null;
         const review = parts[2] || null;
-        const rating = parts[3] ? parseInt(parts[3]) : null;
-        const { error } = await supabase.from('tea_items').insert({
-            tg_id: req.tg_id, group_id: currentGroupId, name,
-            temp_c: temp,
+        const { error } = await supabase.from('places_items').insert({
+            tg_id: req.tg_id, type_id: currentTypeId, name,
+            map_url: map_url,
             review: review,
-            rating: (rating >= 1 && rating <= 10) ? rating : null,
-            sort_order: itemOrder++,
+            status: 'want', sort_order: itemOrder++,
         });
         if (!error) added++;
     }
