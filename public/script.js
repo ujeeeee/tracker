@@ -2255,10 +2255,10 @@ function renderTea() {
         const nameClick = isOrphan ? '' : `onclick="openTeaGroupModal(${g.id})"`;
         const header = isOrphan
             ? `<div class="group-header">
-                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', 0); renderPlacesWant();">▶</span>
-                <div class="group-name clickable" onclick="clearPlaceOrphans()">Без типа</div>
-                <div class="group-count">${items.length}</div>
-                <button class="btn-icon-add" onclick="openPlaceModal(null, null)">+</button>
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', 0); renderTea();">▶</span>
+                <div class="group-name clickable" onclick="clearTeaOrphans()">Без группы</div>
+                <div class="group-count">${g.items.length}</div>
+                <button class="btn-icon-add" onclick="openTeaModal(null, null)">+</button>
             </div>`
             : `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', ${g.id}); renderTea();">▶</span>
@@ -2568,9 +2568,10 @@ function renderPlacesWant() {
         const nameClick = isOrphan ? '' : `onclick="openPlaceTypeModal(${t.id})"`;
         const header = isOrphan
             ? `<div class="group-header">
-                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('teaGroups', 0); renderTea();">▶</span>
-                <div class="group-name clickable" onclick="clearTeaOrphans()">Без группы</div>
-                <div class="group-count">${g.items.length}</div>
+                <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', 0); renderPlacesWant();">▶</span>
+                <div class="group-name clickable" onclick="clearPlaceOrphans()">Без типа</div>
+                <div class="group-count">${items.length}</div>
+                <button class="btn-icon-add" onclick="openPlaceModal(null, null)">+</button>
             </div>`
             : `<div class="group-header">
                 <span class="group-arrow" onclick="event.stopPropagation(); toggleCollapse('placesWant', ${t.id}); renderPlacesWant();">▶</span>
