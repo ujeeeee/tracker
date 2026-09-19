@@ -1377,13 +1377,15 @@ app.post('/api/import/tea', authMiddleware, async (req, res) => {
         const parts = line.split('|').map(p => p.trim());
         const name = parts[0];
         if (!name) continue;
-        const temp = parts[1] || null;
-        const rating = parts[2] ? parseInt(parts[2]) : null;
-        const { error } = await supabase.from('tea_items').insert({
-            tg_id: req.tg_id, group_id: currentGroupId, name,
-            temp_c: temp,
-            rating: (rating >= 1 && rating <= 10) ? rating : null,
-            sort_order: itemOrder++,
+        const map_url = parts[1] || null;
+        const review = parts[2] || null;
+        const prio = parts[3] ? parseInt(parts[3]) : null;
+        const { error } = await supabase.from('places_items').insert({
+            tg_id: req.tg_id, type_id: currentTypeId, name,
+            map_url: map_url,
+            review: review,
+            priority: (prio >= 1 && prio <= 5) ? prio : null,
+            status: 'want', sort_order: itemOrder++,
         });
         if (!error) added++;
     }
