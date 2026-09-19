@@ -296,8 +296,7 @@ function updateSettingsUI() {
 // ==========================================
 async function loadMain() {
     try {
-        const today = localDate(new Date());
-        const data = await api(`/api/main?date=${today}`);
+        const data = await api('/api/main');
         renderMain(data);
     } catch (e) { console.error(e); }
 }

@@ -90,18 +90,9 @@ app.post('/api/auth', authMiddleware, async (req, res) => {
 // ===== MAIN (дашборд) =====
 // ==========================================
 app.get('/api/main', authMiddleware, async (req, res) => {
-    // Берём дату от клиента, если есть. Иначе серверное UTC.
-    const todayStr = req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
-        ? req.query.date
-        : localDate(new Date());
-
-    // Парсим как локальную дату для вычисления дня недели
-    const [ty, tm, td] = todayStr.split('-').map(Number);
-    const today = new Date(ty, tm - 1, td, 12, 0, 0); // 12:00 — чтобы избежать TZ-сдвигов
-
-    const tomorrowDate = new Date(today);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrowStr = localDate(tomorrowDate);
+    const today = new Date();
+    const todayStr = localDate(today);
+    const tomorrowStr = localDate(new Date(today.getTime() + 86400000));
 
     // --- Дела (сегодня + завтра, не закрытые) ---
     const { data: todos } = await supabase.from('disc_todos').select('*')
