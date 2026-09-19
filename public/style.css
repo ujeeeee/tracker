@@ -1189,3 +1189,12 @@ textarea.modal-input {
     z-index: 10;
 }
 .modal-close:active { opacity: 1; color: var(--text); transform: scale(0.9); }
+
+.place-go {
+    background: none; border: none;
+    color: var(--accent); font-size: 16px;
+    padding: 4px 6px; cursor: pointer;
+    font-family: inherit; flex-shrink: 0;
+    opacity: 0.85; transition: 0.15s;
+}
+.place-go:active { opacity: 1; transform: scale(0.9); }
