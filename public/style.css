@@ -158,13 +158,23 @@ body {
     border-radius: 22px; transition: 0.2s; flex: 0 0 auto;
     min-width: 62px; font-family: inherit; position: relative;
 }
-.nav-btn.active { color: var(--accent); }
+.nav-btn.active { color: var(--text); }
 .nav-btn.active::before {
     content: ''; position: absolute; inset: 2px 8%;
     background: var(--accent); opacity: 0.12;
     border-radius: 18px; z-index: -1; transition: 0.25s;
 }
-.nav-icon { font-size: 18px; transition: 0.2s; line-height: 1; }
+.nav-icon {
+    font-size: 18px;
+    transition: 0.2s;
+    line-height: 1;
+    filter: grayscale(100%) brightness(0) invert(1);
+    opacity: 0.5;
+}
+.nav-btn.active .nav-icon {
+    filter: grayscale(100%) brightness(0) invert(0.9);
+    opacity: 1;
+}
 .nav-label { font-size: 9px; font-weight: 600; white-space: nowrap; letter-spacing: 0.2px; }
 
 /* ==========================================
