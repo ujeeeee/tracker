@@ -323,10 +323,21 @@ function renderMainTodos(todos) {
     const c = document.getElementById('mainTodosWidget');
 
     const sorted = [...todos].sort((a, b) => {
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return -1;
-        if (!b.date) return 1;
-        return a.date.localeCompare(b.date);
+        // Закрытые — всегда в конце
+        if (a.done !== b.done) return a.done ? 1 : -1;
+
+        const aHas = !!a.date;
+        const bHas = !!b.date;
+
+        // С датой идут первыми
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+
+        // Оба с датой — по возрастанию
+        if (aHas && bHas) return a.date.localeCompare(b.date);
+
+        // Оба без даты — по дате создания
+        return 0;
     });
 
     let html = `<div class="widget"><div class="widget-title"><span>Дела</span>${sorted.length > 0 ? `<span class="widget-title-count">${sorted.length}</span>` : ''}</div>`;
