@@ -1218,25 +1218,16 @@ textarea.modal-input {
 }
 .modal-close:active { opacity: 1; color: var(--text); transform: scale(0.9); }
 
+/* Кнопки-иконки */
 .modal-actions {
     justify-content: center;
-    gap: 12px;
 }
 
 .modal-btn.icon-btn {
     flex: 0 0 auto;
-    width: 56px;
-    height: 56px;
-    min-width: 0;
-    max-width: none;
-    padding: 0;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
+    min-width: 90px;
+    max-width: 140px;
+    font-size: 22px;
+    padding: 14px 20px;
     line-height: 1;
 }
-
-.modal-btn.icon-btn.primary { font-size: 26px; }
-.modal-btn.icon-btn.danger { font-size: 22px; }

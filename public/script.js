@@ -3053,50 +3053,49 @@ function runSearch() {
 // ===== МОДАЛКИ: крестик + иконки =====
 // ==========================================
 function beautifyModals() {
-    // 1. Крестик в каждой модалке
-    document.querySelectorAll('.modal-sheet').forEach(sheet => {
-        if (sheet.querySelector('.modal-close')) return;
-        const x = document.createElement('button');
-        x.type = 'button';
-        x.className = 'modal-close';
-        x.innerHTML = '✕';
-        x.addEventListener('click', () => {
-            const overlay = sheet.closest('.modal-overlay');
-            if (overlay) overlay.classList.remove('open');
-        });
-        sheet.insertBefore(x, sheet.firstChild);
-    });
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        const sheet = modal.querySelector('.modal-sheet');
+        if (!sheet) return;
 
-    // 2. Преобразование кнопок
-    document.querySelectorAll('.modal-actions').forEach(actions => {
+        // 1. Добавить крестик сверху справа
+        if (!sheet.querySelector('.modal-close')) {
+            const x = document.createElement('button');
+            x.className = 'modal-close';
+            x.innerHTML = '✕';
+            x.onclick = () => modal.classList.remove('open');
+            sheet.prepend(x);
+        }
+
+        // 2. Преобразовать кнопки в иконки
+        const actions = modal.querySelector('.modal-actions');
+        if (!actions) return;
+
+        const toIcon = {
+            'отмена': 'remove',
+            'сохранить': '✓',
+            'добавить': '✓',
+            'готово': '✓',
+            'импортировать': '✓',
+            'ок': '✓',
+            'удалить': '🗑',
+        };
+
         actions.querySelectorAll('.modal-btn').forEach(btn => {
-            const text = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-
-            if (text === 'отмена') {
+            const t = (btn.textContent || '').trim().toLowerCase();
+            const mapped = toIcon[t];
+            if (!mapped) return; // «Карта», «Ссылка», «Ещё раз» — оставляем
+            if (mapped === 'remove') {
                 btn.remove();
-                return;
-            }
-            if (['сохранить', 'добавить', 'готово', 'импортировать', 'ок'].includes(text)) {
-                btn.textContent = '✓';
+            } else {
+                btn.textContent = mapped;
                 btn.classList.add('icon-btn');
-                return;
             }
-            if (text === 'удалить') {
-                btn.textContent = '🗑';
-                btn.classList.add('icon-btn');
-                return;
-            }
-            // «Карта», «Ссылка», «Ещё раз» — оставляем словами
         });
     });
 }
 
-// Надёжный запуск — вне зависимости от того, когда сработал DOM
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', beautifyModals);
-} else {
-    beautifyModals();
-}
+// Запустить после загрузки
+document.addEventListener('DOMContentLoaded', beautifyModals);
 
 // ==========================================
 // ===== СТАРТ =====
