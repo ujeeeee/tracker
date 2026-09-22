@@ -2180,6 +2180,15 @@ function pickFilmStatus(st, btn) {
 async function saveFilm() {
     const title = document.getElementById('filmName').value.trim();
     if (!title) return alert('Введи название');
+
+    // Проверка дубликатов (только при создании)
+    if (!filmCtx.id) {
+        const low = title.toLowerCase();
+        const inGenres = filmGenres.some(g => (g.movies || []).some(m => (m.title || '').toLowerCase() === low));
+        const inOrphans = filmOrphans.some(m => (m.title || '').toLowerCase() === low);
+        if ((inGenres || inOrphans) && !confirm(`Фильм «${title}» уже есть в списке.\nДобавить дубликат?`)) return;
+    }
+
     const genreVal = document.getElementById('filmGenreSelect').value;
     const payload = {
         title,
@@ -2442,6 +2451,15 @@ function pickTeaRating(r, btn) {
 async function saveTea() {
     const name = document.getElementById('teaName').value.trim();
     if (!name) return alert('Введи название');
+
+    // Проверка дубликатов
+    if (!teaCtx.id) {
+        const low = name.toLowerCase();
+        const inGroups = teaGroups.some(g => (g.items || []).some(i => (i.name || '').toLowerCase() === low));
+        const inOrphans = teaOrphans.some(i => (i.name || '').toLowerCase() === low);
+        if ((inGroups || inOrphans) && !confirm(`Чай «${name}» уже есть.\nДобавить дубликат?`)) return;
+    }
+
     const gVal = document.getElementById('teaGroupSelect').value;
     const payload = {
         name,
@@ -2805,6 +2823,15 @@ function pickPlaceStatus(st, btn) {
 async function savePlace() {
     const name = document.getElementById('placeName').value.trim();
     if (!name) return alert('Введи название');
+
+    // Проверка дубликатов
+    if (!placeCtx.id) {
+        const low = name.toLowerCase();
+        const inTypes = placesTypes.some(t => (t.items || []).some(i => (i.name || '').toLowerCase() === low));
+        const inOrphans = placesOrphans.some(i => (i.name || '').toLowerCase() === low);
+        if ((inTypes || inOrphans) && !confirm(`Место «${name}» уже есть.\nДобавить дубликат?`)) return;
+    }
+
     const typeVal = document.getElementById('placeTypeSelect').value;
     const payload = {
         name,
@@ -3020,6 +3047,55 @@ function runSearch() {
             ${r.sub ? `<div class="search-result-sub">${escapeHtml(r.sub)}</div>` : ''}
         </div>
     `).join('');
+}
+
+// ==========================================
+// ===== МОДАЛКИ: крестик + иконки =====
+// ==========================================
+function beautifyModals() {
+    // 1. Крестик в каждой модалке
+    document.querySelectorAll('.modal-sheet').forEach(sheet => {
+        if (sheet.querySelector('.modal-close')) return;
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'modal-close';
+        x.innerHTML = '✕';
+        x.addEventListener('click', () => {
+            const overlay = sheet.closest('.modal-overlay');
+            if (overlay) overlay.classList.remove('open');
+        });
+        sheet.insertBefore(x, sheet.firstChild);
+    });
+
+    // 2. Преобразование кнопок
+    document.querySelectorAll('.modal-actions').forEach(actions => {
+        actions.querySelectorAll('.modal-btn').forEach(btn => {
+            const text = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+            if (text === 'отмена') {
+                btn.remove();
+                return;
+            }
+            if (['сохранить', 'добавить', 'готово', 'импортировать', 'ок'].includes(text)) {
+                btn.textContent = '✓';
+                btn.classList.add('icon-btn');
+                return;
+            }
+            if (text === 'удалить') {
+                btn.textContent = '🗑';
+                btn.classList.add('icon-btn');
+                return;
+            }
+            // «Карта», «Ссылка», «Ещё раз» — оставляем словами
+        });
+    });
+}
+
+// Надёжный запуск — вне зависимости от того, когда сработал DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', beautifyModals);
+} else {
+    beautifyModals();
 }
 
 // ==========================================
