@@ -584,10 +584,14 @@ function renderTodos() {
 
     const sorted = [...todos].sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1;
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return -1;
-        if (!b.date) return 1;
-        return a.date.localeCompare(b.date);
+        
+        const aHas = !!a.date;
+        const bHas = !!b.date;
+        
+        if (aHas && bHas) return a.date.localeCompare(b.date); // оба с датой — по дате
+        if (aHas) return -1;  // a с датой идёт раньше
+        if (bHas) return 1;   // b с датой идёт раньше
+        return 0;             // оба без даты
     });
 
     c.innerHTML = sorted.map(t => {
