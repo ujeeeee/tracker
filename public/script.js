@@ -3050,14 +3050,14 @@ function runSearch() {
 }
 
 // ==========================================
-// ===== МОДАЛКИ: крестик + иконки =====
+// ===== МОДАЛКИ: крестик сверху =====
 // ==========================================
 function beautifyModals() {
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         const sheet = modal.querySelector('.modal-sheet');
         if (!sheet) return;
 
-        // 1. Добавить крестик сверху справа
+        // Добавить крестик, если его нет
         if (!sheet.querySelector('.modal-close')) {
             const x = document.createElement('button');
             x.className = 'modal-close';
@@ -3066,35 +3066,17 @@ function beautifyModals() {
             sheet.prepend(x);
         }
 
-        // 2. Преобразовать кнопки в иконки
+        // Убрать кнопку «Отмена» — её заменит крестик
         const actions = modal.querySelector('.modal-actions');
         if (!actions) return;
 
-        const toIcon = {
-            'отмена': 'remove',
-            'сохранить': 'Сохранить',
-            'добавить': 'Сохранить',
-            'готово': 'Сохранить',
-            'импортировать': 'Сохранить',
-            'ок': 'Сохранить',
-            'удалить': 'Удалить',
-        };
-
         actions.querySelectorAll('.modal-btn').forEach(btn => {
             const t = (btn.textContent || '').trim().toLowerCase();
-            const mapped = toIcon[t];
-            if (!mapped) return; // «Карта», «Ссылка», «Ещё раз» — оставляем
-            if (mapped === 'remove') {
-                btn.remove();
-            } else {
-                btn.textContent = mapped;
-                btn.classList.add('icon-btn');
-            }
+            if (t === 'отмена') btn.remove();
         });
     });
 }
 
-// Запустить после загрузки
 document.addEventListener('DOMContentLoaded', beautifyModals);
 
 // ==========================================

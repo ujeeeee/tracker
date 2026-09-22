@@ -1199,7 +1199,6 @@ textarea.modal-input {
 }
 .place-go:active { opacity: 1; transform: scale(0.9); }
 
-/* ===== МОДАЛКИ: крестик и компактные кнопки ===== */
 .modal-close {
     position: absolute;
     top: 10px;
@@ -1217,17 +1216,3 @@ textarea.modal-input {
     line-height: 1;
 }
 .modal-close:active { opacity: 1; color: var(--text); transform: scale(0.9); }
-
-/* Кнопки-иконки */
-.modal-actions {
-    justify-content: center;
-}
-
-.modal-btn.icon-btn {
-    flex: 0 0 auto;
-    min-width: 90px;
-    max-width: 140px;
-    font-size: 22px;
-    padding: 14px 20px;
-    line-height: 1;
-}
