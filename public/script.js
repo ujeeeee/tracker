@@ -307,6 +307,7 @@ function renderMain(data) {
     renderMainTodos(data.todos);
     renderMainHabits(data.habits);
     renderMainMoney(data.money);
+    renderNYWidget();
 }
 
 function renderMainGreeting() {
@@ -387,6 +388,46 @@ function renderMainMoney(money) {
         </div>
         <div style="flex:1;"></div>
     </div>`;
+}
+
+function renderNYWidget() {
+    const c = document.getElementById('mainNYWidget');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // Новый год — 1 января следующего года
+    const ny = new Date(now.getFullYear() + 1, 0, 1);
+
+    // Старт — за 99 дней до НГ, чтобы последний (100-й) квадрат был самим НГ
+    const start = new Date(ny);
+    start.setDate(start.getDate() - 99);
+
+    const todayStr = localDate(now);
+    const daysLeft = Math.round((ny - now) / 86400000);
+
+    let cells = '';
+    for (let i = 0; i < 100; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const ds = localDate(d);
+
+        let cls = 'ny-cell';
+        if (ds < todayStr) cls += ' passed';
+        else if (ds === todayStr) cls += ' today';
+        else cls += ' future';
+
+        cells += `<div class="${cls}">${d.getDate()}</div>`;
+    }
+
+    c.innerHTML = `
+        <div class="widget">
+            <div class="widget-title">
+                <span>До Нового года</span>
+                <span class="widget-title-count">${daysLeft} дн.</span>
+            </div>
+            <div class="ny-grid">${cells}</div>
+        </div>
+    `;
 }
 
 function toggleMoneyBlur(el) {
