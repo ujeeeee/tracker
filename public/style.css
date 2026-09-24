@@ -3,7 +3,7 @@
    ========================================== */
 :root {
     --bg: #0a0a0c;
-    --bg-gradient: radial-gradient(ellipse at top, #1a1a24 0%, #0a0a0c 60%);
+    --bg-gradient: linear-gradient(180deg, #9c4dcc 0%, #1a0b2e 40%, #000000 70%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
