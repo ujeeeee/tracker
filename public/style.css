@@ -3,7 +3,10 @@
    ========================================== */
 :root {
     --bg: #0a0a0c;
-    --bg-gradient: linear-gradient(180deg, #9c4dcc 0%, #1a0b2e 40%, #000000 70%);
+    --bg-gradient:
+    radial-gradient(ellipse at 85% 5%, #d58cde 0%, transparent 45%),
+    radial-gradient(ellipse at 15% 25%, #843bd0 0%, transparent 65%),
+    linear-gradient(to bottom, #843bd0 0%, #6424b2 45%, #09090b 90%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
