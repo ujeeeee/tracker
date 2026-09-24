@@ -4,9 +4,9 @@
 :root {
     --bg: #0b0911;
     --bg-gradient:
-    radial-gradient(ellipse 90% 60% at 50% -5%, rgba(105, 65, 210, 0.38) 0%, rgba(60, 35, 130, 0.18) 50%, transparent 80%),
-    radial-gradient(ellipse 75% 60% at 100% 70%, rgba(125, 55, 220, 0.30) 0%, rgba(75, 30, 140, 0.14) 50%, transparent 80%),
-    radial-gradient(ellipse 65% 55% at 0% 80%, rgba(80, 45, 170, 0.24) 0%, transparent 75%);
+    radial-gradient(ellipse 78% 52% at 50% -5%, rgba(105, 65, 210, 0.32) 0%, rgba(60, 35, 130, 0.14) 48%, transparent 78%),
+    radial-gradient(ellipse 62% 52% at 100% 72%, rgba(125, 55, 220, 0.26) 0%, rgba(75, 30, 140, 0.12) 48%, transparent 78%),
+    radial-gradient(ellipse 52% 46% at 0% 82%, rgba(80, 45, 170, 0.20) 0%, transparent 73%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
