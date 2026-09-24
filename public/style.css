@@ -4,9 +4,9 @@
 :root {
     --bg: #0b0911;
     --bg-gradient:
-    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(105, 65, 210, 0.28) 0%, rgba(60, 35, 130, 0.12) 45%, transparent 75%),
-    radial-gradient(ellipse 55% 45% at 100% 75%, rgba(125, 55, 220, 0.22) 0%, rgba(75, 30, 140, 0.10) 45%, transparent 75%),
-    radial-gradient(ellipse 45% 40% at 0% 85%, rgba(80, 45, 170, 0.16) 0%, transparent 70%);
+    radial-gradient(ellipse 90% 60% at 50% -5%, rgba(105, 65, 210, 0.38) 0%, rgba(60, 35, 130, 0.18) 50%, transparent 80%),
+    radial-gradient(ellipse 75% 60% at 100% 70%, rgba(125, 55, 220, 0.30) 0%, rgba(75, 30, 140, 0.14) 50%, transparent 80%),
+    radial-gradient(ellipse 65% 55% at 0% 80%, rgba(80, 45, 170, 0.24) 0%, transparent 75%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
@@ -19,7 +19,7 @@
     --text: #f5f5f7;
     --text-secondary: #98989f;
     --text-tertiary: #5a5a5f;
-    --accent: #0a84ff;
+    --accent: #7c3aed;
     --danger: #ff453a;
     --success: #32d74b;
     --warning: #ff9f0a;
