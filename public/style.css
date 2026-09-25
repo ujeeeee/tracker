@@ -2,8 +2,11 @@
    ПЕРЕМЕННЫЕ
    ========================================== */
 :root {
-    --bg: #0a0a0c;
-    --bg-gradient: radial-gradient(ellipse at top, #1a1a24 0%, #0a0a0c 60%);
+    --bg: #0b0911;
+    --bg-gradient:
+    radial-gradient(ellipse 78% 52% at 50% -5%, rgba(105, 65, 210, 0.32) 0%, rgba(60, 35, 130, 0.14) 48%, transparent 78%),
+    radial-gradient(ellipse 62% 52% at 100% 72%, rgba(125, 55, 220, 0.26) 0%, rgba(75, 30, 140, 0.12) 48%, transparent 78%),
+    radial-gradient(ellipse 52% 46% at 0% 82%, rgba(80, 45, 170, 0.20) 0%, transparent 73%);
     --glass: rgba(28, 28, 32, 0.5);
     --glass-strong: rgba(20, 20, 24, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
@@ -16,7 +19,7 @@
     --text: #f5f5f7;
     --text-secondary: #98989f;
     --text-tertiary: #5a5a5f;
-    --accent: #ff375f;
+    --accent: #7c3aed;
     --danger: #ff453a;
     --success: #32d74b;
     --warning: #ff9f0a;
@@ -36,7 +39,7 @@
     --text: #1c1c1e;
     --text-secondary: #5a5a5f;
     --text-tertiary: #8e8e93;
-    --accent: #ff375f;
+    --accent: #007aff;
     --danger: #ff3b30;
     --success: #34c759;
     --warning: #ff9f0a;
@@ -50,7 +53,9 @@ html, body { overflow-x: hidden; }
 body {
     background: var(--bg);
     background-image: var(--bg-gradient);
+    background-repeat: no-repeat;
     background-attachment: fixed;
+    min-height: 100vh;
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
@@ -792,7 +797,7 @@ body {
 
 /* ==========================================
    FILM
-   =========================================== */
+   ========================================== */
 .film-actions {
     display: flex; gap: 8px; align-items: center;
     margin-bottom: 14px;
@@ -1217,60 +1222,35 @@ textarea.modal-input {
 }
 .modal-close:active { opacity: 1; color: var(--text); transform: scale(0.9); }
 
-/* ===== v2 Liquid Glass / red accent / safe area ===== */
-body { padding-top: env(safe-area-inset-top); }
-.screen { padding-top: max(16px, env(safe-area-inset-top)); }
-.screen-content { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
-.screen::before { content:''; position:fixed; inset:0; pointer-events:none; background:radial-gradient(circle at 85% 10%, rgba(255,55,95,.08), transparent 35%); z-index:-1; }
-.settings-btn,.btn-icon-add,.budget-hero,.item-card,.group-card,.metric-card,.glass-card { box-shadow:0 10px 35px rgba(0,0,0,.16), inset 0 1px 0 var(--glass-highlight); }
-
-/* Right edge navigation */
-.bottom-nav { display:none !important; }
-.right-nav { position:fixed; right:8px; top:50%; transform:translateY(-50%); z-index:120; display:flex; align-items:center; gap:6px; }
-.right-nav-items { display:flex; flex-direction:column; gap:7px; padding:8px; border:1px solid var(--glass-border); border-radius:24px; background:var(--glass-strong); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); box-shadow:0 10px 35px rgba(0,0,0,.28), inset 0 1px 0 var(--glass-highlight); transform:translateX(70px); opacity:0; transition:.22s ease; }
-.right-nav.open .right-nav-items { transform:translateX(0); opacity:1; }
-.right-nav-item,.right-nav-handle { width:38px; height:38px; border-radius:50%; border:1px solid var(--glass-border); background:var(--glass); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; font-family:inherit; box-shadow:inset 0 1px 0 var(--glass-highlight); }
-.right-nav-item.active { background:rgba(255,55,95,.18); border-color:rgba(255,55,95,.38); }
-.right-nav-handle { flex:0 0 auto; font-size:16px; }
-
-/* Food */
-.food-subtitle { color:var(--text-secondary); font-size:12px; margin-top:2px; }
-.food-tabs { display:flex; gap:5px; overflow-x:auto; padding:5px 0 10px; scrollbar-width:none; }
-.food-tabs::-webkit-scrollbar { display:none; }
-.food-tab { flex:0 0 auto; border:1px solid var(--glass-border); background:var(--glass); color:var(--text-secondary); padding:9px 13px; border-radius:14px; font-family:inherit; font-size:12px; }
-.food-tab.active { background:rgba(255,55,95,.16); color:var(--text); border-color:rgba(255,55,95,.34); }
-.food-pane { display:none; }
-.food-pane.active { display:block; }
-.food-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:20px; padding:15px; margin-bottom:10px; backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%); box-shadow:0 12px 30px rgba(0,0,0,.14), inset 0 1px 0 var(--glass-highlight); }
-.food-card-title { display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:700; font-size:15px; }
-.food-muted { color:var(--text-secondary); font-size:12px; }
-.food-kcal { font-size:27px; font-weight:800; letter-spacing:-.8px; }
-.food-macros { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:12px; }
-.food-macro { background:rgba(255,255,255,.035); border:1px solid var(--glass-border); border-radius:13px; padding:9px; text-align:center; }
-.food-macro b { display:block; font-size:14px; }
-.food-macro span { color:var(--text-secondary); font-size:10px; }
-.food-progress { height:7px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:12px; }
-.food-progress > i { display:block; height:100%; background:var(--accent); border-radius:inherit; }
-.food-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid var(--glass-border); }
-.food-row:last-child { border-bottom:0; }
-.food-row-main { min-width:0; flex:1; }
-.food-row-name { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.food-row-meta { color:var(--text-secondary); font-size:11px; margin-top:3px; }
-.food-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
-.food-btn { border:1px solid var(--glass-border); background:var(--glass); color:var(--text); padding:9px 11px; border-radius:12px; font-family:inherit; font-size:12px; }
-.food-btn.primary { background:var(--accent); color:#fff; border-color:transparent; }
-.food-btn.danger { color:var(--danger); }
-.food-input { width:100%; background:var(--glass); border:1px solid var(--glass-border); color:var(--text); border-radius:12px; padding:10px 11px; outline:none; font-family:inherit; }
-.food-input:focus { border-color:rgba(255,55,95,.5); }
-.food-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.food-form-grid .full { grid-column:1/-1; }
-.food-label { display:block; color:var(--text-secondary); font-size:11px; margin:8px 0 5px; }
-.food-day { margin-bottom:12px; }
-.food-day-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-.food-day-date { font-weight:700; font-size:14px; }
-.food-meal { display:flex; align-items:center; gap:9px; padding:10px; margin-top:6px; background:rgba(255,255,255,.035); border:1px solid var(--glass-border); border-radius:14px; }
-.food-meal-type { width:54px; color:var(--text-secondary); font-size:10px; text-transform:uppercase; }
-.food-meal-name { flex:1; font-size:13px; font-weight:600; }
-.food-shopping-total { font-size:12px; color:var(--text-secondary); margin-bottom:8px; }
-.food-empty { color:var(--text-secondary); text-align:center; padding:25px 10px; font-size:13px; }
-@media (min-width:700px) { .right-nav { right:18px; } }
+/* ===== 100 ДНЕЙ ДО НГ ===== */
+.ny-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+}
+.ny-cell {
+    aspect-ratio: 1;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    transition: 0.15s;
+}
+.ny-cell.passed {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: rgba(255, 255, 255, 0.55);
+}
+.ny-cell.today {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    box-shadow: 0 0 12px rgba(10, 132, 255, 0.7);
+    transform: scale(1.15);
+    z-index: 1;
+}

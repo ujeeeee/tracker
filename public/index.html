@@ -26,6 +26,7 @@
                     <div id="mainTodosWidget"></div>
                     <div id="mainHabitsWidget"></div>
                     <div id="mainMoneyWidget"></div>
+                    <div id="mainNYWidget"></div>
                 </div>
             </div>
         </div>
@@ -74,7 +75,7 @@
             </div>
         </div>
 
-        <!-- ========== GYM =========== -->
+        <!-- ========== GYM ========== -->
         <div class="screen" data-screen-name="Gym">
             <div class="screen-inner">
                 <div class="screen-header">
@@ -280,21 +281,10 @@
         <div class="screen" data-screen-name="Food">
             <div class="screen-inner">
                 <div class="screen-header">
-                    <div><h2>🍽️ Food</h2><div class="food-subtitle" id="foodTodayLabel"></div></div>
+                    <h2>🍽️ Food</h2>
                     <button class="settings-btn" onclick="openSettings()">⚙️</button>
                 </div>
-                <div class="food-tabs">
-                    <button class="food-tab active" onclick="foodTab('dashboard',this)">Сегодня</button>
-                    <button class="food-tab" onclick="foodTab('recipes',this)">Рецепты</button>
-                    <button class="food-tab" onclick="foodTab('plan',this)">План</button>
-                    <button class="food-tab" onclick="foodTab('shopping',this)">Покупки</button>
-                </div>
-                <div class="screen-content">
-                    <section id="food-dashboard" class="food-pane active"></section>
-                    <section id="food-recipes-pane" class="food-pane"></section>
-                    <section id="food-plan-pane" class="food-pane"></section>
-                    <section id="food-shopping-pane" class="food-pane"></section>
-                </div>
+                <div class="screen-content"><p class="hint">Скоро.</p></div>
             </div>
         </div>
 
@@ -396,20 +386,6 @@
 <!-- ========================================== -->
 <!-- НИЖНЕЕ МЕНЮ -->
 <!-- ========================================== -->
-<nav class="right-nav" id="rightNav" aria-label="Разделы">
-    <button class="right-nav-handle" onclick="toggleRightNav()" aria-label="Открыть навигацию">☰</button>
-    <div class="right-nav-items">
-        <button class="right-nav-item active" data-index="0" onclick="goToScreen(0)">📱</button>
-        <button class="right-nav-item" data-index="1" onclick="goToScreen(1)">🎯</button>
-        <button class="right-nav-item" data-index="2" onclick="goToScreen(2)">💪</button>
-        <button class="right-nav-item" data-index="3" onclick="goToScreen(3)">💸</button>
-        <button class="right-nav-item" data-index="4" onclick="goToScreen(4)">📍</button>
-        <button class="right-nav-item" data-index="5" onclick="goToScreen(5)">🎬</button>
-        <button class="right-nav-item" data-index="6" onclick="goToScreen(6)">☕</button>
-        <button class="right-nav-item" data-index="7" onclick="goToScreen(7)">🍽️</button>
-    </div>
-</nav>
-
 <nav class="bottom-nav" id="bottomNav">
     <button class="nav-btn" data-index="0" onclick="goToScreen(0)"><span class="nav-icon">📱</span><span class="nav-label">Main</span></button>
     <button class="nav-btn" data-index="1" onclick="goToScreen(1)"><span class="nav-icon">🎯</span><span class="nav-label">Discipline</span></button>
