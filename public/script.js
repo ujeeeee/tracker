@@ -603,7 +603,7 @@ async function deleteHabit() {
 }
 
 // ==========================================
-// ===== DISCIPLINE: ДЕЛА =====
+// ===== DISCIPLINE: ДЕЛА ======
 // ==========================================
 let todos = [];
 let todoCtx = { id: null };
