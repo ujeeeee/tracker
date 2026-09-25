@@ -1575,6 +1575,87 @@ app.post('/api/import/discipline', authMiddleware, async (req, res) => {
     res.json({ added, groupsAdded: areasAdded });
 });
 
+
+
+// ==========================================
+// ===== FOOD / NUTRITION =====
+// ==========================================
+async function foodEnsureCategory(tg_id, name) {
+    const clean = String(name || 'Без категории').trim() || 'Без категории';
+    let { data } = await supabase.from('food_categories').select('*').eq('tg_id', tg_id).eq('name', clean).maybeSingle();
+    if (!data) {
+        const r = await supabase.from('food_categories').insert({ tg_id, name: clean }).select().single();
+        data = r.data;
+    }
+    return data;
+}
+async function foodHydrateRecipes(tg_id) {
+    const { data: recipes=[] } = await supabase.from('food_recipes').select('*').eq('tg_id', tg_id).order('created_at');
+    const ids=recipes.map(r=>r.id);
+    const { data: links=[] } = ids.length ? await supabase.from('food_recipe_ingredients').select('*').in('recipe_id',ids) : {data:[]};
+    const ingredientIds=[...new Set(links.map(x=>x.ingredient_id))];
+    const { data: ingredients=[] } = ingredientIds.length ? await supabase.from('food_ingredients').select('*').in('id',ingredientIds).eq('tg_id',tg_id) : {data:[]};
+    const im=new Map(ingredients.map(x=>[x.id,x]));
+    return recipes.map(r=>{
+        const ri=links.filter(x=>x.recipe_id===r.id).map(x=>({ ...x, name:im.get(x.ingredient_id)?.name, unit:im.get(x.ingredient_id)?.unit, ingredient:im.get(x.ingredient_id) })).filter(x=>x.ingredient);
+        const base=ri.reduce((a,x)=>{const i=x.ingredient, k=Number(x.amount||0)/Math.max(1,Number(r.servings||1));a.kcal+=Number(i.kcal||0)*Number(x.amount||0)/Math.max(1,Number(r.servings||1));a.protein+=Number(i.protein||0)*Number(x.amount||0)/Math.max(1,Number(r.servings||1));a.fat+=Number(i.fat||0)*Number(x.amount||0)/Math.max(1,Number(r.servings||1));a.carbs+=Number(i.carbs||0)*Number(x.amount||0)/Math.max(1,Number(r.servings||1));return a;},{kcal:0,protein:0,fat:0,carbs:0});
+        return {...r, ingredients:ri, ...base};
+    });
+}
+
+app.get('/api/food', authMiddleware, async (req,res)=>{
+    const tg=req.tg_id;
+    const [catsR,ingR,recipes,planR,logsR,setR]=await Promise.all([
+        supabase.from('food_categories').select('*').eq('tg_id',tg).order('sort_order').order('name'),
+        supabase.from('food_ingredients').select('*').eq('tg_id',tg).order('name'),
+        foodHydrateRecipes(tg),
+        supabase.from('food_plan').select('*').eq('tg_id',tg).order('plan_date').order('meal_type'),
+        supabase.from('food_logs').select('*').eq('tg_id',tg).order('eaten_at', {ascending:false}).limit(500),
+        supabase.from('food_settings').select('*').eq('tg_id',tg).maybeSingle(),
+    ]);
+    const categories=catsR.data||[]; const ingredients=ingR.data||[]; const plan=planR.data||[]; const logs=logsR.data||[]; const settings=setR.data||null;
+    // Auto-create a few useful categories for a fresh user.
+    if(!categories.length){
+        for(const name of ['Завтраки','Супы','Обеды','Ужины','Перекусы']) await foodEnsureCategory(tg,name);
+    }
+    const finalCats=categories.length?categories:(await supabase.from('food_categories').select('*').eq('tg_id',tg).order('sort_order').order('name')).data||[];
+    const start=new Date(); start.setHours(0,0,0,0); const end=new Date(start); end.setDate(end.getDate()+30); const endStr=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;
+    const plan30=plan.filter(x=>x.plan_date<=endStr);
+    const map=new Map();
+    for(const p of plan30){const r=recipes.find(x=>Number(x.id)===Number(p.recipe_id)); if(!r)continue; for(const ri of (r.ingredients||[])){const key=ri.ingredient_id; const cur=map.get(key)||{name:ri.name,unit:ri.unit,amount:0}; cur.amount+=Number(ri.amount||0)*Number(p.servings||1); map.set(key,cur);}}
+    res.json({categories:finalCats,ingredients,recipes,plan,logs,settings,shopping:[...map.values()]});
+});
+
+app.post('/api/food/ingredients', authMiddleware, async (req,res)=>{
+    const {name,unit='g',kcal=0,protein=0,fat=0,carbs=0}=req.body||{};
+    if(!String(name||'').trim()) return res.status(400).json({error:'Name required'});
+    const r=await supabase.from('food_ingredients').upsert({tg_id:req.tg_id,name:String(name).trim(),unit:String(unit||'g').trim(),kcal:Number(kcal)||0,protein:Number(protein)||0,fat:Number(fat)||0,carbs:Number(carbs)||0},{onConflict:'tg_id,name'}).select().single();
+    if(r.error)return res.status(400).json({error:r.error.message}); res.json(r.data);
+});
+app.post('/api/food/recipes', authMiddleware, async (req,res)=>{
+    const {name,category_id,description='',servings=1,ingredients=[]}=req.body||{};
+    if(!String(name||'').trim())return res.status(400).json({error:'Name required'});
+    const cat=category_id?category_id:(await foodEnsureCategory(req.tg_id,'Без категории'))?.id;
+    const r=await supabase.from('food_recipes').insert({tg_id:req.tg_id,name:String(name).trim(),category_id:cat,description,servings:Number(servings)||1}).select().single();
+    if(r.error)return res.status(400).json({error:r.error.message});
+    for(const item of ingredients){ if(!item?.name)continue; const ing=await supabase.from('food_ingredients').upsert({tg_id:req.tg_id,name:String(item.name).trim(),unit:'г'},{onConflict:'tg_id,name'}).select().single(); if(ing.data)await supabase.from('food_recipe_ingredients').insert({recipe_id:r.data.id,ingredient_id:ing.data.id,amount:Number(item.amount)||0}); }
+    res.json(r.data);
+});
+app.patch('/api/food/recipes/:id', authMiddleware, async (req,res)=>{
+    const id=req.params.id; const {name,category_id,description='',servings=1,ingredients=[]}=req.body||{};
+    const own=await supabase.from('food_recipes').select('id').eq('id',id).eq('tg_id',req.tg_id).maybeSingle(); if(!own.data)return res.status(404).json({error:'Not found'});
+    const r=await supabase.from('food_recipes').update({name:String(name||'').trim(),category_id:category_id||null,description,servings:Number(servings)||1,updated_at:new Date().toISOString()}).eq('id',id).eq('tg_id',req.tg_id).select().single();
+    await supabase.from('food_recipe_ingredients').delete().eq('recipe_id',id);
+    for(const item of ingredients){ if(!item?.name)continue; const ing=await supabase.from('food_ingredients').upsert({tg_id:req.tg_id,name:String(item.name).trim(),unit:'г'},{onConflict:'tg_id,name'}).select().single(); if(ing.data)await supabase.from('food_recipe_ingredients').insert({recipe_id:id,ingredient_id:ing.data.id,amount:Number(item.amount)||0}); }
+    res.json(r.data);
+});
+app.delete('/api/food/recipes/:id', authMiddleware, async(req,res)=>{await supabase.from('food_recipes').delete().eq('id',req.params.id).eq('tg_id',req.tg_id);res.json({ok:true});});
+app.post('/api/food/plan', authMiddleware, async(req,res)=>{const {plan_date,meal_type='other',recipe_id,servings=1,note=''}=req.body||{};if(!/^\d{4}-\d{2}-\d{2}$/.test(plan_date||'')||!recipe_id)return res.status(400).json({error:'Invalid plan'});const r=await supabase.from('food_plan').upsert({tg_id:req.tg_id,plan_date,meal_type,recipe_id,servings:Number(servings)||1,note},{onConflict:'tg_id,plan_date,meal_type'}).select().single();if(r.error)return res.status(400).json({error:r.error.message});res.json(r.data);});
+app.delete('/api/food/plan/:id', authMiddleware, async(req,res)=>{await supabase.from('food_plan').delete().eq('id',req.params.id).eq('tg_id',req.tg_id);res.json({ok:true});});
+app.post('/api/food/logs', authMiddleware, async(req,res)=>{const {meal_type='other',recipe_id,servings=1,note=''}=req.body||{};const r=await supabase.from('food_logs').insert({tg_id:req.tg_id,meal_type,recipe_id:recipe_id||null,servings:Number(servings)||1,note}).select().single();if(r.error)return res.status(400).json({error:r.error.message});res.json(r.data);});
+app.delete('/api/food/logs/:id', authMiddleware, async(req,res)=>{await supabase.from('food_logs').delete().eq('id',req.params.id).eq('tg_id',req.tg_id);res.json({ok:true});});
+app.post('/api/food/settings', authMiddleware, async(req,res)=>{const {goal='maintain',kcal_target=null,protein_target=null,fat_target=null,carbs_target=null}=req.body||{};const r=await supabase.from('food_settings').upsert({tg_id:req.tg_id,goal,kcal_target,protein_target,fat_target,carbs_target,updated_at:new Date().toISOString()},{onConflict:'tg_id'}).select().single();if(r.error)return res.status(400).json({error:r.error.message});res.json(r.data);});
+
 // ==========================================
 // ===== ЗАПУСК =====
 // ==========================================
