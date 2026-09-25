@@ -307,7 +307,6 @@ function renderMain(data) {
     renderMainTodos(data.todos);
     renderMainHabits(data.habits);
     renderMainMoney(data.money);
-    renderNYWidget();
 }
 
 function renderMainGreeting() {
@@ -388,46 +387,6 @@ function renderMainMoney(money) {
         </div>
         <div style="flex:1;"></div>
     </div>`;
-}
-
-function renderNYWidget() {
-    const c = document.getElementById('mainNYWidget');
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    // Новый год — 1 января следующего года
-    const ny = new Date(now.getFullYear() + 1, 0, 1);
-
-    // Старт — за 99 дней до НГ, чтобы последний (100-й) квадрат был самим НГ
-    const start = new Date(ny);
-    start.setDate(start.getDate() - 99);
-
-    const todayStr = localDate(now);
-    const daysLeft = Math.round((ny - now) / 86400000);
-
-    let cells = '';
-    for (let i = 0; i < 100; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        const ds = localDate(d);
-
-        let cls = 'ny-cell';
-        if (ds < todayStr) cls += ' passed';
-        else if (ds === todayStr) cls += ' today';
-        else cls += ' future';
-
-        cells += `<div class="${cls}">${d.getDate()}</div>`;
-    }
-
-    c.innerHTML = `
-        <div class="widget">
-            <div class="widget-title">
-                <span>До Нового года</span>
-                <span class="widget-title-count">${daysLeft} дн.</span>
-            </div>
-            <div class="ny-grid">${cells}</div>
-        </div>
-    `;
 }
 
 function toggleMoneyBlur(el) {
@@ -3145,3 +3104,91 @@ document.addEventListener('DOMContentLoaded', beautifyModals);
         await loadMain();
     }
 })();
+
+// ==========================================
+// ===== FOOD v2 =====
+// ==========================================
+let foodState = { recipes: [], categories: [], ingredients: [], plan: [], logs: [], settings: null, shopping: [] };
+let foodActiveTab = 'dashboard';
+
+function foodEsc(s){ return escapeHtml(s ?? ''); }
+function foodNum(n){ const x=Number(n||0); return Math.round(x*10)/10; }
+function foodDate(d){ const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; }
+function foodToday(){ return foodDate(new Date()); }
+function foodDateLabel(s){ return new Date(s+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'short'}); }
+function foodCategoryName(id){ return foodState.categories.find(x=>Number(x.id)===Number(id))?.name || 'Без категории'; }
+function foodRecipe(id){ return foodState.recipes.find(x=>Number(x.id)===Number(id)); }
+function foodRecipeKcal(r){ return Number(r?.kcal||0); }
+
+async function loadFood(){
+    try { foodState = await api('/api/food'); renderFood(); } catch(e){ console.error(e); }
+}
+function foodTab(tab, btn){
+    foodActiveTab=tab;
+    document.querySelectorAll('.food-tab').forEach(x=>x.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    document.querySelectorAll('.food-pane').forEach(x=>x.classList.remove('active'));
+    document.getElementById('food-'+(tab==='dashboard'?'dashboard':tab+'-pane'))?.classList.add('active');
+    renderFood();
+}
+function renderFood(){
+    const label=document.getElementById('foodTodayLabel'); if(label) label.textContent=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+    if(foodActiveTab==='dashboard') renderFoodDashboard();
+    if(foodActiveTab==='recipes') renderFoodRecipes();
+    if(foodActiveTab==='plan') renderFoodPlan();
+    if(foodActiveTab==='shopping') renderFoodShopping();
+}
+function foodTotals(items){ return (items||[]).reduce((a,x)=>{ const r=foodRecipe(x.recipe_id); const s=Number(x.servings||1); if(r){a.kcal+=Number(r.kcal||0)*s;a.protein+=Number(r.protein||0)*s;a.fat+=Number(r.fat||0)*s;a.carbs+=Number(r.carbs||0)*s;} return a; },{kcal:0,protein:0,fat:0,carbs:0}); }
+function foodMacroHTML(t){ return `<div class="food-macros"><div class="food-macro"><b>${foodNum(t.protein)} г</b><span>Белки</span></div><div class="food-macro"><b>${foodNum(t.fat)} г</b><span>Жиры</span></div><div class="food-macro"><b>${foodNum(t.carbs)} г</b><span>Углеводы</span></div></div>`; }
+function renderFoodDashboard(){
+    const c=document.getElementById('food-dashboard'); if(!c)return;
+    const today=foodState.logs.filter(x=>foodDate(x.eaten_at||x.created_at)===foodToday());
+    const t=foodTotals(today), s=foodState.settings||{};
+    const target=Number(s.kcal_target||0), pct=target?Math.min(100,t.kcal/target*100):0;
+    c.innerHTML=`<div class="food-card"><div class="food-card-title"><span>Сегодня</span><span class="food-muted">${foodNum(t.kcal)} / ${target||'—'} ккал</span></div><div class="food-kcal">${foodNum(t.kcal)} ккал</div>${foodMacroHTML(t)}${target?`<div class="food-progress"><i style="width:${pct}%"></i></div>`:''}<div class="food-actions"><button class="food-btn primary" onclick="foodOpenLog()">+ Записать еду</button><button class="food-btn" onclick="foodOpenSettings()">Цель</button></div></div>
+    <div class="food-card"><div class="food-card-title"><span>Дневник</span><span class="food-muted">${today.length} записей</span></div>${today.length?today.map(x=>{const r=foodRecipe(x.recipe_id);return `<div class="food-row"><div class="food-row-main"><div class="food-row-name">${foodEsc(r?.name||x.note||'Еда')}</div><div class="food-row-meta">${foodEsc(x.meal_type)} · ${foodNum(x.servings)} порц. · ${foodNum((r?.kcal||0)*Number(x.servings||1))} ккал</div></div><button class="food-btn danger" onclick="foodDeleteLog(${x.id})">×</button></div>`}).join(''):`<div class="food-empty">Пока ничего не записано.</div>`}</div>`;
+}
+function renderFoodRecipes(){
+    const c=document.getElementById('food-recipes-pane'); if(!c)return;
+    c.innerHTML=`<div class="food-card"><div class="food-card-title"><span>Рецепты</span><button class="food-btn primary" onclick="foodOpenRecipe()">+ Рецепт</button></div><div class="food-actions"><button class="food-btn" onclick="foodOpenIngredient()">+ Ингредиент</button></div></div>`+
+    (foodState.recipes.length?foodState.recipes.map(r=>`<div class="food-card"><div class="food-card-title"><span>${foodEsc(r.name)}</span><span class="food-muted">${foodEsc(foodCategoryName(r.category_id))}</span></div><div class="food-row-meta">${foodNum(r.servings)} порц. · ${foodNum(r.kcal)} ккал · Б ${foodNum(r.protein)} · Ж ${foodNum(r.fat)} · У ${foodNum(r.carbs)}</div><div class="food-actions"><button class="food-btn" onclick="foodOpenRecipe(${r.id})">Изменить</button><button class="food-btn danger" onclick="foodDeleteRecipe(${r.id})">Удалить</button></div></div>`).join(''):`<div class="food-empty">Создай первый рецепт.</div>`);
+}
+function renderFoodPlan(){
+    const c=document.getElementById('food-plan-pane'); if(!c)return;
+    const start=new Date(); start.setDate(1); const days=30;
+    let html=`<div class="food-card"><div class="food-card-title"><span>План питания</span><button class="food-btn primary" onclick="foodOpenPlan()">+ Блюдо</button></div><div class="food-muted">Показываются ближайшие 30 дней.</div></div>`;
+    for(let i=0;i<days;i++){const d=new Date(start);d.setDate(start.getDate()+i);const ds=foodDate(d);const rows=foodState.plan.filter(x=>x.plan_date===ds); if(!rows.length)continue; html+=`<div class="food-day"><div class="food-day-head"><div class="food-day-date">${foodEsc(foodDateLabel(ds))}</div></div>${rows.map(x=>{const r=foodRecipe(x.recipe_id);return `<div class="food-meal"><span class="food-meal-type">${foodEsc(x.meal_type)}</span><span class="food-meal-name">${foodEsc(r?.name||'—')} × ${foodNum(x.servings)}</span><button class="food-btn danger" onclick="foodDeletePlan(${x.id})">×</button></div>`}).join('')}</div>`;}
+    c.innerHTML=html+(html.includes('food-day')?'':'<div class="food-empty">План пока пуст.</div>');
+}
+function renderFoodShopping(){
+    const c=document.getElementById('food-shopping-pane'); if(!c)return;
+    c.innerHTML=`<div class="food-card"><div class="food-card-title"><span>Список покупок</span><button class="food-btn" onclick="loadFood()">Обновить</button></div><div class="food-shopping-total">Суммировано из планов на ближайшие 30 дней.</div>${foodState.shopping.length?foodState.shopping.map(x=>`<div class="food-row"><div class="food-row-main"><div class="food-row-name">${foodEsc(x.name)}</div><div class="food-row-meta">${foodNum(x.amount)} ${foodEsc(x.unit)}</div></div></div>`).join(''):'<div class="food-empty">Добавь блюда в план — список появится автоматически.</div>'}</div>`;
+}
+function foodModal(title,body){ const id='foodDynamicModal';document.getElementById(id)?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay open" id="${id}"><div class="modal-sheet"><div class="modal-handle"></div><button class="modal-close" onclick="document.getElementById('${id}').remove()">✕</button><h3 class="modal-title">${title}</h3>${body}</div></div>`); return document.getElementById(id); }
+function foodCloseModal(){document.getElementById('foodDynamicModal')?.remove();}
+function foodOpenIngredient(){ const m=foodModal('Новый ингредиент',`<label class="food-label">Название</label><input class="food-input" id="fiName"><div class="food-form-grid"><div><label class="food-label">Единица</label><input class="food-input" id="fiUnit" value="г"></div><div><label class="food-label">Ккал / ед.</label><input class="food-input" id="fiKcal" type="number" step="0.1" value="0"></div><div><label class="food-label">Белки / ед.</label><input class="food-input" id="fiP" type="number" step="0.1" value="0"></div><div><label class="food-label">Жиры / ед.</label><input class="food-input" id="fiF" type="number" step="0.1" value="0"></div><div><label class="food-label">Углеводы / ед.</label><input class="food-input" id="fiC" type="number" step="0.1" value="0"></div></div><div class="modal-actions"><button class="modal-btn primary" onclick="foodSaveIngredient()">Сохранить</button></div>`); }
+async function foodSaveIngredient(){const p={name:fiName.value.trim(),unit:fiUnit.value.trim()||'г',kcal:Number(fiKcal.value)||0,protein:Number(fiP.value)||0,fat:Number(fiF.value)||0,carbs:Number(fiC.value)||0};if(!p.name)return;await api('/api/food/ingredients','POST',p);foodCloseModal();await loadFood();}
+function foodOpenRecipe(id=null){const r=id?foodRecipe(id):null;const ingredients=foodState.ingredients; const m=foodModal(id?'Изменить рецепт':'Новый рецепт',`<label class="food-label">Название</label><input class="food-input" id="frName" value="${foodEsc(r?.name||'')}"><div class="food-form-grid"><div><label class="food-label">Категория</label><select class="food-input" id="frCat">${foodState.categories.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(r?.category_id)?'selected':''}>${foodEsc(x.name)}</option>`).join('')}</select></div><div><label class="food-label">Порций</label><input class="food-input" id="frServ" type="number" step="0.1" value="${r?.servings||1}"></div><div class="full"><label class="food-label">Описание</label><textarea class="food-input" id="frDesc" rows="3">${foodEsc(r?.description||'')}</textarea></div></div><label class="food-label">Ингредиенты: формат «продукт | количество», по одному в строке</label><textarea class="food-input" id="frIng" rows="7">${(r?.ingredients||[]).map(x=>`${x.name} | ${x.amount}`).join('\n')}</textarea><div class="modal-actions">${id?`<button class="modal-btn danger" onclick="foodDeleteRecipe(${id});foodCloseModal()">Удалить</button>`:''}<button class="modal-btn primary" onclick="foodSaveRecipe(${id||'null'})">Сохранить</button></div>`); }
+async function foodSaveRecipe(id){const lines=frIng.value.split('\n').map(x=>x.trim()).filter(Boolean);const ingredients=lines.map(x=>{const p=x.split('|');return {name:p[0].trim(),amount:Number(p[1])||0};});const p={name:frName.value.trim(),category_id:Number(frCat.value)||null,description:frDesc.value,servings:Number(frServ.value)||1,ingredients};if(!p.name)return;await api(id?`/api/food/recipes/${id}`:' /api/food/recipes'.trim(),id?'PATCH':'POST',p);foodCloseModal();await loadFood();}
+async function foodDeleteRecipe(id){if(!confirm('Удалить рецепт?'))return;await api('/api/food/recipes/'+id,'DELETE');await loadFood();}
+function foodOpenPlan(){const m=foodModal('Добавить в план',`<label class="food-label">Дата</label><input class="food-input" id="fpDate" type="date" value="${foodToday()}"><label class="food-label">Приём пищи</label><select class="food-input" id="fpMeal"><option value="breakfast">Завтрак</option><option value="lunch">Обед</option><option value="dinner">Ужин</option><option value="snack">Перекус</option></select><label class="food-label">Рецепт</label><select class="food-input" id="fpRecipe">${foodState.recipes.map(x=>`<option value="${x.id}">${foodEsc(x.name)}</option>`).join('')}</select><label class="food-label">Порции</label><input class="food-input" id="fpServ" type="number" step="0.1" value="1"><div class="modal-actions"><button class="modal-btn primary" onclick="foodSavePlan()">Сохранить</button></div>`);}
+async function foodSavePlan(){await api('/api/food/plan','POST',{plan_date:fpDate.value,meal_type:fpMeal.value,recipe_id:Number(fpRecipe.value),servings:Number(fpServ.value)||1});foodCloseModal();await loadFood();foodTab('plan',document.querySelector('.food-tab:nth-child(3)'));}
+async function foodDeletePlan(id){await api('/api/food/plan/'+id,'DELETE');await loadFood();}
+function foodOpenLog(){const m=foodModal('Записать еду',`<label class="food-label">Приём пищи</label><select class="food-input" id="flMeal"><option value="breakfast">Завтрак</option><option value="lunch">Обед</option><option value="dinner">Ужин</option><option value="snack">Перекус</option></select><label class="food-label">Рецепт</label><select class="food-input" id="flRecipe">${foodState.recipes.map(x=>`<option value="${x.id}">${foodEsc(x.name)}</option>`).join('')}</select><label class="food-label">Порции</label><input class="food-input" id="flServ" type="number" step="0.1" value="1"><div class="modal-actions"><button class="modal-btn primary" onclick="foodSaveLog()">Сохранить</button></div>`);}
+async function foodSaveLog(){await api('/api/food/logs','POST',{meal_type:flMeal.value,recipe_id:Number(flRecipe.value),servings:Number(flServ.value)||1});foodCloseModal();await loadFood();}
+async function foodDeleteLog(id){await api('/api/food/logs/'+id,'DELETE');await loadFood();}
+function foodOpenSettings(){const s=foodState.settings||{};foodModal('Цель питания',`<label class="food-label">Цель</label><select class="food-input" id="fsGoal"><option value="gain" ${s.goal==='gain'?'selected':''}>Набор</option><option value="maintain" ${s.goal==='maintain'?'selected':''}>Поддержание</option><option value="loss" ${s.goal==='loss'?'selected':''}>Снижение</option><option value="custom" ${s.goal==='custom'?'selected':''}>Своя</option></select><div class="food-form-grid"><div><label class="food-label">Ккал / день</label><input class="food-input" id="fsK" type="number" value="${s.kcal_target||''}"></div><div><label class="food-label">Белки</label><input class="food-input" id="fsP" type="number" value="${s.protein_target||''}"></div><div><label class="food-label">Жиры</label><input class="food-input" id="fsF" type="number" value="${s.fat_target||''}"></div><div><label class="food-label">Углеводы</label><input class="food-input" id="fsC" type="number" value="${s.carbs_target||''}"></div></div><div class="modal-actions"><button class="modal-btn primary" onclick="foodSaveSettings()">Сохранить</button></div>`);}
+async function foodSaveSettings(){await api('/api/food/settings','POST',{goal:fsGoal.value,kcal_target:Number(fsK.value)||null,protein_target:Number(fsP.value)||null,fat_target:Number(fsF.value)||null,carbs_target:Number(fsC.value)||null});foodCloseModal();await loadFood();}
+
+// Navigation: right-side hidden capsule.
+function toggleRightNav(){document.getElementById('rightNav')?.classList.toggle('open');}
+function closeRightNav(){document.getElementById('rightNav')?.classList.remove('open');}
+const _originalGoToScreen = goToScreen;
+goToScreen = function(index){ _originalGoToScreen(index); document.querySelectorAll('.right-nav-item').forEach(x=>x.classList.toggle('active',Number(x.dataset.index)===index)); closeRightNav(); if(index===7) loadFood(); };
+// Edge swipe opens the menu.
+let _edgeX=0;
+document.addEventListener('touchstart',e=>{if(e.touches?.[0])_edgeX=e.touches[0].clientX;},{passive:true});
+document.addEventListener('touchend',e=>{const x=e.changedTouches?.[0]?.clientX||0;if(_edgeX>window.innerWidth-24 && _edgeX-x>35) document.getElementById('rightNav')?.classList.add('open');},{passive:true});
+
+const _oldRerenderCurrent=rerenderCurrent;
+rerenderCurrent=function(){_oldRerenderCurrent();if(currentScreenIndex===7)renderFood();};
